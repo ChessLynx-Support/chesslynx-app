@@ -1,0 +1,20 @@
+{
+  "expo": {
+    "name": "ChessLynx",
+    "slug": "chesslynx",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.chesslynx.app"
+    },
+    "android": {
+      "package": "com.chesslynx.app"
+    },
+    "extra": {
+      "note": "Firebase-Config in src/lib/firebase.ts über Umgebungsvariablen befüllen, siehe README."
+    }
+  }
+}
