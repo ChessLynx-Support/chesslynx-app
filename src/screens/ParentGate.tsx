@@ -7,14 +7,55 @@
 // für die Kind-UI, Eltern-Text ist explizit erlaubt).
 
 import { useRef, useState } from "react";
-import { View, Text, Pressable, TextInput, StyleSheet, PanResponder } from "react-native";
+import { View, Text, Pressable, TextInput, StyleSheet, PanResponder, Platform } from "react-native";
+// `Pressable` wird unten nur noch für den Rechenaufgabe-Bestätigen-Button gebraucht,
+// nicht mehr für den Halt-Bereich (siehe Korrektur vom 2026-09-04 unten).
 
 const HOLD_DURATION_MS = 3000;
 
-function randomMathProblem() {
-  const a = Math.floor(Math.random() * 6) + 3; // 3..8
-  const b = Math.floor(Math.random() * 6) + 2; // 2..7
-  return { a, b, answer: a + b };
+// Korrektur (2026-09-04, gefunden beim ersten echten Test im Browser): Auf der
+// Web-Plattform interpretiert der Browser ein gehaltenes Mausklicken auf Text/View
+// standardmäßig als Text-Markierung ("select") statt als Beginn einer Wisch-Geste —
+// der Nutzer sah dadurch nur blau markierten Text, PanResponder bekam die Freigabe-
+// Geste nie zu fassen, weil die native Browser-Selektion "gewinnt". `userSelect`/
+// `WebkitUserSelect`/`WebkitTouchCallout` sind reine Web-CSS-Eigenschaften, die
+// react-native-web unverändert durchreicht; auf nativen Plattformen (iOS/Android)
+// werden sie schlicht ignoriert, dort gab es das Problem ohnehin nie (kein
+// Text-Selektions-Verhalten bei Touch-Long-Press).
+// `as any`, weil `userSelect`/`WebkitUserSelect`/`WebkitTouchCallout` reine Web-CSS-
+// Eigenschaften sind, die in den React-Native-Style-Typen (ViewStyle/TextStyle) nicht
+// deklariert sind — react-native-web akzeptiert sie trotzdem zur Laufzeit anstandslos.
+const webNoTextSelect: any =
+  Platform.OS === "web"
+    ? { userSelect: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none" }
+    : {};
+
+function zufallsZahl(min: number, max: number): number {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+// Update (Nutzer-Feedback 2026-09-07): Die bisherige einstellige Addition (z. B.
+// "7 + 4") konnte von der 5-jährigen Tochter des Nutzers bereits gelesen UND gelöst
+// werden — als Kind-Sperre damit zu schwach. Jetzt drei zufällig gewählte Aufgaben-
+// typen, alle bewusst jenseits dessen, was im Vorschulalter/der 1. Klasse üblich
+// unterrichtet wird (zweistellige Addition/Subtraktion mit Übertrag, kleines Einmaleins
+// im oberen Bereich 6–9), für einen Erwachsenen aber weiterhin im Kopf und in
+// Sekunden lösbar.
+function randomMathProblem(): { frage: string; answer: number } {
+  const art = Math.floor(Math.random() * 3);
+  if (art === 0) {
+    const a = zufallsZahl(23, 89);
+    const b = zufallsZahl(14, 77);
+    return { frage: `${a} + ${b}`, answer: a + b };
+  }
+  if (art === 1) {
+    const a = zufallsZahl(40, 99);
+    const b = zufallsZahl(12, a - 5); // b immer deutlich kleiner als a, kein negatives Ergebnis
+    return { frage: `${a} − ${b}`, answer: a - b };
+  }
+  const a = zufallsZahl(6, 9);
+  const b = zufallsZahl(6, 9);
+  return { frage: `${a} × ${b}`, answer: a * b };
 }
 
 export function ParentGate({ onUnlocked }: { onUnlocked: () => void }) {
@@ -25,29 +66,41 @@ export function ParentGate({ onUnlocked }: { onUnlocked: () => void }) {
   const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const holdComplete = useRef(false);
 
+  // Korrektur (2026-09-04, gefunden beim ersten echten Test): Vorher lag hier ein
+  // PanResponder auf der äußeren View UND ein separates Pressable (für den Halt) auf
+  // einer verschachtelten inneren View. Im React-Native-Responder-System beansprucht
+  // die INNERSTE Komponente unter dem Finger/Mauszeiger die "Responder"-Rolle zuerst —
+  // das verschachtelte Pressable hat den PanResponder der äußeren View dadurch nie zum
+  // Zug kommen lassen, seine Bewegungserkennung (onPanResponderMove/-Release) wurde nie
+  // aufgerufen. Betraf jede Plattform, ist aber erst beim ersten echten Wisch-Test
+  // aufgefallen. Fix: nur noch EIN Handler für die gesamte Halt+Wisch-Geste — der
+  // PanResponder selbst übernimmt jetzt auch den Halt-Start (`onPanResponderGrant`,
+  // das React-Native-Äquivalent zu Pressables `onPressIn`) statt eines eigenen,
+  // konkurrierenden Pressable.
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
+      onPanResponderGrant: () => {
+        holdComplete.current = false;
+        holdTimer.current = setTimeout(() => {
+          holdComplete.current = true;
+        }, HOLD_DURATION_MS);
+      },
       onPanResponderRelease: (_evt, gesture) => {
+        if (holdTimer.current) clearTimeout(holdTimer.current);
         // Wischen nur werten, wenn der 3-Sekunden-Halt vorher abgeschlossen wurde
         // UND eine tatsächliche Wischbewegung stattfand (kein bloßes Tippen).
         if (holdComplete.current && Math.abs(gesture.dx) > 60) {
           setStage("math");
         }
       },
+      onPanResponderTerminate: () => {
+        // Falls das Betriebssystem/der Browser den Responder abbricht (z. B. Wechsel
+        // zu einem anderen Tab mitten im Halten) — Timer trotzdem sauber aufräumen.
+        if (holdTimer.current) clearTimeout(holdTimer.current);
+      },
     })
   ).current;
-
-  function handlePressIn() {
-    holdComplete.current = false;
-    holdTimer.current = setTimeout(() => {
-      holdComplete.current = true;
-    }, HOLD_DURATION_MS);
-  }
-
-  function handlePressOut() {
-    if (holdTimer.current) clearTimeout(holdTimer.current);
-  }
 
   function checkAnswer() {
     if (Number(input) === problem.answer) {
@@ -60,14 +113,10 @@ export function ParentGate({ onUnlocked }: { onUnlocked: () => void }) {
 
   if (stage === "hold") {
     return (
-      <View style={styles.container} {...panResponder.panHandlers}>
-        <Pressable
-          style={styles.holdArea}
-          onPressIn={handlePressIn}
-          onPressOut={handlePressOut}
-        >
-          <Text style={styles.hint}>Für Eltern: 3 Sekunden halten, dann wischen</Text>
-        </Pressable>
+      <View style={[styles.container, webNoTextSelect]} {...panResponder.panHandlers}>
+        <View style={[styles.holdArea, webNoTextSelect]}>
+          <Text style={[styles.hint, webNoTextSelect]}>Für Eltern: 3 Sekunden halten, dann wischen</Text>
+        </View>
       </View>
     );
   }
@@ -75,9 +124,7 @@ export function ParentGate({ onUnlocked }: { onUnlocked: () => void }) {
   return (
     <View style={styles.container}>
       <Text style={styles.hint}>Bitte löse zur Bestätigung:</Text>
-      <Text style={styles.problem}>
-        {problem.a} + {problem.b} = ?
-      </Text>
+      <Text style={styles.problem}>{problem.frage} = ?</Text>
       <TextInput
         style={styles.input}
         value={input}
@@ -86,7 +133,9 @@ export function ParentGate({ onUnlocked }: { onUnlocked: () => void }) {
           setError(false);
         }}
         keyboardType="number-pad"
-        maxLength={2}
+        // 3 statt bisher 2 Stellen — die zweistellige Addition kann jetzt bis 166 gehen
+        // (z. B. 89 + 77), siehe randomMathProblem() oben.
+        maxLength={3}
         autoFocus
       />
       {error && <Text style={styles.error}>Nicht ganz — versuch's nochmal.</Text>}

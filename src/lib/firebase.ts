@@ -1,28 +1,97 @@
 // Firebase-Grundgerüst gemäß konzept/technisches_konzept.md, Abschnitt 2 (Spark-Plan:
 // Authentication + Firestore) und Abschnitt 5 (Datenmodell).
 //
-// ACHTUNG: Platzhalter-Config. Vor dem ersten Start ein eigenes Firebase-Projekt anlegen
-// (console.firebase.google.com, kostenloser Spark-Plan reicht laut Konzeptdokument) und
-// die Werte unten durch die echten aus den Projekteinstellungen ersetzen. Niemals echte
-// Keys in ein öffentliches Repo committen — für Expo üblich: über `.env` + `app.config.ts`
-// statt hier hart kodiert.
+// Update (2026-09-04): Echtes Firebase-Projekt "ChessLynx" (Spark-Tarif) steht. Die
+// Werte unten sind 1:1 aus Projekteinstellungen → Allgemein → Meine Apps übernommen.
+// Firestore-Standort bewusst eur3 (Europa) gewählt, nicht der Vorschlagswert nam5 —
+// aus Datenschutzgründen für eine Kinder-App mit Sitz/Zielgruppe in Deutschland (siehe
+// datenschutz_store_pruefung.md im Claude-Projekt). E-Mail/Passwort-Anmeldung ist in
+// Authentication aktiviert, die Firestore-Sicherheitsregel unten unter "Firestore-Pfade"
+// ist bereits in der Konsole veröffentlicht.
+//
+// Hinweis für später (kein akuter Fix nötig, da Spark-Tarif + privates Repo): Für ein
+// öffentliches Repo gehören diese Werte nicht hart kodiert hierher, sondern in `.env` +
+// `app.config.ts` (Expo-üblich) — Firebase-Web-Config-Werte sind zwar keine Geheimnisse
+// (sie werden clientseitig ohnehin ausgeliefert), aber die Trennung ist trotzdem guter Stil.
 
+import { Platform } from "react-native";
 import { initializeApp, type FirebaseOptions } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import {
+  browserLocalPersistence,
+  getReactNativePersistence,
+  initializeAuth,
+} from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const firebaseConfig: FirebaseOptions = {
-  apiKey: "TODO_AUS_FIREBASE_CONSOLE",
-  authDomain: "TODO.firebaseapp.com",
-  projectId: "TODO",
-  storageBucket: "TODO.appspot.com",
-  messagingSenderId: "TODO",
-  appId: "TODO",
+  apiKey: "AIzaSyDUjcfKb_JwtIqEeE5Y4L7ZoNwjQFgT7XI",
+  authDomain: "chelynx.firebaseapp.com",
+  projectId: "chelynx",
+  storageBucket: "chelynx.firebasestorage.app",
+  messagingSenderId: "94955044847",
+  appId: "1:94955044847:web:9e314c51c4190a228d401a",
 };
 
 export const firebaseApp = initializeApp(firebaseConfig);
-export const auth = getAuth(firebaseApp);
+
+// React Native braucht eine explizite Persistenz-Strategie für den Login-Status —
+// anders als im Web nutzt Firebase hier nicht automatisch localStorage, sonst wäre
+// das Elternkonto nach jedem App-Neustart abgemeldet. `getReactNativePersistence`
+// kommt aus dem "react-native"-Export-Zweig von @firebase/auth (siehe dessen
+// package.json) und nutzt dieselbe AsyncStorage-Instanz wie storage.ts.
+//
+// Korrektur (2026-09-04, gefunden beim ersten echten Test): `getReactNativePersistence`
+// darf NICHT plattformunabhängig aufgerufen werden — im Expo-Web-Build (Metro-Bundler)
+// führte das zu einem sofortigen, unabgefangenen Fehler beim Modul-Import (noch bevor
+// React überhaupt rendert), sichtbar nur als leere/weiße Seite ohne Fehler-Overlay,
+// nicht in `RootNavigator.tsx` oder einem Error-Boundary abfangbar. Deshalb jetzt per
+// `Platform.OS` unterschieden: Web nutzt Firebases eigene `browserLocalPersistence`
+// (entspricht dem bereits vorhandenen localStorage-Verhalten im Browser), nur native
+// (iOS/Android) nutzt weiterhin `getReactNativePersistence(AsyncStorage)`.
+export const auth = initializeAuth(firebaseApp, {
+  persistence:
+    Platform.OS === "web" ? browserLocalPersistence : getReactNativePersistence(AsyncStorage),
+});
+
 export const db = getFirestore(firebaseApp);
+
+// --- Firestore-Pfade (Datenmodell 1:1 aus technisches_konzept.md Abschnitt 5) ---
+// Eltern-Konto (Firebase-Auth-User, UID als Dokument-ID in der Collection "eltern")
+// → Subcollection "kinder" mit einem Dokument pro Kinderprofil. Für den MVP-Kern
+// reicht ein aktives Kinderprofil pro Elternkonto (siehe getOrCreateAktivesKindId in
+// storage.ts) — die Struktur selbst unterstützt bereits mehrere Kinder pro Familie,
+// ohne dass sich an diesen Pfaden etwas ändern müsste.
+
+export function kinderCollectionPfad(parentUid: string): string {
+  return `eltern/${parentUid}/kinder`;
+}
+
+export function kindProfilPfad(parentUid: string, kindId: string): string {
+  return `${kinderCollectionPfad(parentUid)}/${kindId}`;
+}
+
+// Ergänzt (2026-09-06) für das ParentDashboard: Pfad für die Eltern-Einstellungen
+// (Zeitlimit-Normwert zur Anzeige, Einwilligungs-Nachweis, Benachrichtigungen — siehe
+// ElternEinstellungen unten und lib/elternEinstellungen.ts). Bewusst NICHT direkt auf
+// `eltern/{parentUid}` selbst, sondern eine Ebene tiefer in einer eigenen Subcollection
+// ("einstellungen/dashboard") — damit der Zugriff zweifelsfrei von der bereits in der
+// Firebase-Konsole veröffentlichten Regel abgedeckt ist (siehe Kommentar weiter unten):
+// `{document=**}` verlangt mindestens ein weiteres Pfadsegment unter `eltern/{parentUid}`,
+// ein Dokument direkt auf diesem Pfad wäre damit nicht zweifelsfrei erfasst.
+export function elternEinstellungenPfad(parentUid: string): string {
+  return `eltern/${parentUid}/einstellungen/dashboard`;
+}
+
+// Firestore-Sicherheitsregel — bereits am 2026-09-04 in der Firebase-Konsole unter
+// "Firestore Database" → "Regeln" veröffentlicht (kein Teil dieses Grundgerüsts, Regeln
+// werden in der Konsole gepflegt, nicht im App-Code — hier nur zur Dokumentation, damit
+// klar ist, warum Zugriffe außerhalb des eigenen Elternkontos mit "permission-denied"
+// fehlschlagen, was so beabsichtigt ist):
+//
+//   match /eltern/{parentUid}/{document=**} {
+//     allow read, write: if request.auth != null && request.auth.uid == parentUid;
+//   }
 
 // --- Datenmodell-Typen (1:1 aus technisches_konzept.md Abschnitt 5 übertragen) ---
 
@@ -32,11 +101,24 @@ export type QuestFortschritt = {
   letzterSchritt: string;
 };
 
+// Fortschritt im neuen "Freispiel"-Übungsmodus (Übungslichtung, siehe
+// endlosmodus_freispiel_konzept.md, ergänzt 2026-09-06) — bewusst ein eigenes,
+// unabhängiges Feld, NICHT dasselbe wie `waldgefaehrtenFortschritt` oben: Letzteres
+// gehört zur narrativen Waldgefährten-Kampagne (5 Königreiche + Wisent,
+// 1-3-Sterne-Progression, Ruhmeshalle), Freispiel ist der davon unabhängige,
+// nicht-narrative Übungsmodus mit den 16 Bot-Elo-Stufen aus lib/waldfreundeBot.ts.
+// Da diese Stufen strikt linear freigeschaltet werden, genügt die höchste erreichte
+// Elo-Zahl als vollständiger Zustand — siehe lib/freispielFortschritt.ts.
+export type FreispielFortschritt = {
+  hoechsteFreigeschalteteElo: number;
+};
+
 export type KindProfil = {
   nickname: string;
   avatarWahl?: string;
   questFortschritt: Record<string, QuestFortschritt>;
   waldgefaehrtenFortschritt: Record<string, { sterne: 0 | 1 | 2 | 3; ruhmeshalle: boolean }>;
+  freispielFortschritt: FreispielFortschritt;
   bonusFortschritt: {
     fesselung: boolean;
     rochade: boolean;
@@ -49,8 +131,19 @@ export type KindProfil = {
   zuletztAktivAm: number;
 };
 
+// Versionsnummer des Einwilligungstextes (Datenschutzerklärung/Nutzungsbedingungen),
+// wie im ParentDashboard-Entwurf (Abschnitt "Datenschutz & Einwilligung") vorgesehen.
+// Bei jeder inhaltlichen Änderung dieser Dokumente hochzählen — weicht die gespeicherte
+// `einwilligungVersion` eines Elternkontos von diesem Wert ab, muss laut Entwurf erneut
+// aktiv zugestimmt werden (Re-Consent-Flow), nicht nur eine Kenntnisnahme-Meldung.
+export const CONSENT_VERSION = "1.0";
+
 export type ElternEinstellungen = {
   taeglichesZeitlimitMinuten: number; // Standard laut Design-Dokument: 15
   einwilligungErteiltAm: number | null;
+  // Ergänzt 2026-09-06 für den im ParentDashboard-Entwurf beschriebenen Re-Consent-Flow
+  // (siehe CONSENT_VERSION oben) — ohne dieses Feld ließe sich eine künftige
+  // Text-/Rechtsänderung nicht von der ursprünglichen Einwilligung unterscheiden.
+  einwilligungVersion: string | null;
   benachrichtigungenAktiv: boolean; // Default false — nie ans Kind, siehe Design-Dokument
 };

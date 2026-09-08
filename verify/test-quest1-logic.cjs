@@ -1,10 +1,14 @@
 // Echter Testlauf der Kernlogik aus src/lib/chessEngine.ts + src/quest1/Quest1.tsx,
 // hier als reines Node/CommonJS-Skript nachgebaut (identische Logik, kein TypeScript/
-// JSX nötig), gegen die echte chess.js-Bibliothek (Version 1.4.0, siehe chess-lib.cjs).
-// Grund: npm install ist in dieser Umgebung nicht möglich (siehe README), aber die
-// reine Spiellogik lässt sich so trotzdem tatsächlich ausführen und verifizieren.
+// JSX nötig), gegen die echte, installierte chess.js-Bibliothek.
+//
+// Bugfix: verwies bisher auf eine nie mitgelieferte Datei "./chess-lib.cjs" (Rest eines
+// geplanten Offline-Ersatzes aus einer Zeit ohne npm-Zugriff) und war dadurch nicht
+// lauffähig. Jetzt, nach echtem `npm install`, gegen das echte node_modules/chess.js.
+//
+// Ausführen mit: node verify/test-quest1-logic.cjs (im Projektordner, nach npm install)
 
-const { Chess } = require("./chess-lib.cjs");
+const { Chess } = require("chess.js");
 
 const FILES = ["a", "b", "c", "d", "e", "f", "g", "h"];
 function toAlgebraic(sq) {
@@ -29,7 +33,9 @@ function tryMove(game, from, to) {
 const QUEST1_POSITIONS = {
   screen2: "4k3/8/8/8/8/8/4P3/4K3 w - - 0 1",
   screen4Blocked: "4k3/8/8/8/4n3/8/4P3/4K3 w - - 0 1",
-  screen5Capture: "4k3/8/8/8/8/5n2/4P3/4K3 w - - 0 1",
+  // Bugfix: König von e1 nach h1 verschoben — auf e1 stand er im Schach des Springers
+  // auf f3 (Springer deckt auch e1 ab), siehe chessEngine.ts für Details.
+  screen5Capture: "4k3/8/8/8/8/5n2/4P3/7K w - - 0 1",
 };
 
 let failures = 0;
@@ -75,5 +81,5 @@ function check(label, condition) {
   check("Screen5: Zug ist ein echtes Schlagen (isCapture: true)", result.ok === true && result.isCapture === true);
 }
 
-console.log("\n" + (failures === 0 ? `Alle Prüfungen bestanden (chess.js ${require("./chess-lib.cjs") && "1.4.0"}).` : `${failures} Prüfung(en) fehlgeschlagen.`));
+console.log("\n" + (failures === 0 ? "Alle Prüfungen bestanden (echtes chess.js)." : `${failures} Prüfung(en) fehlgeschlagen.`));
 process.exit(failures === 0 ? 0 : 1);

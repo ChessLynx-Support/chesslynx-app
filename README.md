@@ -31,8 +31,11 @@ Zum Testen auf dem eigenen Handy: Expo-Go-App installieren, QR-Code scannen (sie
 `technisches_konzept.md` Abschnitt 8 — das ist der kostenlose erste Testweg vor jeder
 Store-Gebühr).
 
-Vor dem ersten Start: In `src/lib/firebase.ts` die Platzhalter-Werte durch ein eigenes
-Firebase-Projekt ersetzen (console.firebase.google.com, kostenloser Spark-Plan reicht).
+Firebase ist bereits eingerichtet: Echtes Projekt "ChessLynx" (Spark-Tarif), Web-App
+registriert, E-Mail/Passwort-Anmeldung aktiviert, Firestore-Datenbank (Standort eur3/
+Europa) angelegt und die Sicherheitsregel veröffentlicht — die echten Config-Werte
+stehen bereits in `src/lib/firebase.ts` (Stand 2026-09-04). Kein manueller Schritt vor
+dem ersten Start mehr nötig.
 
 ## Was hier fertig ist
 
@@ -47,6 +50,21 @@ Firebase-Projekt ersetzen (console.firebase.google.com, kostenloser Spark-Plan r
 - **`chess.js`-Wrapper** (`src/lib/chessEngine.ts`), der echte Legalzüge liefert statt
   hart kodierter Arrays
 - **Quest 1, Screens 0/1/2/4/5/7**, mit dem Board auf Basis der echten chess.js-Züge
+- **Lizenzhinweise** für das Cburnett-Schachfiguren-Set (CC BY-SA 3.0) und `chess.js`
+  (BSD-2-Clause): vollständiger Text in `NOTICE.md`, Kurzfassung im In-App-Screen
+  `src/screens/Credits.tsx`, erreichbar über einen Link auf dem Eltern-Dashboard. Der
+  chess.js-Lizenztext in `NOTICE.md` ist inzwischen (2026-09-04) 1:1 gegen die
+  tatsächlich installierte `node_modules/chess.js/LICENSE` abgeglichen.
+- **Eltern-Konto-Login** (`src/lib/auth.ts`, `src/screens/ElternLogin.tsx`): E-Mail/
+  Passwort-Anmeldung und -Registrierung über Firebase Auth, mit
+  `getReactNativePersistence` (Login übersteht App-Neustarts). Neue Zwischenroute
+  `ElternBereich` (`RootNavigator.tsx`) entscheidet nach dem Eltern-Gate anhand des
+  Anmeldestatus zwischen `ElternLogin` und `ParentDashboard`.
+- **Firestore-Sync** (`src/lib/storage.ts`): `syncPendingProgress()` ist keine
+  Platzhalterfunktion mehr, sondern schreibt die lokale Warteschlange echt gegen
+  Firestore; `getOrCreateAktivesKindId()` legt beim ersten Login ein Kinderprofil an
+  bzw. findet ein bestehendes wieder. Läuft jetzt gegen das echte Firebase-Projekt
+  (siehe `src/lib/firebase.ts`) — bereit für den ersten echten End-to-End-Test.
 
 ## Was hier bewusst NICHT fertig ist
 
@@ -61,8 +79,6 @@ Firebase-Projekt ersetzen (console.firebase.google.com, kostenloser Spark-Plan r
 - **Quest 2–6** in React Native — nächster Schritt, sobald das Muster hier (Board +
   chessEngine + Quest-Screen-Flow) sich im echten Test bewährt hat. Web-Prototyp-Logik
   für 2–6 liegt bereits vor (`prototyp/client/src/quest2` … `quest6`).
-- Echter Login-Flow / Kinderprofil-Anlage (nur Firestore-Datenmodell + Sync-Stub sind
-  vorbereitet, siehe `src/lib/storage.ts`)
 - Finale Illustrationen — Board/Figuren sind aktuell einfache Formen/Farbflächen, keine
   Igel-/Schachfiguren-Grafiken (das ist reiner Asset-Austausch, keine Logik-Änderung)
 
