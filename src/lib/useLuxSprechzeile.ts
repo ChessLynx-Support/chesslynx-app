@@ -18,6 +18,14 @@
 //    Screen-/Zeilenwechsel ohnehin die Rolle) UND `erinnerung` nicht explizit
 //    ausgeschaltet wurde (siehe Onboarding.tsx: eine einmalige Begrüßung soll sich nicht
 //    alle 8 Sekunden wiederholen, solange niemand auf "Loslegen" tippt).
+//  - meldet über `optionen.onErinnerung` (Nutzerentscheidung 2026-09-09, "Eigenständigkeit
+//    zählt" für die Sterne-Logik am Quest-Abschluss, siehe Claude-Projekt "ChessLynx",
+//    aktueller_projektstand_2026-09-09.md) jedes Mal, wenn eine solche 8-Sekunden-
+//    Erinnerung tatsächlich auslöst — NICHT als Fehlerzähler gedacht (es gibt bewusst
+//    keinen `onFehler` o. ä.), sondern als einziges Signal, das misst, ob das Kind
+//    eigenständig drangeblieben ist oder Lux von sich aus nachhelfen musste. Die Quests
+//    zählen die Aufrufe lokal (z. B. in einem Ref) und leiten daraus am Quest-Ende die
+//    Sterne-Anzahl ab, statt fest `sterne: 3` zu speichern.
 //  - gibt `wiederholen()` zurück, gedacht für den Tap auf das Lux-Icon (luxCorner in allen
 //    sechs Quests). Ersetzt das bisherige advanceLine() (Opus-Review Befund 1.1): jetzt,
 //    wo jede Zeile automatisch gesprochen wird, ist "Zeile wiederholen" die sinnvollere
@@ -31,16 +39,25 @@
 // (setLineIndex/setScreen), wodurch dieser Effekt vor dem nächsten Sprechen zuerst
 // aufräumt.
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { sprich, stoppen } from "./luxStimme";
 
 const ERINNERUNG_MS = 8000;
 
+// Sprach-Harmonie-Review (Nutzerauftrag 2026-09-09, siehe lib/luxVarianten.ts für die
+// volle Begründung): `zeile` akzeptiert jetzt zusätzlich eine Funktion statt nur eines
+// festen Strings. Eine Funktion wird bei JEDEM tatsächlichen Sprechvorgang neu
+// aufgerufen (Erst-Aussprache UND jede 8-Sekunden-Erinnerung UND jeder wiederholen()-Tap)
+// statt nur einmal beim Mounten — genau der richtige Zeitpunkt, um z. B.
+// `luxVariante(...)` aufzurufen, damit dessen rotierender Zähler nur bei echten
+// Sprechvorgängen weiterzählt, nicht bei jedem Rerender der aufrufenden Komponente.
+type Zeile = string | (() => string);
+
 export function useLuxSprechzeile(
   schluessel: string,
-  zeile: string | undefined,
+  zeile: Zeile | undefined,
   onFertig?: () => void,
-  optionen?: { erinnerung?: boolean }
+  optionen?: { erinnerung?: boolean; onErinnerung?: () => void }
 ) {
   const erinnerungAktiv = optionen?.erinnerung ?? true;
 
@@ -48,24 +65,62 @@ export function useLuxSprechzeile(
   const zeileRef = useRef(zeile);
   const onFertigRef = useRef(onFertig);
   const erinnerungAktivRef = useRef(erinnerungAktiv);
+  const onErinnerungRef = useRef(optionen?.onErinnerung);
   zeileRef.current = zeile;
   onFertigRef.current = onFertig;
   erinnerungAktivRef.current = erinnerungAktiv;
+  onErinnerungRef.current = optionen?.onErinnerung;
+
+  // Der zuletzt tatsächlich aufgelöste/gesprochene Text — als State (nicht nur Ref),
+  // damit aufrufende Screens denselben Text auch für die (optionale) Lux-Sprechblase
+  // (LuxSprechblase.tsx) anzeigen können, statt ihn (bei einer Varianten-Funktion) ein
+  // zweites Mal selbst aufzulösen und damit den Zähler in luxVarianten.ts versehentlich
+  // ein zweites Mal weiterzuzählen.
+  const [aktuelleZeile, setAktuelleZeile] = useState(() =>
+    typeof zeile === "function" ? "" : zeile ?? ""
+  );
+
+  // Bugfix (Nutzer-Feedback 2026-09-08: Lux wiederholte nach 8 Sekunden eine Zeile und
+  // wechselte danach unvermittelt — ganz ohne Bildschirmwechsel — zum Text eines ANDEREN
+  // Screens). Ursache: `sprich()` in luxStimme.ts ruft `Speech.stop()` unmittelbar vor
+  // `Speech.speak()` auf; auf manchen Plattformen/Browsern (beobachtet unter Windows/
+  // Chrome, Web Speech API) löst die abgebrochene VORHERIGE Sprechausgabe trotzdem noch
+  // ihr `onDone` aus, nur zeitversetzt. Ohne Gegenmaßnahme wertete dieses verspätete,
+  // längst überholte `onDone` sich selbst als "diese Zeile ist fertig gesprochen" — und
+  // setzte einen erinnerungTimer bzw. löste `onFertig` aus, ganz gleich, ob der Hook
+  // zwischenzeitlich für einen anderen `schluessel` neu lief oder sogar unmountete.
+  //
+  // Fix: eine simple Generationszählung. Jede tatsächlich losgeschickte Sprechanfrage
+  // bekommt beim Auslösen eine neu hochgezählte Nummer; ihr `onDone`-Callback prüft beim
+  // Feuern, ob diese Nummer noch der AKTUELLEN entspricht. Wurde zwischenzeitlich (egal ob
+  // durch schluessel-Wechsel, Unmount oder einen erneuten wiederholen()-Aufruf) bereits
+  // erneut gesprochen, ist die alte Generation überholt — ihr `onDone` tut dann nichts mehr,
+  // statt einen verwaisten Timer zu setzen oder ein verspätetes onFertig auszulösen.
+  const generation = useRef(0);
 
   // In einem Ref gehalten, damit sowohl der Mount-/Wechsel-Effekt als auch wiederholen()
   // dieselbe Implementierung nutzen, ohne sie als Effekt-Abhängigkeit führen zu müssen.
   const zeileSprechenRef = useRef<() => void>(() => {});
   zeileSprechenRef.current = () => {
     if (erinnerungTimer.current) clearTimeout(erinnerungTimer.current);
-    if (!zeileRef.current) return;
-    sprich(zeileRef.current, {
+    const quelle = zeileRef.current;
+    if (!quelle) return;
+    const text = typeof quelle === "function" ? quelle() : quelle;
+    if (!text) return;
+    setAktuelleZeile(text);
+    const eigeneGeneration = ++generation.current;
+    sprich(text, {
       onFertig: () => {
+        if (eigeneGeneration !== generation.current) return;
         if (onFertigRef.current) {
           onFertigRef.current();
           return;
         }
         if (!erinnerungAktivRef.current) return;
-        erinnerungTimer.current = setTimeout(() => zeileSprechenRef.current(), ERINNERUNG_MS);
+        erinnerungTimer.current = setTimeout(() => {
+          onErinnerungRef.current?.();
+          zeileSprechenRef.current();
+        }, ERINNERUNG_MS);
       },
     });
   };
@@ -73,6 +128,10 @@ export function useLuxSprechzeile(
   useEffect(() => {
     zeileSprechenRef.current();
     return () => {
+      // Generation vorab hochzählen: ein eventuell noch ausstehendes/verspätetes onDone
+      // der gerade beendeten Sprechanfrage erkennt sich damit sofort als überholt (siehe
+      // Kommentar oben) — zusätzlich zum ohnehin folgenden stoppen()/clearTimeout().
+      generation.current++;
       stoppen();
       if (erinnerungTimer.current) clearTimeout(erinnerungTimer.current);
     };
@@ -83,5 +142,5 @@ export function useLuxSprechzeile(
     zeileSprechenRef.current();
   }
 
-  return { wiederholen };
+  return { wiederholen, aktuelleZeile };
 }

@@ -22,10 +22,18 @@
 // und zu waldfreundeBot.ts (spieleBotZug erwartet, dass er aufgerufen wird, wenn der
 // Bot tatsächlich am Zug ist).
 //
-// Neue Abhängigkeit: die sechs schwarzen Cburnett-Figuren-Varianten (BauerSchwarzIcon
-// usw., neu in chessPieces.tsx) — bisher gab es im Projekt nie eine Stelle mit beiden
-// Farben gleichzeitig auf dem Brett. Siehe Kopfkommentar in chessPieces.tsx für die
-// Details zur (bewusst vereinfachten) Umsetzung.
+// Update (2026-09-09, Nutzer-Rückfrage "Freispielmodus angleichen, wir haben die
+// Cburnett-Figuren doch durch eigene Figuren ersetzt?"): Der Nutzer hatte recht — seit
+// Task #110 (siehe Quest6.tsx-Kommentar) existieren für alle sechs Kreaturen sowohl helle
+// als auch dunkle gemalte Master-Icons (`pieceMasters.tsx`, `*MasterIcon`/
+// `*MasterDunkelIcon`), ursprünglich nur für die Einzelfigur+Besuchsfigur der sechs
+// Hauptquests gedacht. Der einzige Grund, warum FreispielPartie hier bisher stattdessen
+// die neutralen Cburnett-Kontur-Figuren aus chessPieces.tsx nutzte (siehe deren
+// Kopfkommentar), war der Zeitpunkt der Einführung (Schritt #74, 2026-09-06) — zu dem
+// Zeitpunkt gab es die dunklen Master-Varianten noch nicht. Das ist durch Task #110
+// überholt: Freispiel nutzt jetzt dieselben gemalten Master-Icons wie das Hauptspiel,
+// chessPieces.tsx wird hier nicht mehr gebraucht (bleibt aber als Datei bestehen, falls
+// später doch wieder ein neutrales Kontur-Set gebraucht wird).
 //
 // Neu (2026-09-06, neuer Schritt #75 "Farb-Einführung", zwischen #74 und der
 // ehemaligen Schildkröten-Nummer #75 eingeschoben — siehe projektwissen.md Kurzstatus
@@ -47,12 +55,19 @@
 //   Entwurf offen gelassene generische Alternative ("dein Gegner") wurde NICHT
 //   gewählt, da ohnehin pro Rang ein unterschiedliches Tier angezeigt wird.
 // - Ab der zweiten Partie nur noch ein kurzer Reminder-Satz.
-// - Sprachsynthese-Frage aus dem Entwurf bewusst NICHT hier entschieden: wie bei allen
-//   Quest-Sprechzeilen (siehe SCREEN_SCRIPTS in Quest1.tsx usw.) wird der Text aktuell
-//   als sichtbarer Lux-Sprechtext angezeigt (etablierte Platzhalter-Konvention dieses
-//   Grundgerüsts, bis eine echte Sprachausgabe angebunden ist) — kein Bruch mit
-//   "textzahlenfrei" speziell an dieser Stelle, sondern derselbe bereits bestehende,
-//   projektweite Platzhalter-Zustand.
+// - Sprach-Harmonie-Review (2026-09-09, Nutzerauftrag "prüfe alle Sprachteile von Lux
+//   nochmal auf Harmonie ... arbeite kindgerechte und sinnvolle Ergänzungen aus"):
+//   die Sprachsynthese-Frage, die dieser Kommentar bis dahin bewusst offengelassen hatte
+//   ("wie bei allen Quest-Sprechzeilen ... wird der Text aktuell als sichtbarer
+//   Lux-Sprechtext angezeigt"), war inzwischen längst überholt — Quest1.tsx–Quest6.tsx
+//   sprechen seit `luxStimme.ts`/`useLuxSprechzeile.ts` (2026-09-07) alle wirklich laut,
+//   nur dieser Kommentar war nie nachgezogen worden. Dieser Screen war dadurch die
+//   einzige verbliebene Stelle im ganzen Spielfluss, an der ein nicht lesefähiges Kind
+//   (Design-Grundsatz "vollständig textfrei") die Farb-Einführung nicht verstehen konnte
+//   — ein echter, unbeabsichtigter Bug, kein bewusster Platzhalter-Zustand. Jetzt über
+//   `useLuxSprechzeile` (siehe Aufrufstelle unten) genauso laut wie überall sonst; der
+//   sichtbare Text bleibt (wie überall sonst auch) hinter dem Eltern-Untertitel-Schalter
+//   (`useUntertitelAktiv`), statt wie bisher immer sichtbar zu sein.
 //
 // Textzahlenfrei-Prinzip im übrigen Screen (siehe Design-Grundsätze in
 // projektwissen.md): das Spielbrett selbst zeigt zu keinem Zeitpunkt Text oder Zahlen.
@@ -70,28 +85,85 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ComponentType } from "react";
-import { View, StyleSheet, SafeAreaView, Pressable, Animated, Text, ActivityIndicator } from "react-native";
-import Svg, { Path } from "react-native-svg";
+import { View, StyleSheet, SafeAreaView, Pressable, Animated, Text, ActivityIndicator, Image, Dimensions } from "react-native";
+// Visuelle Angleichung ans Hauptspiel (2026-09-09, Nutzer-Rückfrage "Freispielmodus
+// angleichen"): Ziel-/Schach-Markierung jetzt als Verlaufs-SVG statt reiner View-Kontur,
+// dieselbe Technik wie ZielfeldMarker/BedrohungsPuls in quest1/Board.tsx (siehe dort und
+// produktionsanleitung_elemente.md Abschnitt 7.6).
+import Svg, { Circle, Defs, RadialGradient, Stop } from "react-native-svg";
+// Update (2026-09-08, Claude-Projekt "ChessLynx", produktionsanleitung_elemente.md
+// Abschnitt 7.2 "Freispiel: PfeilLinksIcon/NochmalIcon ... ablösen durch gemalte,
+// waldthematische Varianten"): die bisher hier lokal definierten, rein funktionalen
+// Strichzeichnungen sind durch die waldthematischen Ersatz-Icons aus lib/freispielIcons
+// ersetzt (gleiche Prop-Signatur, bewährte Pfeil-/Bogen-Geometrie unverändert
+// übernommen — nur um Farn-/Blatt-Akzente ergänzt). (Der direkte `Svg`-Import oben ist
+// seit 2026-09-09 wieder nötig — für die neuen Ziel-/Schach-Verlaufsmarker, nicht mehr für
+// diese beiden Icons.)
+import { FarnZurueckIcon, BlattNochmalIcon } from "../lib/freispielIcons";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { Chess, type Square as AlgebraicSquare, type PieceSymbol } from "chess.js";
-import { holeStufe, spieleBotZug, type WaldgefaehrtenTier } from "../lib/waldfreundeBot";
+import { holeStufe, spieleBotZug, waehleBotZug, type WaldgefaehrtenTier } from "../lib/waldfreundeBot";
 import { meldeSiegGegenStufe } from "../lib/freispielFortschritt";
 import { wurdeFarbeinfuehrungGezeigt, markiereFarbeinfuehrungGezeigt } from "../lib/freispielEinfuehrung";
+// Angleichung ans Hauptspiel (2026-09-09, Rückfrage "weitere Optimierungspotenziale"):
+// Zug-Feedback fehlte hier bisher komplett, obwohl der ganze Screen nur aus Zügen besteht —
+// dieselben Funktionen wie in quest1/Board.tsx (dort an jedem Zug ausgelöst). Haptik bewusst
+// nur beim eigenen Zug des Kindes (direkte Reaktion auf die eigene Berührung), der Klang bei
+// beiden Seiten (Zug hörbar machen, unabhängig davon, wer zieht) — Bot-Züge vibrieren
+// bewusst NICHT, da Haptik an dieser Stelle sonst wie eine unaufgeforderte Systemreaktion
+// wirken würde statt an eine eigene Berührung gekoppelt zu sein.
+import { haptikZug, haptikQuestGeschafft } from "../lib/luxHaptik";
+import { spieleZugKlang, spieleQuestKlang } from "../lib/luxKlang";
+// Sprach-Harmonie-Review (2026-09-09, siehe Kopfkommentar): dieselbe Sprech-Infrastruktur
+// wie in allen sechs Quest-Screens, hier bisher komplett gefehlt (siehe dortiger
+// Kommentar) — LuxEckIcon ersetzt den bisherigen unbelebten Platzhalter-Kreis
+// (styles.luxHead), useUntertitelAktiv steuert jetzt auch hier den sichtbaren Text.
+import { LuxEckIcon } from "../lib/luxAssets";
+import { useLuxSprechzeile } from "../lib/useLuxSprechzeile";
+import { useUntertitelAktiv } from "../lib/untertitelEinstellung";
+// Sprach-Vollständigkeit (Claude-Projekt "ChessLynx",
+// sprechzeilen_vorschlaege_bonus_endlosspiel_und_hinweisfunktion_2026-09-09.md, Fund
+// A3 — Nutzer-Entscheidung: vertonen): die Ergebnis-Überlagerung war bisher bewusst
+// textfrei (siehe ErgebnisUeberlagerung-Kopfkommentar). Auf ausdrücklichen Wunsch jetzt
+// zusätzlich eine kurze, rotierende Sprechzeile — die Niederlagen-Variante bleibt
+// ausdrücklich unbestraft/aufmunternd, ganz ohne Trauer-/Fehlerton.
+import { luxVariante } from "../lib/luxVarianten";
+// "Lux fragen"-Hinweisfunktion (Claude-Projekt "ChessLynx", Nutzerauftrag 2026-09-09,
+// siehe sprechzeilen_vorschlaege_bonus_endlosspiel_und_hinweisfunktion_2026-09-09.md,
+// Teil B) — bestätigter Geltungsbereich schließt die Partien gegen die Waldfreunde-Bots
+// ausdrücklich ein ("nicht bei den Spielen gegen Luchs, sondern gegen die Bots"). Anders
+// als bei den kuratierten Bonuskapiteln gibt es hier kein vorab bekanntes "richtiges"
+// Feld — der Hinweis nutzt deshalb `waehleBotZug` aus waldfreundeBot.ts (dieselbe
+// Zugauswahl, die sonst die Bot-Gegner steuert) mit der stärksten Kalibrierung
+// (Elo 1300, praktisch kein Zufallsanteil mehr) für die WEISSE Seite — die Funktion ist
+// unabhängig von der Farbe, sie bewertet einfach, wer gerade am Zug ist.
+import { useHinweiseAktiv, HINWEIS_ANGEBOT_ZEILE, type HinweisPhase } from "../lib/luxHinweis";
+import { Funkeln } from "../components/Funkeln";
 import { EichhoernchenIcon, FuchsIcon, DachsIcon, AdlerinIcon, WolfIcon, WisentIcon } from "../lib/waldgefaehrten";
 import {
-  BauerIcon,
-  TurmIcon,
-  LaeuferIcon,
-  SpringerIcon,
-  DameIcon,
-  KoenigIcon,
-  BauerSchwarzIcon,
-  TurmSchwarzIcon,
-  LaeuferSchwarzIcon,
-  SpringerSchwarzIcon,
-  DameSchwarzIcon,
-  KoenigSchwarzIcon,
-} from "../lib/chessPieces";
+  BauerMasterIcon,
+  TurmMasterIcon,
+  LaeuferMasterIcon,
+  SpringerMasterIcon,
+  DameMasterIcon,
+  KoenigMasterIcon,
+  BauerMasterDunkelIcon,
+  TurmMasterDunkelIcon,
+  LaeuferMasterDunkelIcon,
+  SpringerMasterDunkelIcon,
+  DameMasterDunkelIcon,
+  KoenigMasterDunkelIcon,
+} from "../lib/pieceMasters";
+
+// Board-Kacheln — dieselben Bilder wie im Hauptspiel (quest1/Board.tsx), statt der
+// bisherigen reinen Flächenfarbe (2026-09-09, siehe Update-Kommentar oben).
+const feldHell = require("../../assets/brett/tile_hell.png");
+const feldDunkel = require("../../assets/brett/tile_dunkel.png");
+
+// Weißer Außenrahmen ums Brett — als Konstante statt Literal, damit die Breiten-/Höhen-
+// Berechnung unten (cellSize * 8 + RAHMEN_BREITE * 2) und der tatsächliche StyleSheet-Wert
+// nie auseinanderlaufen können (dieselbe Absicherung wie in quest1/Board.tsx).
+const RAHMEN_BREITE = 6;
 
 type BoardSquare = { row: number; col: number };
 type Ausgang = "spielt" | "kindGewinnt" | "botGewinnt" | "remis";
@@ -130,20 +202,33 @@ const TIER_NAMEN_MIT_ARTIKEL: Record<WaldgefaehrtenTier, string> = {
 };
 
 const WEISSE_FIGUREN: Record<PieceSymbol, ComponentType<{ size?: number }>> = {
-  p: BauerIcon,
-  r: TurmIcon,
-  b: LaeuferIcon,
-  n: SpringerIcon,
-  q: DameIcon,
-  k: KoenigIcon,
+  p: BauerMasterIcon,
+  r: TurmMasterIcon,
+  b: LaeuferMasterIcon,
+  n: SpringerMasterIcon,
+  q: DameMasterIcon,
+  k: KoenigMasterIcon,
 };
+// Rotierende Ergebnis-Zeilen (siehe Import-Kommentar oben) — Remis hat bewusst nur eine
+// feste Formulierung, da dieser Ausgang deutlich seltener vorkommt als Sieg/Niederlage.
+const SIEG_VARIANTEN = ["Gewonnen! Das war stark gespielt!", "Juhu, du hast gewonnen!", "Klasse! Du hast die Partie für dich entschieden!"];
+const NIEDERLAGE_VARIANTEN = ["Kein Problem, probier's gleich nochmal!", "Nicht schlimm, das schaffst du beim nächsten Mal!"];
+// "Lux fragen" während der Partie (siehe Import-Kommentar oben) — bewusst allgemein
+// gehalten, ohne Fachbegriffe ("guter Zug", "Drohung" o. Ä.), das Zielfeld zeigt der
+// Ring auf dem Brett selbst.
+const HINWEIS_ZUG_VARIANTEN = [
+  "Schau, diese Figur hier könnte einen starken Zug machen!",
+  "Diese Figur hat hier eine gute Möglichkeit!",
+  "Wie wäre es mit diesem Zug?",
+];
+
 const SCHWARZE_FIGUREN: Record<PieceSymbol, ComponentType<{ size?: number }>> = {
-  p: BauerSchwarzIcon,
-  r: TurmSchwarzIcon,
-  b: LaeuferSchwarzIcon,
-  n: SpringerSchwarzIcon,
-  q: DameSchwarzIcon,
-  k: KoenigSchwarzIcon,
+  p: BauerMasterDunkelIcon,
+  r: TurmMasterDunkelIcon,
+  b: LaeuferMasterDunkelIcon,
+  n: SpringerMasterDunkelIcon,
+  q: DameMasterDunkelIcon,
+  k: KoenigMasterDunkelIcon,
 };
 
 export default function FreispielPartie() {
@@ -163,6 +248,11 @@ export default function FreispielPartie() {
   const [ausgang, setAusgang] = useState<Ausgang>("spielt");
   const [neuFreigeschalteteElo, setNeuFreigeschalteteElo] = useState<number | null>(null);
   const gemeldet = useRef(false); // verhindert doppeltes meldeSiegGegenStufe bei schnellem Doppel-Tipp
+  // "Lux fragen" (siehe Import-Kommentar oben): Antipp-Phase plus der zuletzt berechnete
+  // Hinweis-Zug (Ring-Markierung auf dem Brett, siehe Brett-Komponente unten).
+  const [hinweisPhase, setHinweisPhase] = useState<HinweisPhase>("still");
+  const [hinweisZug, setHinweisZug] = useState<{ von: BoardSquare; nach: BoardSquare } | null>(null);
+  const hinweiseAktiv = useHinweiseAktiv();
 
   // Farb-Einführung (siehe Kopfkommentar): läuft VOR dem eigentlichen Spiel ab.
   const [vorspiel, setVorspiel] = useState<VorspielPhase>("laedt");
@@ -224,6 +314,9 @@ export default function FreispielPartie() {
     setBotDenkt(true);
     setTimeout(() => {
       spieleBotZug(game, elo);
+      // Nur Klang, bewusst keine Haptik (siehe Import-Kommentar oben) — der Bot-Zug ist
+      // keine eigene Berührung des Kindes.
+      spieleZugKlang();
       setBotDenkt(false);
       neuZeichnen();
       const nachBotzug = pruefeSpielende();
@@ -238,8 +331,16 @@ export default function FreispielPartie() {
 
     if (ausgewaehlt && istZiel) {
       game.move({ from: zuAlgebraisch(ausgewaehlt), to: zuAlgebraisch(ziel), promotion: "q" });
+      // Sofortiges haptisches + akustisches Feedback beim eigenen Zug (2026-09-09,
+      // Angleichung ans Hauptspiel, siehe Import-Kommentar oben).
+      haptikZug();
+      spieleZugKlang();
       setAusgewaehlt(null);
       setLegalZiele([]);
+      // Ein tatsächlicher Zug setzt "Lux fragen" zurück — die nächste eigene Zugaufgabe
+      // (nach der Bot-Antwort) startet wieder bei "einmal antippen = wiederholen".
+      setHinweisPhase("still");
+      setHinweisZug(null);
       neuZeichnen();
       nachZugPruefen();
       return;
@@ -264,6 +365,8 @@ export default function FreispielPartie() {
     setLegalZiele([]);
     setAusgang("spielt");
     setNeuFreigeschalteteElo(null);
+    setHinweisPhase("still");
+    setHinweisZug(null);
     // Die Farb-Einführung selbst wird beim Wiederholen NICHT erneut gezeigt (Flag
     // bleibt gesetzt) — "Nochmal spielen" ist keine neue "allererste" Partie.
     neuZeichnen();
@@ -288,30 +391,96 @@ export default function FreispielPartie() {
     return null;
   })();
 
-  if (vorspiel !== "fertig") {
-    const vorspielText =
-      vorspiel === "text1"
-        ? `Schau mal! Im Schach gibt es immer zwei Seiten: die hellen Figuren – die nennt man Weiß – und die dunklen Figuren – die nennt man Schwarz. Du spielst heute mit den hellen Figuren, du bist also Weiß. ${TIER_NAMEN_MIT_ARTIKEL[stufe.tier]} spielt mit den dunklen Figuren, also Schwarz.`
-        : vorspiel === "text2"
-          ? "Und weil du Weiß bist, darfst du als Erstes ziehen – das ist bei jeder Schachpartie so. Los, such dir eine Figur aus!"
-          : vorspiel === "reminder"
-            ? "Du bist wieder Weiß – du fängst an!"
-            : "";
+  // Sprach-Harmonie-Review (2026-09-09, siehe Kopfkommentar): vorspielText wird jetzt
+  // UNBEDINGT berechnet (nicht mehr nur innerhalb des `vorspiel !== "fertig"`-Zweigs),
+  // damit der useLuxSprechzeile()-Hook direkt darunter unbedingt (React-Hook-Regel: keine
+  // bedingten Hook-Aufrufe) aufgerufen werden kann — für "laedt"/"fertig" liefert er einen
+  // leeren String, den der Hook selbst ignoriert (siehe dortiges `if (!text) return`).
+  const vorspielText =
+    vorspiel === "text1"
+      ? `Schau mal! Im Schach gibt es immer zwei Seiten: die hellen Figuren, die nennt man Weiß, und die dunklen Figuren, die nennt man Schwarz. Du spielst heute mit den hellen Figuren, du bist also Weiß. ${TIER_NAMEN_MIT_ARTIKEL[stufe.tier]} spielt mit den dunklen Figuren, also Schwarz.`
+      : vorspiel === "text2"
+        ? "Und weil du Weiß bist, darfst du als Erstes ziehen. Das ist bei jeder Schachpartie so. Los, such dir eine Figur aus!"
+        : vorspiel === "reminder"
+          ? "Du bist wieder Weiß, du fängst an!"
+          : "";
+  // Nutzerfeedback 2026-09-09 ("im Freispielmodus ist noch ein Lux auf der falschen
+  // Seite ... und die alte Luxfigur taucht noch auf. Die Textblase rutscht dabei in die
+  // Mitte über das Brett"): die "reminder"-Phase (kurzer Hinweis "Du bist wieder Weiß"
+  // vor JEDER weiteren Partie, nicht nur der allerersten) nutzte bisher denselben
+  // vollflächigen, brettlosen Alt-Bildschirm wie die echte Erst-Einführung (großer
+  // luxCorner oben links + zentrierter Text) — das ist gerade das "alte" Erscheinungsbild
+  // von vor der neuen Kopfzeile weiter unten, und beim Übergang von der letzten Partie
+  // (Brett sichtbar) zu diesem vollflächigen Zwischenschritt wirkte der zentrierte Text
+  // wie eine über das Brett rutschende Sprechblase. Die "reminder"-Phase läuft jetzt
+  // stattdessen INNERHALB der normalen Spielansicht (Kopfzeile + Brett, siehe unten) ab
+  // und geht von selbst weiter, sobald Lux fertig gesprochen hat (Prinzip wie bei den
+  // Bonuskapitel-Einführungen: kein Antippen nötig, Tempo richtet sich nach der
+  // Sprechgeschwindigkeit) — nur die ECHTE, allererste Einführung (laedt/animation/
+  // text1/text2) behält den vollflächigen Ablauf.
+  const { wiederholen: vorspielWiederholen } = useLuxSprechzeile(
+    vorspiel,
+    vorspielText,
+    vorspiel === "reminder" ? () => setVorspiel("fertig") : undefined
+  );
+  const zeigeUntertitel = useUntertitelAktiv();
 
+  // "Lux fragen" während der laufenden Partie (siehe Import-Kommentar oben) — eigener,
+  // von der Vorspiel-Begrüßung unabhängiger Sprech-Hook. Leerer String in der
+  // "still"-Phase, den der Hook selbst ignoriert (kein Sprechen, kein Timer) — während
+  // der eigentlichen Partie gibt es sonst keine feste Instruktionszeile.
+  const hinweisSchluessel = `spiel-${hinweisPhase}`;
+  const hinweisZeile: string | (() => string) | undefined =
+    hinweisPhase === "still"
+      ? undefined
+      : hinweisPhase === "angebot"
+        ? HINWEIS_ANGEBOT_ZEILE
+        : () => luxVariante(HINWEIS_ZUG_VARIANTEN, "freispiel-zug-hinweis");
+  const { wiederholen: hinweisWiederholen, aktuelleZeile: hinweisAnzeige } = useLuxSprechzeile(
+    hinweisSchluessel,
+    hinweisZeile
+  );
+
+  function handleLuxSpielTap() {
+    const zugaufgabeAktiv = ausgang === "spielt" && !botDenkt && game.turn() === "w";
+    if (!hinweiseAktiv || !zugaufgabeAktiv) return;
+    if (hinweisPhase === "still") {
+      setHinweisPhase("angebot");
+      return;
+    }
+    if (hinweisPhase === "angebot") {
+      const zug = waehleBotZug(game, 1300);
+      if (zug) setHinweisZug({ von: vonAlgebraisch(zug.from), nach: vonAlgebraisch(zug.to) });
+      setHinweisPhase("hinweis");
+      return;
+    }
+    // phase === "hinweis": einfach nochmal denselben Hinweis sprechen.
+    hinweisWiederholen();
+  }
+
+  // Nur die ECHTE, allererste Einführung bekommt noch den vollflächigen, brettlosen
+  // Alt-Bildschirm (siehe Kommentar oben) — "reminder" läuft weiter unten INNERHALB der
+  // normalen Spielansicht.
+  if (vorspiel === "laedt" || vorspiel === "animation" || vorspiel === "text1" || vorspiel === "text2") {
     return (
       <SafeAreaView style={styles.safe}>
-        <View style={styles.luxCorner}>
-          <View style={styles.luxHead} />
-        </View>
+        <Pressable
+          style={styles.luxCorner}
+          onPress={vorspielWiederholen}
+          hitSlop={{ top: 12, left: 12, right: 12, bottom: 12 }}
+          accessibilityLabel="Lux, tippen zum Wiederholen"
+        >
+          <LuxEckIcon size={52} />
+        </Pressable>
         {vorspiel === "laedt" && (
           <View style={styles.vorspielLaden}>
             <ActivityIndicator color="#8FA888" />
           </View>
         )}
         {vorspiel === "animation" && <FarbTrennungAnimation onFertig={vorspielWeiter} />}
-        {(vorspiel === "text1" || vorspiel === "text2" || vorspiel === "reminder") && (
+        {(vorspiel === "text1" || vorspiel === "text2") && (
           <Pressable style={styles.vorspielTapArea} onPress={vorspielWeiter} accessibilityLabel={vorspielText}>
-            <Text style={styles.vorspielText}>{vorspielText}</Text>
+            {zeigeUntertitel && <Text style={styles.vorspielText}>{vorspielText}</Text>}
           </Pressable>
         )}
       </SafeAreaView>
@@ -321,8 +490,17 @@ export default function FreispielPartie() {
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.kopf}>
-        <Pressable onPress={() => navigation.goBack()} accessibilityLabel="Zurück zur Übungslichtung" style={styles.zurueckKnopf}>
-          <PfeilLinksIcon />
+        {/* Nutzerfeedback 2026-09-09 ("ein Lux auf der falschen Seite, mit zurückbutton
+            tauschen"): die Lux-Hinweis-Ecke sitzt in JEDEM anderen Screen der App oben
+            LINKS (luxCorner) — hier steht sie jetzt ebenfalls zuerst/links, der
+            Zurück-Knopf dafür rechts, statt umgekehrt wie zuvor. */}
+        <Pressable
+          style={styles.kopfPlatzhalter}
+          onPress={handleLuxSpielTap}
+          hitSlop={{ top: 12, left: 12, right: 12, bottom: 12 }}
+          accessibilityLabel="Lux, für einen Hinweis antippen"
+        >
+          <LuxEckIcon size={36} />
         </Pressable>
         <View style={[styles.gegnerAbzeichen, botDenkt && styles.gegnerAbzeichenDenkt]}>
           {(() => {
@@ -330,15 +508,36 @@ export default function FreispielPartie() {
             return <Icon size={38} />;
           })()}
         </View>
-        <View style={styles.kopfPlatzhalter} />
+        <Pressable onPress={() => navigation.goBack()} accessibilityLabel="Zurück zur Übungslichtung" style={styles.zurueckKnopf}>
+          <FarnZurueckIcon />
+        </Pressable>
       </View>
+
+      {/* "reminder" (siehe Kommentar oben bei vorspielText/useLuxSprechzeile): kurzer
+          Hinweis vor jeder weiteren Partie, jetzt in derselben Sprechblasen-Optik wie die
+          "Lux fragen"-Hinweise, statt im alten vollflächigen Einführungs-Look. */}
+      {vorspiel === "reminder" && zeigeUntertitel && (
+        <View style={styles.hinweisBlase}>
+          <Text style={styles.hinweisBlaseText}>{vorspielText}</Text>
+        </View>
+      )}
+
+      {zeigeUntertitel && vorspiel === "fertig" && hinweisPhase !== "still" && (
+        <View style={styles.hinweisBlase}>
+          <Text style={styles.hinweisBlaseText}>{hinweisAnzeige}</Text>
+        </View>
+      )}
 
       <Brett
         game={game}
         ausgewaehlt={ausgewaehlt}
         legalZiele={legalZiele}
         koenigInSchachFeld={koenigInSchachFeld}
-        onFeldTipp={feldAntippen}
+        hinweisZug={hinweisZug}
+        // Während der kurzen "reminder"-Zeile ist das Brett zwar schon sichtbar (siehe
+        // Kommentar oben), aber bewusst noch nicht antippbar — ein versehentlicher Zug,
+        // während Lux noch "Du bist wieder Weiß" sagt, soll nicht möglich sein.
+        onFeldTipp={vorspiel === "reminder" ? () => {} : feldAntippen}
       />
 
       {ausgang !== "spielt" && (
@@ -350,8 +549,9 @@ export default function FreispielPartie() {
 
 /** Einmalige Farb-Einführungs-Animation (siehe Kopfkommentar und
  * freispiel_farbeinfuehrung_sprachentwurf.md): zwei anfangs überlappende Figuren-
- * Gruppen (helle/dunkle Variante von Bauer/Turm/König, bereits vorhandene Icons aus
- * chessPieces.tsx) driften sanft auseinander. Läuft automatisch ab UND ist antippbar,
+ * Gruppen (helle/dunkle Master-Variante von Bauer/Turm/König, `pieceMasters.tsx`,
+ * seit 2026-09-09 statt der ursprünglichen Cburnett-Icons) driften sanft auseinander.
+ * Läuft automatisch ab UND ist antippbar,
  * um sofort zu `onFertig` zu springen — löst genau das im Sprachentwurf offen
  * gelassene Problem, dass ein vorzeitiges Wegtippen der Animation den Ablauf nicht
  * durcheinanderbringen darf, weil Zeile 1/2 als eigene, unabhängig davon antippbare
@@ -381,16 +581,73 @@ function FarbTrennungAnimation({ onFertig }: { onFertig: () => void }) {
   return (
     <Pressable style={styles.trennungWrap} onPress={onFertig} accessibilityLabel="Weiter">
       <Animated.View style={[styles.trennungGruppe, { opacity: deckkraft, transform: [{ translateX: hellVersatz }] }]}>
-        <BauerIcon size={30} />
-        <TurmIcon size={30} />
-        <KoenigIcon size={30} />
+        <BauerMasterIcon size={30} />
+        <TurmMasterIcon size={30} />
+        <KoenigMasterIcon size={30} />
       </Animated.View>
       <Animated.View style={[styles.trennungGruppe, { opacity: deckkraft, transform: [{ translateX: dunkelVersatz }] }]}>
-        <BauerSchwarzIcon size={30} />
-        <TurmSchwarzIcon size={30} />
-        <KoenigSchwarzIcon size={30} />
+        <BauerMasterDunkelIcon size={30} />
+        <TurmMasterDunkelIcon size={30} />
+        <KoenigMasterDunkelIcon size={30} />
       </Animated.View>
     </Pressable>
+  );
+}
+
+/** Ziel-Markierung für ein legales Feld — Verlaufs-Ring statt der bisherigen reinen
+ * View-Kontur (2026-09-09, Angleichung ans Hauptspiel), dieselbe Grün-Palette und
+ * Doppelkontur-Technik wie die Ring-Variante von `ZielfeldMarker` in quest1/Board.tsx. */
+function FreispielZielRing({ size }: { size: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 40 40" style={StyleSheet.absoluteFillObject} pointerEvents="none">
+      <Defs>
+        <RadialGradient id="freispielZielFuellung" cx="42%" cy="38%" r="65%">
+          <Stop offset="0%" stopColor="#C7DCC5" stopOpacity={0.55} />
+          <Stop offset="100%" stopColor="#7FA07D" stopOpacity={0.12} />
+        </RadialGradient>
+      </Defs>
+      <Circle cx={20} cy={20} r={15} fill="url(#freispielZielFuellung)" />
+      <Circle cx={20} cy={20} r={15} stroke="#7FA07D" strokeWidth={4} opacity={0.3} fill="none" />
+      <Circle cx={20} cy={20} r={15} stroke="#9CB89A" strokeWidth={2.5} fill="none" />
+    </Svg>
+  );
+}
+
+/** Schach-Signal auf dem bedrohten Königsfeld — warmes Glühen statt einer reinen
+ * Rand-Kontur (2026-09-09, Angleichung ans Hauptspiel), dieselbe Technik/Farbgebung wie
+ * `BedrohungsPuls` in quest1/Board.tsx. Der bereits vorhandene `schachPuls`-Skalierungs-
+ * Loop (siehe Brett-Komponente unten) bleibt unverändert der Animations-Treiber. */
+function FreispielSchachGlut({ size }: { size: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 100 100" style={StyleSheet.absoluteFillObject} pointerEvents="none">
+      <Defs>
+        <RadialGradient id="freispielSchachGlut" cx="50%" cy="50%" r="50%">
+          <Stop offset="0%" stopColor="#EFAF8D" stopOpacity={1} />
+          <Stop offset="60%" stopColor="#D98E72" stopOpacity={0.85} />
+          <Stop offset="100%" stopColor="#D98E72" stopOpacity={0} />
+        </RadialGradient>
+      </Defs>
+      <Circle cx={50} cy={50} r={50} fill="url(#freispielSchachGlut)" />
+    </Svg>
+  );
+}
+
+/** Hinweis-Markierung für "Lux fragen" (siehe Import-Kommentar oben) — bewusst eine
+ * eigene, warme Goldfarbe statt der grünen `FreispielZielRing`, damit ein Hinweis-Zug
+ * (Vorschlag) klar von einem bereits selbst gewählten Legalzug unterscheidbar bleibt. */
+function FreispielHinweisRing({ size }: { size: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 40 40" style={StyleSheet.absoluteFillObject} pointerEvents="none">
+      <Defs>
+        <RadialGradient id="freispielHinweisFuellung" cx="42%" cy="38%" r="65%">
+          <Stop offset="0%" stopColor="#F0DBA0" stopOpacity={0.6} />
+          <Stop offset="100%" stopColor="#D7A52D" stopOpacity={0.15} />
+        </RadialGradient>
+      </Defs>
+      <Circle cx={20} cy={20} r={15} fill="url(#freispielHinweisFuellung)" />
+      <Circle cx={20} cy={20} r={15} stroke="#D7A52D" strokeWidth={4} opacity={0.35} fill="none" />
+      <Circle cx={20} cy={20} r={15} stroke="#E8C468" strokeWidth={2.5} fill="none" />
+    </Svg>
   );
 }
 
@@ -406,16 +663,32 @@ function Brett({
   ausgewaehlt,
   legalZiele,
   koenigInSchachFeld,
+  hinweisZug,
   onFeldTipp,
 }: {
   game: Chess;
   ausgewaehlt: BoardSquare | null;
   legalZiele: BoardSquare[];
   koenigInSchachFeld: BoardSquare | null;
+  hinweisZug: { von: BoardSquare; nach: BoardSquare } | null;
   onFeldTipp: (r: number, c: number) => void;
 }) {
   const brett = game.board();
-  const cellSize = 40;
+
+  // Responsive Zellgröße statt des bisherigen festen 40px-Werts (2026-09-09, Rückfrage
+  // "weitere Optimierungspotenziale") — dieselbe Technik wie in quest1/Board.tsx: die
+  // tatsächlich zugewiesene Breite an dieser Stelle im Layout (onLayout unten) messen statt
+  // sich auf die globale Fensterbreite zu verlassen (die in der Web-Vorschau die oft viel
+  // breitere Browserfenster-Breite statt der schmaleren App-Rahmenbreite liefert),
+  // `Dimensions.get("window")` bleibt nur als Rückfallwert für den allerersten Render.
+  const [containerWidth, setContainerWidth] = useState<number | null>(null);
+  const bildschirmBreite = containerWidth ?? Dimensions.get("window").width;
+  const maxBrettBreite = Math.floor(bildschirmBreite * 0.98);
+  const cellSize = Math.max(24, Math.min(64, Math.floor((maxBrettBreite - RAHMEN_BREITE * 2) / 8)));
+  // Figuren-/Marker-Größe proportional zur Zellgröße statt eines festen 30px-Werts (bisher
+  // 30/40 = 75 % der Zellgröße — dasselbe Verhältnis bleibt bei jeder Bildschirmgröße erhalten).
+  const figurGroesse = Math.round(cellSize * 0.75);
+
   const legalSet = new Set(legalZiele.map((z) => `${z.row}-${z.col}`));
 
   const schachPuls = useRef(new Animated.Value(1)).current;
@@ -435,13 +708,17 @@ function Brett({
   }, [koenigInSchachFeld?.row, koenigInSchachFeld?.col, schachPuls]);
 
   return (
-    <View style={[styles.brett, { width: cellSize * 8 + 12, height: cellSize * 8 + 12 }]}>
-      {brett.flatMap((zeile, r) =>
+    <View style={styles.messRahmen} onLayout={(e) => setContainerWidth(e.nativeEvent.layout.width)}>
+      <View style={[styles.brett, { width: cellSize * 8 + RAHMEN_BREITE * 2, height: cellSize * 8 + RAHMEN_BREITE * 2 }]}>
+        {brett.flatMap((zeile, r) =>
         zeile.map((feld, c) => {
           const istDunkel = (r + c) % 2 === 1;
           const istAusgewaehlt = ausgewaehlt?.row === r && ausgewaehlt?.col === c;
           const istZiel = legalSet.has(`${r}-${c}`);
           const istSchachfeld = koenigInSchachFeld?.row === r && koenigInSchachFeld?.col === c;
+          const istHinweisFeld =
+            (hinweisZug?.von.row === r && hinweisZug?.von.col === c) ||
+            (hinweisZug?.nach.row === r && hinweisZug?.nach.col === c);
           const Icon = feld ? (feld.color === "w" ? WEISSE_FIGUREN[feld.type] : SCHWARZE_FIGUREN[feld.type]) : null;
 
           return (
@@ -449,21 +726,51 @@ function Brett({
               key={`${r}-${c}`}
               onPress={() => onFeldTipp(r, c)}
               accessibilityLabel={feld ? "Figur auf dem Feld" : istZiel ? "Zulässiges Zielfeld" : "Feld"}
-              style={[
-                styles.feld,
-                { width: cellSize, height: cellSize, backgroundColor: istDunkel ? "#DED2B0" : "#F0EBDD" },
-                istAusgewaehlt && styles.feldAusgewaehlt,
-              ]}
+              style={[styles.feld, { width: cellSize, height: cellSize }]}
             >
-              {istZiel && <View style={styles.zielRing} pointerEvents="none" />}
-              {istSchachfeld && (
-                <Animated.View pointerEvents="none" style={[styles.schachRing, { transform: [{ scale: schachPuls }] }]} />
+              {/* Kachel-Bild statt Flatcolor (2026-09-09, Angleichung ans Hauptspiel) —
+                  dieselbe Image+absoluteFillObject+zIndex-Technik wie in quest1/Board.tsx
+                  (dort aus einem echten Android-Rendering-Bug gelernt: die Kachel muss
+                  explizit ganz unten liegen, alles andere darüber). */}
+              <Image
+                source={istDunkel ? feldDunkel : feldHell}
+                style={[StyleSheet.absoluteFillObject, { zIndex: 0 }]}
+                resizeMode="cover"
+                pointerEvents="none"
+              />
+              {istAusgewaehlt && <View style={[styles.feldAusgewaehltUeberlagerung, { zIndex: 1 }]} pointerEvents="none" />}
+              {istZiel && (
+                <View style={[StyleSheet.absoluteFillObject, { zIndex: 2 }]} pointerEvents="none">
+                  <FreispielZielRing size={cellSize} />
+                </View>
               )}
-              {Icon && <Icon size={30} />}
+              {istHinweisFeld && !istZiel && (
+                <View style={[StyleSheet.absoluteFillObject, { zIndex: 2 }]} pointerEvents="none">
+                  <FreispielHinweisRing size={cellSize} />
+                </View>
+              )}
+              {istSchachfeld && (
+                <Animated.View
+                  pointerEvents="none"
+                  style={[StyleSheet.absoluteFillObject, { zIndex: 2, transform: [{ scale: schachPuls }] }]}
+                >
+                  <FreispielSchachGlut size={cellSize} />
+                </Animated.View>
+              )}
+              {/* Android-Fix (siehe identischer Fund in quest1/Board.tsx, Kopfkommentar dort):
+                  die Figur explizit absolut + zIndex statt als einziges normal fließendes
+                  Kind rendern, seit die Kachel jetzt selbst ein absolut positioniertes
+                  Bild ist — sonst dieselbe „Figur bleibt auf Android unsichtbar"-Falle. */}
+              {Icon && (
+                <View style={[StyleSheet.absoluteFillObject, styles.figurWrap, { zIndex: 3 }]} pointerEvents="none">
+                  <Icon size={figurGroesse} />
+                </View>
+              )}
             </Pressable>
           );
         })
-      )}
+        )}
+      </View>
     </View>
   );
 }
@@ -487,54 +794,61 @@ function ErgebnisUeberlagerung({
   const farbe = ausgang === "kindGewinnt" ? "#8FA888" : ausgang === "remis" ? "#C9855F" : "#D9A26C";
   const beschriftung =
     ausgang === "kindGewinnt" ? "Gewonnen" : ausgang === "remis" ? "Unentschieden" : "Verloren, kein Problem";
+  const istSieg = ausgang === "kindGewinnt";
+  const zeigeUntertitel = useUntertitelAktiv();
+  // `erinnerung: false`: kein Lux-Antipp-Icon auf dieser Überlagerung — eine
+  // Wiederholung alle 8 Sekunden, solange das Kind hier verweilt, wäre ohne jeden Nutzen.
+  const { aktuelleZeile } = useLuxSprechzeile(
+    ausgang,
+    () =>
+      ausgang === "kindGewinnt"
+        ? luxVariante(SIEG_VARIANTEN, "freispiel-ergebnis-sieg")
+        : ausgang === "remis"
+          ? "Unentschieden! Ihr wart beide richtig gut!"
+          : luxVariante(NIEDERLAGE_VARIANTEN, "freispiel-ergebnis-niederlage"),
+    undefined,
+    { erinnerung: false }
+  );
+
+  // Angleichung ans Hauptspiel (2026-09-09, Rückfrage "weitere Optimierungspotenziale"):
+  // ein Sieg gegen den Bot ist der eigentliche Höhepunkt des Freispiel-Modus (schaltet
+  // sogar eine neue Stufe frei, siehe meldeSiegGegenStufe) — bisher aber ohne jede Feier,
+  // anders als QuestGeschafft. Bewusst NUR beim Sieg (kein Haptik/Klang bei Remis/Niederlage
+  // — Design-Grundsatz "niemand wird bestraft", eine Niederlage bleibt ausdrücklich
+  // folgenlos, siehe Datei-Kopfkommentar).
+  useEffect(() => {
+    if (istSieg) {
+      haptikQuestGeschafft();
+      spieleQuestKlang();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <View style={StyleSheet.absoluteFill}>
       <Pressable style={styles.ergebnisHintergrund} onPress={onZurueck} accessibilityLabel={beschriftung} />
       <View style={styles.ergebnisMitte} pointerEvents="box-none">
         <View style={[styles.ergebnisKarte, { borderColor: farbe }]}>
-          <Icon size={72} />
+          <View style={styles.ergebnisIconWrap}>
+            {istSieg && <Funkeln size={130} loop pause={2600} />}
+            <Icon size={72} />
+          </View>
+          {zeigeUntertitel && <Text style={styles.ergebnisText}>{aktuelleZeile}</Text>}
           <View style={styles.ergebnisKnopfReihe}>
             <Pressable onPress={onNochmal} accessibilityLabel="Nochmal spielen" style={[styles.ergebnisKnopf, { backgroundColor: farbe }]}>
-              <NochmalIcon />
+              <BlattNochmalIcon />
             </Pressable>
             <Pressable
               onPress={onZurueck}
               accessibilityLabel="Zurück zur Übungslichtung"
               style={[styles.ergebnisKnopf, styles.ergebnisKnopfSekundaer]}
             >
-              <PfeilLinksIcon />
+              <FarnZurueckIcon />
             </Pressable>
           </View>
         </View>
       </View>
     </View>
-  );
-}
-
-/** Schlichter Pfeil nach links (Zurück-Navigation), im selben minimalen SVG-Icon-Stil
- * wie die übrigen Nicht-Kreatur-Icons der App. */
-function PfeilLinksIcon({ size = 22, farbe = "#4A4038" }: { size?: number; farbe?: string }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24">
-      <Path d="M15 4 L7 12 L15 20" fill="none" stroke={farbe} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
-    </Svg>
-  );
-}
-
-/** Kreisförmiger "Nochmal"-Pfeil (Wiederholen-Symbol) für den Ergebnis-Bildschirm. */
-function NochmalIcon({ size = 24, farbe = "#FFFFFF" }: { size?: number; farbe?: string }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24">
-      <Path
-        d="M4 12a8 8 0 1 1 2.6 5.9M4 12V6M4 12H10"
-        fill="none"
-        stroke={farbe}
-        strokeWidth={2.2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
   );
 }
 
@@ -571,8 +885,31 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   gegnerAbzeichenDenkt: { borderColor: "#C9855F" },
-  kopfPlatzhalter: { width: 44 },
+  kopfPlatzhalter: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
+  // "Lux fragen"-Sprechblase während der Partie — dieselbe Optik wie die übrigen
+  // Sprechblasen im Spiel, aber ohne Schweif (die Lux-Ecke sitzt hier im Header, nicht
+  // links oben) und nur sichtbar, solange eine Hinweis-Anfrage läuft.
+  hinweisBlase: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    marginHorizontal: 20,
+    marginBottom: 8,
+    shadowColor: "#4A4038",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 2,
+  },
+  hinweisBlaseText: { fontSize: 15, color: "#4A4038", textAlign: "center" },
 
+  // Misst die tatsächlich zugewiesene Breite für die responsive Zellgröße (siehe
+  // Kommentar bei `cellSize` oben) — dieselbe Technik wie `messRahmen` in quest1/Board.tsx.
+  messRahmen: {
+    width: "100%",
+    alignItems: "center",
+  },
   brett: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -589,41 +926,38 @@ const styles = StyleSheet.create({
     borderColor: "#C9C2B0",
     alignItems: "center",
     justifyContent: "center",
+    overflow: "hidden",
   },
-  feldAusgewaehlt: { backgroundColor: "#E3D9BE" },
-  zielRing: {
-    position: "absolute",
-    top: 4,
-    left: 4,
-    right: 4,
-    bottom: 4,
-    borderRadius: 8,
-    borderWidth: 3,
-    borderColor: "#9CB89A",
+  // Löst das frühere `feldAusgewaehlt` (direkte `backgroundColor` auf der Kachel) ab —
+  // seit die Kachel ein Bild ist (siehe oben), braucht die Auswahl-Markierung eine eigene
+  // halbtransparente Überlagerungsebene statt einer Flächenfarbe, die vom Bild verdeckt würde.
+  feldAusgewaehltUeberlagerung: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(227,217,190,0.6)",
   },
-  schachRing: {
-    position: "absolute",
-    top: 2,
-    left: 2,
-    right: 2,
-    bottom: 2,
-    borderRadius: 8,
-    borderWidth: 3,
-    borderColor: "#D98E72",
-  },
+  figurWrap: { alignItems: "center", justifyContent: "center" },
 
   ergebnisHintergrund: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(74,64,56,0.55)" },
   ergebnisMitte: { flex: 1, alignItems: "center", justifyContent: "center" },
   ergebnisKarte: {
-    width: 220,
+    minWidth: 220,
+    maxWidth: 280,
     borderRadius: 24,
     backgroundColor: "#FFFFFF",
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 2,
     paddingVertical: 28,
+    paddingHorizontal: 20,
     gap: 20,
   },
+  // Neue, kurze Ergebnis-Sprechzeile als Untertitel (siehe Import-Kommentar oben) —
+  // gleiche Farb-/Größenkonvention wie die übrigen Lux-Sprechblasen im Spiel.
+  ergebnisText: { fontSize: 15, color: "#4A4038", textAlign: "center" },
+  // Selbe Zentrierungstechnik wie in QuestGeschafft.tsx: Funkeln ist absolut positioniert
+  // und ohne eigene top/left-Vorgabe, Yoga zentriert es dadurch automatisch über
+  // alignItems/justifyContent dieses Wraps, exakt über dem normal fließenden Icon-Kind.
+  ergebnisIconWrap: { alignItems: "center", justifyContent: "center" },
   ergebnisKnopfReihe: { flexDirection: "row", gap: 16 },
   ergebnisKnopf: {
     width: 52,

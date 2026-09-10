@@ -124,6 +124,12 @@ export type KindProfil = {
     rochade: boolean;
     mattIn2: boolean;
     mattIn3: boolean;
+    // Ergänzt (Implementierungsrunde 2026-09-08, Fesselung-Umsetzung): fehlte bisher noch —
+    // das Feld wurde erst NACH figurenwert als fünftes Bonuskapitel beschlossen (siehe
+    // Claude-Projekt "ChessLynx", priorisierter_umsetzungsplan.md), bonusFortschritt war zu
+    // dem Zeitpunkt aber schon angelegt. Reine Datenmodell-Nachrüstung, kein Verhaltens-
+    // unterschied für die bereits vorhandenen vier Felder.
+    figurenwert: boolean;
     schlossFinale: boolean;
   };
   screenTimeHeute: { minutenGenutzt: number; datum: string };
@@ -146,4 +152,18 @@ export type ElternEinstellungen = {
   // Text-/Rechtsänderung nicht von der ursprünglichen Einwilligung unterscheiden.
   einwilligungVersion: string | null;
   benachrichtigungenAktiv: boolean; // Default false — nie ans Kind, siehe Design-Dokument
+  // Ergänzt (2026-09-09, Monetarisierung/IAP-Vorbereitung, siehe Claude-Projekt
+  // "ChessLynx", monetarisierung_iap_technische_recherche_2026-09-09.md): Freischaltungs-
+  // status für den vollständigen Lernpfad (Quest 4–6 + alle Bonuskapitel). Bewusst HIER
+  // auf Elternkonto-Ebene statt im KindProfil, gemäß der bereits getroffenen Entscheidung
+  // "Kauf gilt pro Elternkonto, für alle Kinderprofile darin" (2026-09-06, siehe
+  // projektwissen_verlauf.md) — ein zweites Kinderprofil im selben Konto braucht keinen
+  // zweiten Kauf. Wird NIE vom Client selbst auf `true` gesetzt, sondern ausschließlich
+  // von der Cloud Function `verifyPurchase` (siehe functions/src/index.ts) nach
+  // erfolgreicher serverseitiger Quittungsprüfung — alles andere wäre clientseitig
+  // manipulierbar. Siehe lib/kauf.ts für die Kaufabwicklung.
+  vollstaendigerLernpfadFreigeschaltet: boolean;
+  // Zeitpunkt der Freischaltung, analog zu einwilligungErteiltAm oben — nur zur Anzeige
+  // im ParentDashboard ("freigeschaltet am ..."), keine Zugriffslogik hängt daran.
+  freischaltungAm: number | null;
 };

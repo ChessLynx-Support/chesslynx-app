@@ -1,0 +1,26 @@
+{
+  "name": "chesslynx-functions",
+  "description": "Cloud Functions für ChessLynx (Quittungsprüfung In-App-Kauf, siehe src/index.ts)",
+  "engines": {
+    "node": "20"
+  },
+  "main": "lib/index.js",
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "serve": "npm run build && firebase emulators:start --only functions",
+    "shell": "npm run build && firebase functions:shell",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.6.0",
+    "firebase-functions": "^6.0.1",
+    "@apple/app-store-server-library": "^3.1.0",
+    "googleapis": "^178.1.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4"
+  },
+  "private": true
+}

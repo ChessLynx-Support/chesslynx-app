@@ -6,12 +6,43 @@
 // da sich die Aufgabe an Eltern richtet (siehe Design-Dokument: "ohne Lesen" gilt nur
 // für die Kind-UI, Eltern-Text ist explizit erlaubt).
 
-import { useRef, useState } from "react";
-import { View, Text, Pressable, TextInput, StyleSheet, PanResponder, Platform } from "react-native";
-// `Pressable` wird unten nur noch für den Rechenaufgabe-Bestätigen-Button gebraucht,
-// nicht mehr für den Halt-Bereich (siehe Korrektur vom 2026-09-04 unten).
+import { useEffect, useRef, useState } from "react";
+import { View, Text, TextInput, StyleSheet, PanResponder, Platform } from "react-native";
+// Sprach-Harmonie-Review (2026-09-09, Nutzerauftrag "prüfe alle Sprachteile von Lux
+// nochmal auf Harmonie ... arbeite kindgerechte und sinnvolle Ergänzungen aus"): dieser
+// Screen hatte bis dahin ausschließlich geschriebenen Text (siehe Datei-Kopfkommentar,
+// "kein Lese-Text nötig ... Eltern-Text ist explizit erlaubt") — das beantwortet aber
+// nicht, wie ein nicht lesefähiges Kind, das aus Neugier oder Versehen hierher tippt,
+// überhaupt versteht, was gerade passiert. Apple empfiehlt für genau diesen Fall eine
+// kurze Sprachansage (siehe claude/eltern_gate_sprachansage_entwurf.md im Claude-Projekt
+// "ChessLynx", dort bereits abgestimmter, bis jetzt unumgesetzter Textentwurf) — die vier
+// Zeilen unten sind 1:1 dieser Entwurf, jetzt tatsächlich verdrahtet.
+import { sprich, stoppen } from "../lib/luxStimme";
+// Update (2026-09-08, Claude-Projekt "ChessLynx", produktionsanleitung_elemente.md
+// Abschnitt 7.2 "ParentGate-Fortschrittsring"): der bisherige "Bestätigen"-Pressable ist
+// durch den gemeinsamen Button-Baukasten ersetzt (kein separater `Pressable`-Import mehr
+// nötig, siehe Korrektur vom 2026-09-04 zum Halt-Bereich weiter unten).
+import { ChessLynxButton } from "../components/ChessLynxButton";
+// Neu: animierter Gold-Ring, der während der 3-Sekunden-Halte-Geste sichtbares Feedback
+// gibt (vorher: rein textliche Anweisung, keinerlei Rückmeldung während des Haltens
+// selbst — siehe visuelle_politur_buttons_grafiken.md, Priorität 1).
+import { FortschrittsRing } from "../components/FortschrittsRing";
 
 const HOLD_DURATION_MS = 3000;
+
+// Sprach-Harmonie-Review (2026-09-09) — 1:1 aus eltern_gate_sprachansage_entwurf.md:
+const ANSAGE_ERSTE_ZEILE =
+  "Hoppla, das hier ist für die Erwachsenen! Hol dir schnell Mama, Papa oder eine andere erwachsene Person dazu.";
+// Zweite, kürzere Erinnerung laut Entwurf "falls nach ein paar Sekunden noch nicht
+// gehalten/gewischt wurde" — dasselbe 8-Sekunden-Zeitfenster wie die allgemeine
+// Lux-Erinnerung anderswo in der App (ERINNERUNG_MS in useLuxSprechzeile.ts), damit sich
+// Lux' Geduld überall gleich anfühlt. Bewusst nur EINMALIG (kein wiederholender Loop wie
+// dort) — ein Erwachsener, der den Hinweis einmal gehört hat, braucht ihn nicht alle
+// 8 Sekunden erneut.
+const ANSAGE_ERINNERUNG = "Ist schon ein Erwachsener bei dir? Dann kann er jetzt hier halten und wischen.";
+const ANSAGE_UEBERLEITUNG_RECHENAUFGABE = "Fast geschafft. Nur noch eine kleine Rechenaufgabe.";
+const ANSAGE_FALSCHE_ANTWORT = "Das war noch nicht ganz richtig. Einfach nochmal versuchen.";
+const ERINNERUNG_MS = 8000;
 
 // Korrektur (2026-09-04, gefunden beim ersten echten Test im Browser): Auf der
 // Web-Plattform interpretiert der Browser ein gehaltenes Mausklicken auf Text/View
@@ -63,8 +94,34 @@ export function ParentGate({ onUnlocked }: { onUnlocked: () => void }) {
   const [problem] = useState(randomMathProblem);
   const [input, setInput] = useState("");
   const [error, setError] = useState(false);
+  // Treibt den FortschrittsRing (siehe Import-Kommentar oben) — true genau während der
+  // Finger/Maustaste unten ist, unabhängig davon, ob der Halt am Ende lang genug war.
+  const [isHolding, setIsHolding] = useState(false);
   const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const holdComplete = useRef(false);
+
+  // Sprach-Harmonie-Review (2026-09-09, siehe Konstanten/Import-Kommentare oben): die
+  // erste Ansage läuft einmalig beim Öffnen dieses Screens, unabhängig vom Halt-Fortschritt.
+  useEffect(() => {
+    sprich(ANSAGE_ERSTE_ZEILE);
+    return () => stoppen();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- nur einmal beim Mounten
+  }, []);
+
+  // Zweite, kürzere Erinnerung (siehe Konstanten-Kommentar oben) — nur wenn nach
+  // ERINNERUNG_MS weiterhin nicht gehalten/gewischt wurde.
+  useEffect(() => {
+    if (stage !== "hold") return;
+    const timer = setTimeout(() => {
+      if (!holdComplete.current) sprich(ANSAGE_ERINNERUNG);
+    }, ERINNERUNG_MS);
+    return () => clearTimeout(timer);
+  }, [stage]);
+
+  // Überleitung zur Rechenaufgabe, sobald der Halt+Wisch geschafft ist.
+  useEffect(() => {
+    if (stage === "math") sprich(ANSAGE_UEBERLEITUNG_RECHENAUFGABE);
+  }, [stage]);
 
   // Korrektur (2026-09-04, gefunden beim ersten echten Test): Vorher lag hier ein
   // PanResponder auf der äußeren View UND ein separates Pressable (für den Halt) auf
@@ -82,12 +139,14 @@ export function ParentGate({ onUnlocked }: { onUnlocked: () => void }) {
       onStartShouldSetPanResponder: () => true,
       onPanResponderGrant: () => {
         holdComplete.current = false;
+        setIsHolding(true);
         holdTimer.current = setTimeout(() => {
           holdComplete.current = true;
         }, HOLD_DURATION_MS);
       },
       onPanResponderRelease: (_evt, gesture) => {
         if (holdTimer.current) clearTimeout(holdTimer.current);
+        setIsHolding(false);
         // Wischen nur werten, wenn der 3-Sekunden-Halt vorher abgeschlossen wurde
         // UND eine tatsächliche Wischbewegung stattfand (kein bloßes Tippen).
         if (holdComplete.current && Math.abs(gesture.dx) > 60) {
@@ -98,6 +157,7 @@ export function ParentGate({ onUnlocked }: { onUnlocked: () => void }) {
         // Falls das Betriebssystem/der Browser den Responder abbricht (z. B. Wechsel
         // zu einem anderen Tab mitten im Halten) — Timer trotzdem sauber aufräumen.
         if (holdTimer.current) clearTimeout(holdTimer.current);
+        setIsHolding(false);
       },
     })
   ).current;
@@ -108,6 +168,7 @@ export function ParentGate({ onUnlocked }: { onUnlocked: () => void }) {
     } else {
       setError(true);
       setInput("");
+      sprich(ANSAGE_FALSCHE_ANTWORT);
     }
   }
 
@@ -115,6 +176,7 @@ export function ParentGate({ onUnlocked }: { onUnlocked: () => void }) {
     return (
       <View style={[styles.container, webNoTextSelect]} {...panResponder.panHandlers}>
         <View style={[styles.holdArea, webNoTextSelect]}>
+          <FortschrittsRing active={isHolding} durationMs={HOLD_DURATION_MS} size={140} />
           <Text style={[styles.hint, webNoTextSelect]}>Für Eltern: 3 Sekunden halten, dann wischen</Text>
         </View>
       </View>
@@ -139,9 +201,12 @@ export function ParentGate({ onUnlocked }: { onUnlocked: () => void }) {
         autoFocus
       />
       {error && <Text style={styles.error}>Nicht ganz — versuch's nochmal.</Text>}
-      <Pressable style={styles.button} onPress={checkAnswer}>
-        <Text style={styles.buttonText}>Bestätigen</Text>
-      </Pressable>
+      {/* Update (2026-09-08, Nutzerwunsch): testweiser Einsatz der Mockup-Richtung B
+          ("Aquarell-Blatt-Form", produktionsanleitung_elemente.md Abschnitt 7.5) im
+          Eltern-Kontext dieses Screens. */}
+      <ChessLynxButton variante="secondary" textur="aquarell" onPress={checkAnswer} accessibilityLabel="Bestätigen">
+        Bestätigen
+      </ChessLynxButton>
     </View>
   );
 }
@@ -162,6 +227,4 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   error: { color: "#B5713C", marginBottom: 12 },
-  button: { backgroundColor: "#9CB89A", paddingVertical: 12, paddingHorizontal: 28, borderRadius: 16 },
-  buttonText: { color: "#FFFFFF", fontSize: 16, fontWeight: "600" },
 });

@@ -1,0 +1,91 @@
+id,bereich,text_de,text_en
+wisent.kuer.hub.intro_1,Wisent-Kuer-Hub,"Bevor wir zum Wisenten aufbrechen, gibt es noch drei besondere Aufgaben für mutige Entdecker.","Before we set off to the Bison, there are three special challenges for brave explorers."
+wisent.kuer.hub.intro_2,Wisent-Kuer-Hub,"Die Bauern-Verwandlung, das Vorbeigehen-Schlagen, und das Treiben des Königs.","Pawn promotion, capturing in passing, and driving the king."
+wisent.kuer.hub.intro_3,Wisent-Kuer-Hub,"Du darfst wählen, welche du zuerst probierst — oder auch keine!",You get to choose which one to try first — or none at all!
+wisent.kuer.hub.wiederholt_1von3_a,Wisent-Kuer-Hub,Eine kennst du schon! Willst du noch eine probieren?,You already know one! Want to try another?
+wisent.kuer.hub.wiederholt_1von3_b,Wisent-Kuer-Hub,Weiter geht's — welche schauen wir uns als Nächstes an?,Let's keep going — which one shall we look at next?
+wisent.kuer.hub.wiederholt_2von3_a,Wisent-Kuer-Hub,Nur noch eine übrig — traust du dich?,Just one left — do you dare?
+wisent.kuer.hub.wiederholt_2von3_b,Wisent-Kuer-Hub,Fast geschafft! Die letzte wartet noch auf dich.,Almost there! The last one is still waiting for you.
+wisent.kuer.hub.alle_erledigt,Wisent-Kuer-Hub,Du hast alle drei Geheimnisse gemeistert — der Wisent wird staunen!,You've mastered all three secrets — the Bison will be amazed!
+wisent.kuer.hub.jederzeit_weiterziehen,Wisent-Kuer-Hub,"Du darfst auch direkt zum Wisenten weiterziehen, wenn du magst.","You can also head straight to the Bison, if you'd like."
+wisent.kuer.wiederholungshinweis_a,Wisent-Kuer-Wiederholungshinweis,"Schön, dass du nochmal vorbeischaust! Schau genau hin — vielleicht sieht es diesmal ein kleines bisschen anders aus.",So nice that you're back! Look closely — it might look a little different this time.
+wisent.kuer.wiederholungshinweis_b,Wisent-Kuer-Wiederholungshinweis,Du bist wieder da! Heute könnte die Aufgabe ein bisschen anders aussehen.,You're back! Today the challenge might look a bit different.
+wisent.kuer.wiederholungshinweis_c,Wisent-Kuer-Wiederholungshinweis,Zurück für eine Wiederholung? Manchmal ändert sich die Aufgabe ein kleines bisschen!,Back for another try? Sometimes the challenge changes just a little!
+wisent.kuer.wiederholungshinweis_d,Wisent-Kuer-Wiederholungshinweis,Schaffst du auch diese Variante?,Can you solve this version too?
+wisent.kuer.bauernumwandlung.entdecken_1,Bauernumwandlung-Kuer,"Schau: Wenn ein Bauer ganz bis zur letzten Reihe kommt, verwandelt er sich!","Look: when a pawn reaches all the way to the last row, it transforms!"
+wisent.kuer.bauernumwandlung.entdecken_2,Bauernumwandlung-Kuer,Er wird zur stärksten Figur überhaupt — zur Dame!,It becomes the strongest piece of all — a queen!
+wisent.kuer.bauernumwandlung.kernaufgabe_1,Bauernumwandlung-Kuer,Jetzt bist du dran! Zieh deinen Bauern ganz nach vorne.,Now it's your turn! Move your pawn all the way forward.
+wisent.kuer.bauernumwandlung.kernaufgabe_2,Bauernumwandlung-Kuer,Und wie von Zauberhand: eine Dame! Matt — sie hat dem König keine Chance gelassen!,And like magic: a queen! Checkmate — she gave the king no chance at all!
+wisent.kuer.bauernumwandlung.kernaufgabe_3_freispielhinweis,Bauernumwandlung-Kuer,"Übrigens: Im Freispiel gegen deine Waldfreunde darfst du später sogar selbst wählen, in welche Figur sich dein Bauer verwandelt. Manchmal ist es sogar klüger, keine Dame zu nehmen!","By the way: later, in free play against your forest friends, you'll even get to choose what your pawn transforms into. Sometimes it's actually smarter not to pick a queen!"
+wisent.kuer.bauernumwandlung.abschluss,Bauernumwandlung-Kuer,Du kennst jetzt das Geheimnis der Bauern-Verwandlung — eine wichtige Fähigkeit für starke Spieler!,Now you know the secret of pawn promotion — an important skill for strong players!
+wisent.kuer.enpassant.entdecken_1,Enpassant-Kuer,"Schau, der gegnerische Bauer springt gerade zwei Felder auf einmal…","Look, the other pawn is jumping two squares at once…"
+wisent.kuer.enpassant.entdecken_2,Enpassant-Kuer,"Weil er direkt neben deinem Bauern gelandet ist, darfst du ihn trotzdem schlagen!","Because it landed right next to your pawn, you're still allowed to capture it!"
+wisent.kuer.enpassant.entdecken_3,Enpassant-Kuer,Das nennt man 'im Vorbeigehen schlagen'. Aber Achtung: Das geht nur genau in diesem einen Moment — direkt nach seinem Sprung!,That's called capturing 'en passant' — in passing. But watch out: it only works in this one moment — right after its jump!
+wisent.kuer.enpassant.kernaufgabe_1,Enpassant-Kuer,Probier's aus — schlag ihn im Vorbeigehen!,Give it a try — capture it in passing!
+wisent.kuer.enpassant.kernaufgabe_2,Enpassant-Kuer,Genau richtig! Du hast gerade einen der seltensten Tricks im ganzen Schach gemeistert!,Exactly right! You just mastered one of the rarest tricks in all of chess!
+wisent.kuer.enpassant.abschluss,Enpassant-Kuer,Von der Bauern-Verwandlung bis zum Vorbeigehen-Schlagen — du kennst jetzt richtig viele Schach-Geheimnisse! Bereit für den Wisenten?,From pawn promotion to capturing in passing — you know so many chess secrets now! Ready for the Bison?
+wisent.boss.anmoderation_1,Wisent-Boss-Puzzle,Vor dir steht der Wisent — der klügste und stärkste Schachmeister im ganzen Wald.,Before you stands the Bison — the cleverest and strongest chess master in the whole forest.
+wisent.boss.anmoderation_2,Wisent-Boss-Puzzle,Er fordert dich zu seiner schwierigsten Aufgabe heraus. Bist du bereit?,He challenges you to his hardest task yet. Are you ready?
+wisent.boss.fesselung_entdecken,Wisent-Boss-Puzzle,Schau genau hin: Sein Wächter-Turm ist gefesselt. Er darf sich nicht von dieser Linie wegbewegen.,Look closely: his guard rook is pinned. It can't move away from this line.
+wisent.boss.deckung_entdecken,Wisent-Boss-Puzzle,Der Turm bewacht diesen Bauern. Aber kann er das gerade wirklich?,"The rook is guarding this pawn. But can it really, right now?"
+wisent.boss.zug1_a,Wisent-Boss-Puzzle,Trau dich! Der Wächter kann nicht antworten — schlag zu!,Go for it! The guard can't respond — take it!
+wisent.boss.zug1_b,Wisent-Boss-Puzzle,Schach! Der Wisent muss ausweichen — er hat keine andere Wahl.,Check! The Bison has to move away — he has no other choice.
+wisent.boss.zug2_a,Wisent-Boss-Puzzle,Jetzt kommt der entscheidende Moment — findest du das letzte Feld?,Now comes the decisive moment — can you find the last square?
+wisent.boss.zug2_b,Wisent-Boss-Puzzle,Matt! Zwei kluge Züge — genau wie du es schon geübt hast!,Checkmate! Two clever moves — just like you've already practiced!
+wisent.boss.wuerdigung,Wisent-Boss-Puzzle,Der Wisent neigt respektvoll den Kopf. So klug hat ihn noch niemand überlistet.,The Bison bows his head respectfully. No one has ever outsmarted him this cleverly.
+lichess.wegpunkt.erstbesuch_1,Lichess-Wegpunkt,"Hier an der Steinbrücke übt eine kluge Schildkröte mit allen, die vorbeikommen.","Here at the stone bridge, a wise turtle practices with everyone who passes by."
+lichess.wegpunkt.erstbesuch_2,Lichess-Wegpunkt,"Möchtest du gegen deine Waldfreunde spielen, oder kleine Rätsel lösen?","Would you like to play against your forest friends, or solve little puzzles?"
+lichess.wegpunkt.wiederholt_a,Lichess-Wegpunkt,"Schön, dass du wieder da bist! Worauf hast du heute Lust?",So nice that you're back! What are you in the mood for today?
+lichess.wegpunkt.wiederholt_b,Lichess-Wegpunkt,Zurück an der Brücke — Waldfreunde oder Rätsel?,Back at the bridge — forest friends or puzzles?
+lichess.wahl.intro,Lichess-Themen-Rush-Wahl,"Hier gibt es zwei Wege: ausgewählte kleine Rätsel-Aufgaben, oder eine lange Rätsel-Reihe ohne Ende.","There are two paths here: a few chosen little puzzles, or one long puzzle trail with no end."
+lichess.wahl.rush_gesperrt,Lichess-Themen-Rush-Wahl,"Diesen Weg entdecken wir, sobald du alle drei Rätsel-Arten einmal ganz gemeistert hast!",We'll discover this path once you've fully mastered all three kinds of puzzles!
+lichess.themenuebung.erstbesuch,Lichess-Themenuebung,"Hier warten drei Rätsel-Arten auf dich: Schach lösen, eine Figur gewinnen, und die Fesselung. Jede hat mehrere Stufen — von ganz leicht bis richtig knifflig. Tipp einfach los!","Three kinds of puzzles are waiting for you here: solving check, winning a piece, and the pin. Each has several levels — from very easy to really tricky. Just tap and go!"
+lichess.themenuebung.wiederholt_a,Lichess-Themenuebung,Nochmal? Diesmal wartet vielleicht ein anderes Rätsel auf dich!,Again? This time a different puzzle might be waiting for you!
+lichess.themenuebung.wiederholt_b,Lichess-Themenuebung,"Du bist zurück! Schauen wir, was diese Stufe diesmal für dich bereithält.",You're back! Let's see what this level has in store for you this time.
+lichess.themenuebung.rushteaser_a,Lichess-Themenuebung,"Du übst wirklich fleißig! Weißt du was? Wenn du alle Themen ganz nach oben schaffst, wartet noch ein riesiger Schatz mit tausenden Rätseln auf dich.","You're practicing so hard! You know what? If you make it to the top in every topic, a huge treasure of thousands of puzzles is waiting for you."
+lichess.themenuebung.rushteaser_b,Lichess-Themenuebung,Du bist schon richtig gut in dieser Stufe! Ganz am Ende wartet noch ein besonderer Ort mit endlos vielen neuen Rätseln.,"You're already really good at this level! Right at the end, a special place with endless new puzzles is waiting."
+lichess.rush.freischalt,Lichess-Rush,"Du hast alle drei Rätsel-Arten gemeistert! Jetzt gibt es hier eine ganz lange Rätsel-Reihe, die nie aufhört.",You've mastered all three kinds of puzzles! Now there's a really long puzzle trail here that never ends.
+lichess.rush.rundenstart,Lichess-Rush,"Bereit? Löse so viele Rätsel, wie du kannst!",Ready? Solve as many puzzles as you can!
+lichess.rush.neuerrekord,Lichess-Rush,Das war dein bisher bestes Ergebnis! Fantastisch!,That was your best result yet! Fantastic!
+lichess.rush.keinrekord,Lichess-Rush,"Gut gemacht! Versuch's gleich nochmal, vielleicht klappt's noch besser!",Well done! Try again right away — maybe it'll go even better!
+freispiel.wiederholungshinweis_a,Freispiel-Wiederholungshinweis,"Du hast diesen Waldfreund schon einmal geschlagen! Mal sehen, was er sich diesmal einfallen lässt.",You've already beaten this forest friend once! Let's see what they come up with this time.
+freispiel.wiederholungshinweis_b,Freispiel-Wiederholungshinweis,Noch eine Partie? Diesmal könnte es ganz anders laufen!,Another game? This time it could go completely differently!
+freispiel.wiederholungshinweis_c,Freispiel-Wiederholungshinweis,Zurück für eine Revanche? Er spielt bestimmt nicht genau gleich wie letztes Mal.,Back for a rematch? They definitely won't play exactly the same as last time.
+gefaehrten.eichhoernchen.ankunft_1,Gefaehrten-Eichhoernchen,Hier lerne ich das fleißige Eichhörnchen in seiner Lichtung kennen.,Here I get to meet the hardworking squirrel in its clearing.
+gefaehrten.eichhoernchen.ankunft_2,Gefaehrten-Eichhoernchen,Es sammelt den ganzen Tag und vergleicht genau — welcher Schatz ist wohl mehr wert?,It gathers all day long and compares carefully — which treasure is worth more?
+gefaehrten.eichhoernchen.ankunft_3,Gefaehrten-Eichhoernchen,"Hilfst du mir, mit ihm zu vergleichen?",Will you help me compare with it?
+gefaehrten.eichhoernchen.abschluss_1,Gefaehrten-Eichhoernchen,Das Eichhörnchen strahlt — wir haben ihm prima geholfen!,The squirrel beams with joy — we helped it so well!
+gefaehrten.eichhoernchen.abschluss_2,Gefaehrten-Eichhoernchen,Auf zum nächsten Revier!,On to the next place!
+gefaehrten.fuchsbau.ankunft_1,Gefaehrten-Fuchsbau,Hier lerne ich den schlauen Fuchs in seinem Bau kennen.,Here I get to meet the clever fox in its den.
+gefaehrten.fuchsbau.ankunft_2,Gefaehrten-Fuchsbau,"Er kennt jeden Trick, um seinem König aus der Gefahr zu helfen.",It knows every trick to help its king out of danger.
+gefaehrten.fuchsbau.ankunft_3,Gefaehrten-Fuchsbau,"Zeigst du mir, wie du das schaffst?",Will you show me how you do that?
+gefaehrten.fuchsbau.abschluss_1,Gefaehrten-Fuchsbau,Der Fuchs blinzelt zufrieden — das war wirklich clever gelöst!,The fox blinks happily — that was really cleverly solved!
+gefaehrten.fuchsbau.abschluss_2,Gefaehrten-Fuchsbau,Weiter geht unsere Reise!,Our journey continues!
+gefaehrten.dachshoehle.ankunft_1,Gefaehrten-Dachshoehle,Hier lerne ich den Dachs in seiner gemütlichen Höhle kennen.,Here I get to meet the badger in its cozy den.
+gefaehrten.dachshoehle.ankunft_2,Gefaehrten-Dachshoehle,Er sorgt gern für Sicherheit — sein König soll immer gut geschützt sein.,It loves keeping things safe — its king should always be well protected.
+gefaehrten.dachshoehle.ankunft_3,Gefaehrten-Dachshoehle,Gemeinsam bringen wir alles in Sicherheit!,Together we'll bring everything to safety!
+gefaehrten.dachshoehle.abschluss_1,Gefaehrten-Dachshoehle,Der Dachs nickt zufrieden aus seiner Höhle — sicher ist sicher!,The badger nods happily from its den — safety first!
+gefaehrten.dachshoehle.abschluss_2,Gefaehrten-Dachshoehle,Weiter zum nächsten Freund!,On to the next friend!
+gefaehrten.adlerhorst.ankunft_1,Gefaehrten-Adlerhorst,Hier lerne ich die Adlerin in ihrem hohen Horst kennen.,Here I get to meet the eagle in her high nest.
+gefaehrten.adlerhorst.ankunft_2,Gefaehrten-Adlerhorst,Von hier oben sieht sie jede Linie auf dem Brett — nichts entgeht ihrem scharfen Blick.,From up here she sees every line on the board — nothing escapes her sharp eyes.
+gefaehrten.adlerhorst.ankunft_3,Gefaehrten-Adlerhorst,Schauen wir gemeinsam ganz genau hin!,Let's take a really close look together!
+gefaehrten.adlerhorst.abschluss_1,Gefaehrten-Adlerhorst,Die Adlerin kreist stolz über dem Horst — gut gesehen!,The eagle circles proudly above her nest — well spotted!
+gefaehrten.adlerhorst.abschluss_2,Gefaehrten-Adlerhorst,Weiter zum nächsten Revier!,On to the next place!
+gefaehrten.wolfsfeste.ankunft_1,Gefaehrten-Wolfsfeste,Hier lerne ich den Wolf in seiner Feste kennen.,Here I get to meet the wolf in its stronghold.
+gefaehrten.wolfsfeste.ankunft_2,Gefaehrten-Wolfsfeste,"Er denkt immer ein paar Züge voraus, um sein Rudel zu beschützen.",It always thinks a few moves ahead to protect its pack.
+gefaehrten.wolfsfeste.ankunft_3,Gefaehrten-Wolfsfeste,Denken wir gemeinsam einen Schritt weiter!,"Let's think one step further, together!"
+gefaehrten.wolfsfeste.abschluss_1,Gefaehrten-Wolfsfeste,Der Wolf heult zufrieden in die Nacht — das war klug gespielt!,The wolf howls happily into the night — that was cleverly played!
+gefaehrten.wolfsfeste.abschluss_2,Gefaehrten-Wolfsfeste,Nur noch der Wisent liegt jetzt vor uns…,Now only the Bison lies ahead of us…
+schlossvorplatz.uebergang_1,Schlossvorplatz,Du hast es geschafft! Das Schlosstor öffnet sich!,You did it! The castle gate is opening!
+schlossvorplatz.uebergang_2,Schlossvorplatz,"Dahinter wartet der Wald mit fünf neuen Freunden, die schon auf uns warten!","Beyond it, the forest is waiting with five new friends already looking forward to meeting us!"
+schlossvorplatz.uebergang_3,Schlossvorplatz,"Und du hast das alles ganz allein geschafft, du mutiger Entdecker!","And you did all of this all by yourself, you brave explorer!"
+motto.1,Motto-Moment,"Schau nur — alle meine Waldfreunde sind hier: das Eichhörnchen, der Fuchs, der Dachs, die Adlerin und der Wolf!","Just look — all my forest friends are here: the squirrel, the fox, the badger, the eagle, and the wolf!"
+motto.2,Motto-Moment,Jeder von ihnen hat dir sein Geheimnis gezeigt — und du hast jedes einzelne gemeistert!,Each one of them showed you their secret — and you mastered every single one!
+motto.3_schachluchs,Motto-Moment,Weißt du was? Du bist jetzt genauso ein echter Schach-Luchs wie ich!,"You know what? You're a real ChessLynx now, just like me!"
+motto.4,Motto-Moment,"Der Wald wird nie vergessen, was du hier geschafft hast.",The forest will never forget what you've achieved here.
+motto.5,Motto-Moment,Und weißt du was? Der Wald hat noch viel mehr für dich bereit — wann immer du magst.,And you know what? The forest has so much more in store for you — whenever you'd like.
+wisentfeste.uebergang_1,Wisentfeste-Uebergang,Wir haben schon so viel gemeinsam geschafft!,We've already achieved so much together!
+wisentfeste.uebergang_2,Wisentfeste-Uebergang,Den ganzen Wald der sechs Waldabenteuer — und all die klugen Tricks danach!,The whole forest of six adventures — and all the clever tricks after that!
+wisentfeste.uebergang_3,Wisentfeste-Uebergang,Hier an der Wisentfeste beginnt jetzt ein neues Stück unserer Reise.,"Here at the Bison Stronghold, a new part of our journey begins."
+wisentfeste.uebergang_4,Wisentfeste-Uebergang,Dahinter warten fünf neue Waldfreunde auf uns — und ganz am Ende der mächtige Wisent.,"Beyond it, five new forest friends are waiting for us — and at the very end, the mighty Bison."
+wisentfeste.uebergang_5,Wisentfeste-Uebergang,"Bist du bereit, mit mir weiterzuziehen?",Are you ready to continue on with me?

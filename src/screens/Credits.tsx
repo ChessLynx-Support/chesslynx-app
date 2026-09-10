@@ -25,11 +25,12 @@ export function Credits({ navigation }: any) {
 
       <Text style={styles.sectionTitle}>Urheberrecht</Text>
       <Text style={styles.body}>
-        © {new Date().getFullYear()} CMZen (Christian Mäusezahl). Das Maskottchen „Lux",
-        alle Wald-/Quest-Tier-Illustrationen sowie das ChessLynx-Logo sind eigens für diese
-        App erstellt und urheberrechtlich bzw. markenrechtlich geschützt. Jede
+        © {new Date().getFullYear()} CMZen Digital (Christian Mäusezahl). Das Maskottchen
+        „Lux", alle Wald-/Quest-Tier-Illustrationen sowie das ChessLynx-Logo sind eigens für
+        diese App erstellt und urheberrechtlich bzw. markenrechtlich geschützt. Jede
         Vervielfältigung, Bearbeitung oder Weiterverwendung außerhalb der App — auch
-        auszugsweise — ist ohne vorherige schriftliche Zustimmung von CMZen nicht gestattet.
+        auszugsweise — ist ohne vorherige schriftliche Zustimmung von CMZen Digital nicht
+        gestattet.
       </Text>
 
       <Text style={styles.sectionTitle}>Schachfiguren-Illustrationen</Text>

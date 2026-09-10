@@ -1,0 +1,75 @@
+// Sprach-Harmonie-Review (Nutzerauftrag 2026-09-09: "prüfe alle Sprachteile von Lux
+// nochmal auf Harmonie zur Story ... Die Sprachführung soll die Kinder wirklich an die
+// Hand nehmen, aber zugleich nicht störend wirken"). Ausgangsbefund: KEINE der sechs
+// Haupt-Waldabenteuer-Dateien (Quest1.tsx–Quest6.tsx) hatte bis dahin irgendeine
+// Variations-/Zufallslogik — jede Sprechzeile ist bei jedem Durchlauf und jeder
+// automatischen 8-Sekunden-Erinnerung (siehe ERINNERUNG_MS in useLuxSprechzeile.ts)
+// wortidentisch. Zwei konkrete Wiederholungs-Situationen sind dadurch potenziell
+// "störend" statt "an die Hand nehmend":
+//   1. Innerhalb EINES Bildschirms: ein Kind, das länger als 8 Sekunden für einen
+//      Zug/eine Übungsrunde braucht, hört exakt denselben Satz erneut und erneut.
+//   2. Über die sechs Waldabenteuer hinweg: dieselben drei PHASE_LINES-Zeilen
+//      ("Jetzt bist du dran!" / "Tipp auf ein leuchtendes Feld." / "Kannst du das noch
+//      ein paar Mal?" / "Super, das kannst du schon richtig gut!") sind in Quest1–Quest6
+//      wortidentisch — ein Kind, das an einem Nachmittag mehrere Abenteuer hintereinander
+//      spielt, hört sie entsprechend oft.
+//
+// Dieses Modul löst beide Fälle mit EINEM gemeinsamen Mechanismus: ein session-weiter,
+// rotierender Zähler pro Schlüssel. Bewusst KEIN echter Zufall (Math.random) — echter
+// Zufall könnte zwei Aufrufe in Folge dieselbe Variante ziehen, was sich für das Kind
+// exakt so repetitiv anfühlen würde wie gar keine Variation. Ein rotierender Zähler
+// garantiert stattdessen, dass zwei AUFEINANDERFOLGENDE Aufrufe (egal ob als 8-Sekunden-
+// Erinnerung auf demselben Bildschirm oder als nächstes Waldabenteuer in derselben
+// Sitzung) nie dieselbe Formulierung liefern, bis der ganze Pool einmal durchlaufen ist.
+//
+// Bewusst rein modulweit im Arbeitsspeicher (keine Persistenz in AsyncStorage/Firestore):
+// die Abwechslung soll sich innerhalb EINER Spielsitzung lebendig anfühlen, nicht über
+// App-Neustarts hinweg "erinnert" werden — dafür gäbe es keinen sinnvollen Nutzen, nur
+// unnötigen Speicheraufwand. Nach einem Neustart beginnt jeder Pool wieder bei Variante 1,
+// der klarsten/direktesten Formulierung.
+const zaehler = new Map<string, number>();
+
+/**
+ * Liefert die nächste Variante aus `pool` für den gegebenen `schluessel` und zählt dabei
+ * den zu diesem Schlüssel gehörenden Zähler genau einmal weiter. WICHTIG: nur an der
+ * Stelle aufrufen, an der eine Zeile tatsächlich (erneut) gesprochen wird (siehe
+ * useLuxSprechzeile.ts — dort als `() => luxVariante(...)` übergeben, damit der Zähler
+ * nur bei echten Sprechvorgängen weiterläuft, nicht bei jedem Komponenten-Rerender).
+ */
+export function luxVariante(pool: readonly string[], schluessel: string): string {
+  if (pool.length === 0) return "";
+  const n = zaehler.get(schluessel) ?? 0;
+  zaehler.set(schluessel, n + 1);
+  return pool[n % pool.length];
+}
+
+// Gemeinsame Varianten-Pools für die drei über Quest1–Quest6 hinweg wortidentischen
+// PHASE_LINES-Zeilen (siehe Befund oben). Zentral hier definiert statt sechsfach
+// dupliziert, damit der rotierende Zähler außerdem GLOBAL über alle sechs Abenteuer
+// hinweg weiterläuft (derselbe Schlüssel "uebung-hinweis"/"fertig-lob" wird von jedem
+// Quest-Screen verwendet) — ein Kind, das Quest 1 bis Quest 6 hintereinander spielt,
+// hört dadurch eine natürlich fortlaufende Abwechslung statt sechsmal denselben Satz.
+// Quest6 hat für INTERAKTIV_HINWEIS_VARIANTEN eine eigene, leicht abgewandelte
+// Formulierung ("... direkt neben ihm", siehe dortiger Kommentar in Quest6.tsx) und
+// definiert deshalb dort einen eigenen, gleich langen Pool statt diesen zu importieren —
+// der Rotations-Fortschritt bleibt trotzdem gemeinsam, da beide denselben Schlüssel
+// "interaktiv-hinweis" verwenden.
+export const INTERAKTIV_HINWEIS_VARIANTEN = [
+  "Tipp auf ein leuchtendes Feld.",
+  "Schau, wo es leuchtet. Dort darfst du hin.",
+  "Trau dich, tipp einfach auf das leuchtende Feld!",
+];
+
+export const UEBUNG_HINWEIS_VARIANTEN = [
+  "Kannst du das noch ein paar Mal?",
+  "Weiter so! Versuch's gleich noch einmal!",
+  "Du wirst schon richtig sicher darin. Nochmal?",
+  "Prima! Probier es noch ein paarmal aus.",
+];
+
+export const FERTIG_LOB_VARIANTEN = [
+  "Super, das kannst du schon richtig gut!",
+  "Klasse gemacht! Du wirst richtig gut darin!",
+  "Toll! Das hast du wunderbar hinbekommen.",
+  "Du machst das schon wie ein kleiner Schach-Profi!",
+];

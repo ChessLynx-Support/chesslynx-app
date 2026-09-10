@@ -51,20 +51,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { View, Pressable, Image, StyleSheet, Animated, Easing, AccessibilityInfo, Dimensions } from "react-native";
-import Svg, { Circle, Line, Defs, RadialGradient, Stop } from "react-native-svg";
+import { View, Pressable, Image, StyleSheet, Animated, AccessibilityInfo, Dimensions } from "react-native";
+import Svg, { Circle, Line, Defs, RadialGradient, LinearGradient, Stop, Ellipse, Path } from "react-native-svg";
 import type { BoardSquare } from "../lib/chessEngine";
 // Opus-Review, 2026-09-07, Abschnitt 3.1, Schritt 7 (siehe claude/review_logik_grafik_
 // audiofuehrung.md): sofortiges haptisches + akustisches Feedback bei Zug/Stopp-Tap,
 // unabhängig von der Sprachqualität der TTS-Anbindung (siehe luxStimme.ts).
 import { haptikZug, haptikStopp } from "../lib/luxHaptik";
 import { spieleZugKlang, spieleStoppKlang } from "../lib/luxKlang";
-// Bugfix (Nutzer-Feedback 2026-09-07, "Die Zugvorschläge (markierte Felder und Kreise)
-// pulsieren auch laggy. Die Farbgebung ist weniger hochwertig als die Spielfiguren."):
-// dieselbe Einzel-Loop+Stützstellen-Technik, die den Lux-Puls geschmeidig gemacht hat
-// (siehe luxAssets.tsx/LuxAtem-Kommentar), plus Verlaufsfüllungen statt Flat-Fill für
-// ZielfeldMarker/BedrohungsPuls weiter unten.
-import { SANFTE_PHASEN, baueSanftenVerlauf } from "../lib/luxAssets";
 
 const feldHell = require("../../assets/brett/tile_hell.png");
 const feldDunkel = require("../../assets/brett/tile_dunkel.png");
@@ -86,51 +80,122 @@ function ZielfeldMarker({ size, variante = "punkt" }: { size: number; variante?:
   const puls = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Bugfix (Nutzer-Feedback 2026-09-07): dasselbe Sequence-aus-zwei-Timings-Muster wie
-    // beim ursprünglichen Lux-Puls brauchte zwei Bridge-Synchronisationspunkte pro Zyklus
-    // (siehe ausführliche Begründung in luxAssets.tsx/LuxAtem) — hier durch denselben
-    // Einzel-Loop mit linearer Zeit + Stützstellen-Interpolation ersetzt, macht die
-    // komplette Auf-und-ab-Form ganz ohne weitere JS-Beteiligung.
     const schleife = Animated.loop(
-      Animated.timing(puls, { toValue: 1, duration: 2200, easing: Easing.linear, useNativeDriver: true })
+      Animated.sequence([
+        Animated.timing(puls, { toValue: 1, duration: 1100, useNativeDriver: true }),
+        Animated.timing(puls, { toValue: 0, duration: 1100, useNativeDriver: true }),
+      ])
     );
     schleife.start();
     return () => schleife.stop();
   }, [puls]);
 
-  const scale = puls.interpolate({ inputRange: SANFTE_PHASEN, outputRange: baueSanftenVerlauf(1, 1.08) });
-  const opacity = puls.interpolate({ inputRange: SANFTE_PHASEN, outputRange: baueSanftenVerlauf(0.85, 1) });
-  // Bugfix (Nutzer-Feedback: "Die Farbgebung ist weniger hochwertig als die Spielfiguren."):
-  // Verlaufsfüllung statt Flat-Fill — dasselbe "Verlaufsfüllungen statt Flat-Fill"-Muster,
-  // das schon in der übrigen Design-Produktion etabliert ist. Jede ZielfeldMarker-Instanz
-  // bekommt ihre eigene <Svg>-Wurzel, Gradient-IDs kollidieren deshalb trotz gleichem
-  // Namen nicht zwischen den Zellen.
-  const gradientId = variante === "punkt" ? "zielfeldVerlaufPunkt" : "zielfeldVerlaufRing";
+  const scale = puls.interpolate({ inputRange: [0, 1], outputRange: [1, 1.08] });
+  const opacity = puls.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1] });
 
   return (
-    <Animated.View
-      pointerEvents="none"
-      style={[styles.markerWrap, { transform: [{ scale }], opacity }]}
-      renderToHardwareTextureAndroid
-      shouldRasterizeIOS
-    >
+    <Animated.View pointerEvents="none" style={[styles.markerWrap, { transform: [{ scale }], opacity }]}>
       <Svg width={size} height={size} viewBox="0 0 40 40">
         <Defs>
-          <RadialGradient id={gradientId} cx="42%" cy="38%" r="65%">
-            <Stop offset="0%" stopColor="#C8E0C2" />
-            <Stop offset="55%" stopColor="#9CB89A" />
-            <Stop offset="100%" stopColor="#7A9C78" />
+          {/* Visuelle-Politur-Runde (2026-09-09, Rückfrage "hochwertige Designs" für die
+              Brett-Animationen): radialer Verlauf statt Flatcolor — heller Kern → dunklerer
+              Rand gibt dem Punkt spürbares Volumen (wirkt wie eine kleine Kuppel statt eines
+              platten Aufklebers), ohne die Grundform/Farbfamilie (Salbeigrün) zu ändern. */}
+          <RadialGradient id="zielfeldFuellung" cx="42%" cy="38%" r="65%">
+            <Stop offset="0%" stopColor="#C7DCC5" stopOpacity={0.95} />
+            <Stop offset="55%" stopColor="#9CB89A" stopOpacity={0.5} />
+            <Stop offset="100%" stopColor="#7FA07D" stopOpacity={0.22} />
+          </RadialGradient>
+          <RadialGradient id="zielfeldPunktKern" cx="38%" cy="32%" r="70%">
+            <Stop offset="0%" stopColor="#C7DCC5" />
+            <Stop offset="60%" stopColor="#9CB89A" />
+            <Stop offset="100%" stopColor="#7FA07D" />
           </RadialGradient>
         </Defs>
         {variante === "punkt" ? (
           <>
-            <Circle cx={20} cy={20} r={15} fill={`url(#${gradientId})`} fillOpacity={0.3} />
-            <Circle cx={20} cy={20} r={15} stroke={`url(#${gradientId})`} strokeWidth={2.5} fill="none" />
-            <Circle cx={20} cy={20} r={4.5} fill={`url(#${gradientId})`} />
+            <Circle cx={20} cy={20} r={15} fill="url(#zielfeldFuellung)" />
+            <Circle cx={20} cy={20} r={15} stroke="#9CB89A" strokeWidth={2.5} fill="none" />
+            <Circle cx={20} cy={20} r={4.5} fill="url(#zielfeldPunktKern)" />
+            {/* Kleiner Glanzpunkt oben links auf dem Mittelpunkt — derselbe "veredelte
+                Fläche"-Trick wie bei den Buttons (siehe ChessLynxButton.tsx). */}
+            <Circle cx={18.5} cy={18.3} r={1.1} fill="#FFFFFF" opacity={0.6} />
           </>
         ) : (
-          <Circle cx={20} cy={20} r={18} stroke={`url(#${gradientId})`} strokeWidth={2.5} fill="none" />
+          <>
+            {/* Doppelte Kontur statt einer einzelnen Linie: weicher, breiter Außenring gibt
+                dem Schlagfeld-Ring mehr Tiefe, ohne die Außenmaße zu verändern. */}
+            <Circle cx={20} cy={20} r={18} stroke="#7FA07D" strokeWidth={4} fill="none" opacity={0.35} />
+            <Circle cx={20} cy={20} r={18} stroke="#9CB89A" strokeWidth={2.5} fill="none" />
+          </>
         )}
+      </Svg>
+    </Animated.View>
+  );
+}
+
+// Sammel-Marker (neu, 2026-09-08, siehe claude/quest_review_automatik_vollbrett_vorschlag.md,
+// Abschnitt 3): Für die neue Übungsphase in QuestMoveScreen.tsx (BoardConfig.sammelAt) — ein
+// kleines Eichel-Glyph auf dem jeweils vorgeschlagenen nächsten Zielfeld, damit die
+// Wiederholungsrunden ("kannst du das noch ein paar Mal?") sich wie ein kleines Sammelspiel
+// anfühlen statt wie trockene Wiederholung, passend zum Wald-/Freispiel-Thema der App. Bewusst
+// als eigenes, von Board.tsx selbst gezeichnetes SVG (wie ZielfeldMarker/StoppMarker) statt
+// einer neuen Illustrations-Asset-Runde — dieselbe Begründung wie dort: generisches UI-Chrome,
+// sieht in jeder Quest identisch aus, braucht keine kreaturspezifische Grafik. WICHTIG (siehe
+// Design-Grundsatz "immer alle Legalzüge anbieten", QuestMoveScreen.tsx-Kommentar): sammelAt
+// markiert nur eine VORGESCHLAGENE Vorzugswahl, schränkt die tatsächlich antippbaren Felder
+// nicht ein — jedes andere legale Feld bleibt genauso lösend.
+function SammelMarker({ size }: { size: number }) {
+  const puls = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const schleife = Animated.loop(
+      Animated.sequence([
+        Animated.timing(puls, { toValue: 1, duration: 700, useNativeDriver: true }),
+        Animated.timing(puls, { toValue: 0, duration: 700, useNativeDriver: true }),
+      ])
+    );
+    schleife.start();
+    return () => schleife.stop();
+  }, [puls]);
+
+  const scale = puls.interpolate({ inputRange: [0, 1], outputRange: [0.92, 1.1] });
+
+  return (
+    <Animated.View pointerEvents="none" style={[styles.markerWrap, { transform: [{ scale }], zIndex: 1 }]}>
+      <Svg width={size} height={size} viewBox="0 0 40 40">
+        {/* Visuelle-Politur-Runde (2026-09-09): echtes Eichel-Silhouette statt zweier flacher,
+            überlappender Kreise — Körper mit sanfter Verjüngung nach unten, Hut mit
+            gewellter Unterkante + angedeuteten Waffel-Linien, Stiel, Glanzpunkt. Bleibt in der
+            bestehenden warmen Marken-Gold/-Braun-Palette. */}
+        <Defs>
+          <RadialGradient id="eichelKoerper" cx="36%" cy="28%" r="75%">
+            <Stop offset="0%" stopColor="#F0C463" />
+            <Stop offset="55%" stopColor="#D7A52D" />
+            <Stop offset="100%" stopColor="#A87A1E" />
+          </RadialGradient>
+          <LinearGradient id="eichelHut" x1="0%" y1="0%" x2="0%" y2="100%">
+            <Stop offset="0%" stopColor="#C2924E" />
+            <Stop offset="100%" stopColor="#8C5F2A" />
+          </LinearGradient>
+        </Defs>
+        {/* Nuss-Körper: rundlich mit sanfter Verjüngung nach unten statt eines platten Kreises. */}
+        <Path
+          d="M11.5 23 C11.5 18 15.2 14.5 20 14.5 C24.8 14.5 28.5 18 28.5 23 C28.5 28.5 24.8 34 20 34 C15.2 34 11.5 28.5 11.5 23 Z"
+          fill="url(#eichelKoerper)"
+        />
+        {/* Hut: Kuppel mit gewellter Unterkante (angedeutete Schuppenstruktur). */}
+        <Path
+          d="M9.5 16 C9.5 9.5 14 6 20 6 C26 6 30.5 9.5 30.5 16 C28.7 17.3 27 15.5 25.2 16.6 C23.4 17.7 21.8 16 20 16 C18.2 16 16.6 17.7 14.8 16.6 C13 15.5 11.3 17.3 9.5 16 Z"
+          fill="url(#eichelHut)"
+        />
+        {/* Kleine Waffel-Linien auf dem Hut statt Flatcolor — angedeutete Schalenstruktur. */}
+        <Path d="M14 11 Q20 8.5 26 11" fill="none" stroke="#6E4A1F" strokeWidth={0.8} opacity={0.55} />
+        <Path d="M12.5 14 Q20 11 27.5 14" fill="none" stroke="#6E4A1F" strokeWidth={0.8} opacity={0.55} />
+        {/* Stiel oben. */}
+        <Path d="M19.3 6 C19.3 4.3 20.7 4.3 20.7 6 L20.5 7.5 H19.5 Z" fill="#6E4A1F" />
+        {/* Glanzpunkt auf dem Körper. */}
+        <Ellipse cx={16.5} cy={20} rx={2.2} ry={3} fill="#FFFFFF" opacity={0.45} />
       </Svg>
     </Animated.View>
   );
@@ -159,6 +224,10 @@ function StoppMarker({ size }: { size: number }) {
   return (
     <Animated.View pointerEvents="none" style={[styles.markerWrap, { transform: [{ scale }], opacity: eintritt }]}>
       <Svg width={size} height={size} viewBox="0 0 40 40">
+        {/* Visuelle-Politur-Runde (2026-09-09): doppelte Kontur statt einer einzelnen Linie —
+            äußerer dünner, heller Ring gibt der gestrichelten Hauptlinie mehr Tiefe, ohne das
+            etablierte "gestrichelt = gerade nicht verfügbar"-Muster zu verändern. */}
+        <Circle cx={20} cy={20} r={17} stroke="#F0BBA0" strokeWidth={1.2} fill="none" opacity={0.6} />
         <Circle cx={20} cy={20} r={15} stroke="#D98E72" strokeWidth={2.5} strokeDasharray="5,4" fill="none" />
       </Svg>
     </Animated.View>
@@ -175,36 +244,44 @@ function BedrohungsPuls({ size }: { size: number }) {
   const puls = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Bugfix (Nutzer-Feedback 2026-09-07): siehe ZielfeldMarker oben — derselbe
-    // Einzel-Loop+Stützstellen-Ansatz statt des laggy Sequence-Musters.
     const schleife = Animated.loop(
-      Animated.timing(puls, { toValue: 1, duration: 1300, easing: Easing.linear, useNativeDriver: true })
+      Animated.sequence([
+        Animated.timing(puls, { toValue: 1, duration: 650, useNativeDriver: true }),
+        Animated.timing(puls, { toValue: 0, duration: 650, useNativeDriver: true }),
+      ])
     );
     schleife.start();
     return () => schleife.stop();
   }, [puls]);
 
-  const opacity = puls.interpolate({ inputRange: SANFTE_PHASEN, outputRange: baueSanftenVerlauf(0.25, 0.5) });
-  const scale = puls.interpolate({ inputRange: SANFTE_PHASEN, outputRange: baueSanftenVerlauf(0.9, 1.04) });
+  const opacity = puls.interpolate({ inputRange: [0, 1], outputRange: [0.25, 0.5] });
+  const scale = puls.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1.04] });
+  const kreisGroesse = size * 0.92;
 
   return (
     <Animated.View
       pointerEvents="none"
-      style={{ position: "absolute", width: size * 0.92, height: size * 0.92, opacity, transform: [{ scale }] }}
-      renderToHardwareTextureAndroid
-      shouldRasterizeIOS
+      style={{
+        position: "absolute",
+        width: kreisGroesse,
+        height: kreisGroesse,
+        opacity,
+        transform: [{ scale }],
+      }}
     >
-      {/* Verlaufsfüllung statt Flat-Fill (siehe ZielfeldMarker-Kommentar oben) — wärmerer
-          Farbton (Orange) bleibt unverändert, damit "hier ist Gefahr" weiterhin klar vom
-          grünen ZielfeldMarker-Ton unterscheidbar bleibt. */}
-      <Svg width="100%" height="100%" viewBox="0 0 40 40">
+      {/* Visuelle-Politur-Runde (2026-09-09): radialer Verlauf statt einer flachen, hart
+          begrenzten Farbfläche — wirkt wie ein echtes warmes Glühen, das nach außen
+          ausklingt, statt eines eingefärbten Kreis-Aufklebers. Animations-Timing/-Wrapper
+          unverändert. */}
+      <Svg width={kreisGroesse} height={kreisGroesse} viewBox="0 0 100 100">
         <Defs>
-          <RadialGradient id="bedrohungsVerlauf" cx="50%" cy="50%" r="55%">
-            <Stop offset="0%" stopColor="#F0A784" />
-            <Stop offset="100%" stopColor="#D98E72" />
+          <RadialGradient id="bedrohungGlut" cx="50%" cy="50%" r="50%">
+            <Stop offset="0%" stopColor="#EFAF8D" stopOpacity={1} />
+            <Stop offset="60%" stopColor="#D98E72" stopOpacity={0.85} />
+            <Stop offset="100%" stopColor="#D98E72" stopOpacity={0} />
           </RadialGradient>
         </Defs>
-        <Circle cx={20} cy={20} r={19} fill="url(#bedrohungsVerlauf)" />
+        <Circle cx={50} cy={50} r={50} fill="url(#bedrohungGlut)" />
       </Svg>
     </Animated.View>
   );
@@ -228,6 +305,19 @@ export type BoardConfig = {
   cols: number;
   pieceAt: BoardSquare;
   legalTargets: BoardSquare[];
+  // Neu (Claude-Projekt "ChessLynx", 2026-09-09, Nutzerfeedback zur "Lux fragen"-
+  // Hinweisfunktion: "die vorgeschlagenen Züge bei den Übungen entfernen, sonst sind die
+  // Hinweise sinnlos"): `legalTargets` ist zugleich die einzige Quelle für die funktionale
+  // Zug-Erkennung in `handleTap` weiter unten (`legalKeys`) UND — bisher untrennbar — für
+  // die leuchtenden Zielfeld-Ringe/-Punkte. Ein Tipp-Feld ohne sichtbaren Ring macht die
+  // eigens eingeführte, standardmäßig unsichtbare Hinweisfunktion aber wirkungslos, wenn
+  // die Lösung ohnehin schon dauerhaft eingeblendet ist. `zeigeZielringe` trennt beides:
+  // `legalTargets`/`legalKeys`/`handleTap` bleiben IMMER vollständig (sonst könnte nie ein
+  // Zug erkannt werden), nur die beiden `<ZielfeldMarker>`-Renderstellen unten (und das
+  // begleitende "Zulässiges Zielfeld"-Accessibility-Label, das sonst die Lösung verraten
+  // würde) werden bei `false` unterdrückt. Default `true` (undefined-Fall) — bestehende
+  // Aufrufstellen ohne dieses Feld verhalten sich exakt wie bisher.
+  zeigeZielringe?: boolean;
   trapTarget?: BoardSquare; // Stopp!-Aufgabe: antippbar, aber löst Konsequenz-Animation aus statt echtem Zug
   opponentAt?: BoardSquare;
   // Detailreiche Tier-Illustration (siehe src/lib/creatures.tsx) statt des schlichten
@@ -244,10 +334,17 @@ export type BoardConfig = {
   // DERSELBEN Quest-Kreatur — "hier steht eine deiner eigenen Figuren im Weg", nicht "hier
   // ist eine gegnerische Figur zu Besuch, die man schlagen könnte". Meist identisch zu
   // `trapTarget`. Optional gehalten wie opponentIcon (Fallback: blockerDot).
-  // Update (Nutzer-Feedback 2026-09-07, Quest 4/Springer: "sollten sinnvolle Züge des
-  // Pferds mit weißen Figuren verdeckt werden"): akzeptiert jetzt auch ein ganzes Array,
-  // damit eine Übungsfigur wie der Springer gleichzeitig von mehreren eigenen Figuren
-  // umgeben gezeigt werden kann (siehe Quest4.tsx), nicht nur von einer einzelnen.
+  //
+  // Bugfix (Nutzer-Feedback 2026-09-08, "Blockerfigur wird bei Quest 1 Igel nicht
+  // angezeigt" — reproduzierbar auch im Web, also ein echter Logikfehler, kein Android-
+  // Rendering-Sonderfall): dieses Feld war bisher als EINZELNES BoardSquare typisiert,
+  // aber QuestMoveScreen.tsx (siehe dort, `alsArray`/`blockerSquares`) reicht seit der
+  // Quest4-Mehrfach-Blocker-Erweiterung IMMER ein Array durch, auch für Quests mit nur
+  // einer Blockade-Figur (Quest 1/2/3/5) — `key(blockerAt)` unten erhielt dadurch ein
+  // Array statt eines {row,col}-Objekts und lieferte für JEDE Zelle "undefined-undefined"
+  // statt einer echten Koordinate, wodurch `hasBlocker` nie zutraf. Jetzt hier ebenfalls
+  // Array ODER Einzelwert zugelassen (wie schon in QuestMoveScreenProps), siehe
+  // `blockerKeys` unten für die passende Vergleichslogik.
   blockerAt?: BoardSquare | BoardSquare[];
   blockerIcon?: ReactNode;
   // Bugfix (Opus-Review, Befund 2.6): rein visuelles "Schach!"-Signal statt geschriebenem
@@ -257,28 +354,74 @@ export type BoardConfig = {
   // gesetzt, wenn tatsächlich eine Bedrohung angezeigt werden soll.
   bedrohtAt?: BoardSquare;
   angreiferAt?: BoardSquare;
+  // Neu (2026-09-08, Übungsphase, siehe SammelMarker oben): vorgeschlagenes nächstes Zielfeld
+  // während der Wiederholungsrunden — rein kosmetisch, siehe SammelMarker-Kommentar.
+  sammelAt?: BoardSquare;
+  // Neu (2026-09-08, Fesselung-Bonuskapitel, siehe chessEngine.ts/findeFesselung): gerade,
+  // goldene "Kettenlinie" zwischen zwei Feldern — bewusst ein NEUES, von bedrohtAt/
+  // angreiferAt (warmes Orange, "Schach"-Signal) klar unterschiedenes Signal, wie vom
+  // Bonuskapitel-Skript gefordert ("ein neues, von zeigeSchach bewusst unterschiedenes
+  // Signal"). Anders als die geknickte bedrohungsElbow-Linie (Springer-Bedrohung, die
+  // absichtlich KEINE Linien-Bewegung suggerieren darf) ist eine echte Fesselung immer
+  // geometrisch eine gerade Linie oder Diagonale (Turm-/Läufer-/Damen-Zugmuster) — deshalb
+  // hier bewusst KEIN Elbow, sondern eine einzige gerade Verbindung mit kleinen goldenen
+  // "Kettengliedern" darauf statt einer schlichten Strichlinie.
+  kettenlinie?: { von: BoardSquare; bis: BoardSquare };
+  // Generische Liste zusätzlicher statischer Figuren-Icons an beliebigen Feldern — gebraucht,
+  // weil die Fesselungs-Szene gleichzeitig DREI benannte Figuren zeigen muss (König, Wächter,
+  // Angreifer), mehr als das bestehende pieceAt/opponentAt/blockerAt-Trio direkt hergibt, ohne
+  // deren etablierte, kreaturspezifische Bedeutung für die sechs Haupt-Quests zu verwässern.
+  // Board.tsx bleibt dabei weiterhin neutral: welches Icon hereingereicht wird, entscheidet
+  // ausschließlich die aufrufende Screen-Komponente (siehe Fesselung.tsx).
+  zusatzfiguren?: { at: BoardSquare; icon: ReactNode }[];
+  // Stopp!-Konsequenz der Fesselungs-Aufgabe: wird NUR während desselben 900ms-Fensters
+  // gezeigt, in dem auch StoppMarker nach dem Antippen von trapTarget erscheint (siehe
+  // Merge-Logik unten) — "würde der Wächter die Linie verlassen, wäre der König plötzlich in
+  // Gefahr". Bewusst getrennt von bedrohtAt/angreiferAt gehalten, damit dieses Feldpaar
+  // weiterhin ausschließlich eine ECHTE, dauerhafte Bedrohung (zeigeSchach) beschreibt, nicht
+  // eine nur hypothetische Konsequenz.
+  trapBedrohtAt?: BoardSquare;
+  trapAngreiferAt?: BoardSquare;
 };
 
 function key(s: BoardSquare) {
   return `${s.row}-${s.col}`;
 }
 
+// Nutzer-Feedback 2026-09-08 ("nur ein minimaler Rahmen notwendig"): von 6px auf 3px
+// reduziert (styles.board.borderWidth übernimmt denselben Wert, siehe unten) — als eigene
+// Konstante gehalten, damit die cellSize-Berechnung oben und die Board-Gesamtgröße unten
+// (width/height: cellSize * cols/rows + RAHMEN_BREITE * 2) nie auseinanderlaufen können.
+const RAHMEN_BREITE = 3;
+
+
 export function Board({
   config,
   onCorrectMove,
   onTrapTap,
   disabled,
+  // Neu (2026-09-08, Auto-Demo-Vorführung, siehe claude/quest_review_automatik_vollbrett_
+  // vorschlag.md, Abschnitt 3): wenn gesetzt, führt Board die Figur EINMALIG programmatisch
+  // (ohne Fingertipp) zu diesem Feld und wieder zurück vor, bevor das Kind selbst dran ist.
+  // Bewusst als eigenständige Top-Level-Props (nicht Teil von BoardConfig) gehalten, da sie
+  // reines Vorführ-Verhalten steuern, keinen Spielzustand — QuestMoveScreen.tsx setzt/löscht
+  // demoTarget je nach Phase, Board.tsx selbst kennt weder "Phasen" noch Sprechzeilen.
+  demoTarget,
+  onDemoDone,
 }: {
   config: BoardConfig;
   onCorrectMove: (target: BoardSquare) => void;
   onTrapTap?: () => void;
   disabled?: boolean;
+  demoTarget?: BoardSquare;
+  onDemoDone?: () => void;
 }) {
   const {
     rows,
     cols,
     pieceAt,
     legalTargets,
+    zeigeZielringe = true,
     trapTarget,
     opponentAt,
     pieceIcon,
@@ -287,6 +430,11 @@ export function Board({
     blockerIcon,
     bedrohtAt,
     angreiferAt,
+    sammelAt,
+    kettenlinie,
+    zusatzfiguren,
+    trapBedrohtAt,
+    trapAngreiferAt,
   } = config;
   const [trappedKey, setTrappedKey] = useState<string | null>(null);
   const pulse = useRef(new Animated.Value(1)).current;
@@ -305,10 +453,32 @@ export function Board({
   const trapKey = trapTarget ? key(trapTarget) : null;
   const pieceKey = key(pieceAt);
   const opponentKey = opponentAt ? key(opponentAt) : null;
-  // Update (siehe BoardConfig-Kommentar zu blockerAt oben): akzeptiert jetzt ein Array,
-  // deshalb ein Set statt eines einzelnen Schlüssels.
-  const blockerKeys = new Set((Array.isArray(blockerAt) ? blockerAt : blockerAt ? [blockerAt] : []).map(key));
-  const bedrohtKey = bedrohtAt ? key(bedrohtAt) : null;
+  // Bugfix (siehe BoardConfig.blockerAt-Kommentar oben): akzeptiert jetzt sowohl ein
+  // einzelnes BoardSquare als auch ein Array (Quest 4 hat schon immer mehrere Blocker,
+  // QuestMoveScreen.tsx reicht inzwischen für ALLE Quests ein Array durch) — als Set aus
+  // Keys statt eines einzelnen Vergleichswerts, analog zu legalKeys oben.
+  const blockerKeys = new Set(
+    (blockerAt ? (Array.isArray(blockerAt) ? blockerAt : [blockerAt]) : []).map(key)
+  );
+  const sammelKey = sammelAt ? key(sammelAt) : null;
+  // Fesselung-Bonuskapitel: solange das Stopp!-Feld gerade angetippt ist (derselbe
+  // trappedKey/trapKey-Vergleich wie bei StoppMarker), zeigt die Bedrohung stattdessen die
+  // Konsequenz "der König wäre jetzt in Gefahr" (trapBedrohtAt/trapAngreiferAt) statt einer
+  // echten, dauerhaften Bedrohung — ansonsten (der Normalfall für alle sechs Haupt-Quests,
+  // die trapBedrohtAt/trapAngreiferAt nie setzen) bleibt es bei bedrohtAt/angreiferAt.
+  const zeigeTrapBedrohung =
+    trappedKey !== null && trapKey !== null && trappedKey === trapKey && Boolean(trapBedrohtAt && trapAngreiferAt);
+  const effektivBedrohtAt = zeigeTrapBedrohung ? trapBedrohtAt : bedrohtAt;
+  const effektivAngreiferAt = zeigeTrapBedrohung ? trapAngreiferAt : angreiferAt;
+  const bedrohtKey = effektivBedrohtAt ? key(effektivBedrohtAt) : null;
+  const zusatzfigurenKeys = new Map((zusatzfiguren ?? []).map((z) => [key(z.at), z.icon]));
+
+  // `demoTargetKeyRef` verhindert ein erneutes Auslösen der Vorführ-Animation (siehe unten,
+  // NACH der cellSize-Berechnung platziert, da sie cellSize für die Zug-Distanz braucht) bei
+  // jedem Re-Render mit demselben Zielfeld — der übergebene `demoTarget`-Objektwert ist bei
+  // jedem Render von QuestMoveScreen.tsx neu erzeugt, ein reiner `useEffect`-Abhängigkeits-
+  // Vergleich per Objektidentität würde die Animation sonst wiederholt neu starten.
+  const demoTargetKeyRef = useRef<string | null>(null);
 
   function handleTap(r: number, c: number) {
     if (disabled || animatingTo) return;
@@ -342,18 +512,80 @@ export function Board({
     ]).start();
   }
 
-  // Zellgröße: bei kleinen Fenstern (z. B. Quest 1s 3×3) unverändert 42px; bei größeren
-  // `cols`-Werten (Quest 2-6s volles 8×8-Brett) an die tatsächliche Bildschirmbreite
-  // gedeckelt, damit das Brett auf kleinen Geräten nicht über den Rand hinausläuft.
-  const { width: bildschirmBreite } = Dimensions.get("window");
-  // 48px Sicherheitsabstand: deckt das 16px-Padding von styles.safe auf beiden Seiten
-  // (32px) plus etwas Puffer ab.
-  const maxBrettBreite = bildschirmBreite - 48;
-  const cellSize = Math.max(24, Math.min(42, Math.floor((maxBrettBreite - 12) / cols)));
+  // Zellgröße: gemessen an der tatsächlich zugewiesenen Breite DIESER Stelle im Layout
+  // (onLayout unten), nicht mehr an der globalen Fensterbreite (Dimensions.get("window")).
+  //
+  // Nutzer-Feedback 2026-09-08 ("Schachbrett soll stets fast die gesamte Bildschirmbreite
+  // einnehmen, responsiv auf jeder Bildschirmgröße"): Dimensions.get("window") lieferte auf
+  // nativen Geräten zwar korrekt die Gerätebreite, auf der Web-Vorschau aber die oft viel
+  // breitere BROWSERFENSTER-Breite — unabhängig von einem eventuell schmaleren Handy-Rahmen
+  // um die App herum (siehe RootNavigator.tsx, webHintergrund/appRoot). Der bisherige feste
+  // 42px-Deckel verhinderte zwar ein Überlaufen, ließ das Brett dadurch aber auf breiten
+  // Web-Fenstern winzig wirken UND nutzte auf echten Handys nicht die volle verfügbare
+  // Breite aus. `onLayout` misst stattdessen die tatsächlich zugewiesene Breite an dieser
+  // Stelle (bereits nach Abzug des 16px-Paddings von styles.safe) — funktioniert auf allen
+  // Plattformen identisch, reagiert automatisch auf Fenster-/Orientierungswechsel (erneuter
+  // onLayout-Aufruf) und macht das Brett dadurch wirklich responsiv statt nur "nicht zu
+  // groß". `Dimensions.get("window")` bleibt als Rückfallwert für den allerersten Render,
+  // bevor onLayout zum ersten Mal feuert.
+  const [containerWidth, setContainerWidth] = useState<number | null>(null);
+  const bildschirmBreite = containerWidth ?? Dimensions.get("window").width;
+  // Nutzer-Feedback 2026-09-08 ("Das Feld kann sogar noch größer sein, 98% passen. Nur ein
+  // minimaler Rahmen notwendig"): der bisherige feste 8px-Puffer plus 48px-Zellendeckel ließ
+  // auf einem Standard-Handy noch spürbar Luft an den Rändern. Jetzt ein direktes 98%-Ziel
+  // statt eines Pixel-Puffers (skaliert dadurch automatisch mit jeder Bildschirmgröße mit,
+  // wie schon zuvor gefordert), plus RAHMEN_BREITE unten von 6px auf 3px reduziert ("nur ein
+  // minimaler Rahmen") — beides zusammen zieht das Brett spürbar näher an die Bildschirmkanten,
+  // ohne dass es überläuft (styles.board bleibt weiterhin `overflow: hidden`).
+  const maxBrettBreite = Math.floor(bildschirmBreite * 0.98);
+  // Deckel von 48px auf 64px angehoben — auf einem Standard-Handy (~360-430px Breite) bleibt
+  // ohnehin die Bildschirmbreite selbst der begrenzende Faktor (siehe Formel unten), der
+  // höhere Deckel verhindert nur noch, dass das Brett auf breiten Tablet-/Web-Fenstern
+  // unnötig riesige Einzelzellen bekommt.
+  const cellSize = Math.max(24, Math.min(64, Math.floor((maxBrettBreite - RAHMEN_BREITE * 2) / cols)));
+
+  // Neu (2026-09-08, Auto-Demo-Vorführung, siehe claude/quest_review_automatik_vollbrett_
+  // vorschlag.md, Abschnitt 3): läuft, sobald sich `demoTarget` ändert — wiederverwendet
+  // bewusst denselben `pieceAnim`/`animatingTo`-Mechanismus wie ein echter Zug (siehe
+  // handleTap oben), nur mit einer zweiten Animationsstufe zurück zur Ausgangsposition statt
+  // eines echten `onCorrectMove`-Aufrufs. Dadurch funktionieren alle bestehenden Rendering-
+  // Regeln automatisch mit: die Figur wird während `animatingTo` als frei bewegliches Overlay
+  // gezeichnet (siehe hasPiece-Bedingungen unten) und taucht danach wieder normal in ihrer
+  // (unveränderten) Ausgangszelle auf. `handleTap` prüft bereits `if (disabled ||
+  // animatingTo) return;` ganz oben — echte Taps sind während der Vorführung also automatisch
+  // gesperrt, ohne einen eigenen Sperr-Zustand zu brauchen. Muss NACH `cellSize` stehen (siehe
+  // demoTargetKeyRef-Kommentar oben), da die Zug-Distanz in Pixeln daraus berechnet wird.
+  useEffect(() => {
+    if (!demoTarget) return;
+    const zielKey = key(demoTarget);
+    if (demoTargetKeyRef.current === zielKey) return;
+    demoTargetKeyRef.current = zielKey;
+
+    const dx = (demoTarget.col - pieceAt.col) * cellSize;
+    const dy = (demoTarget.row - pieceAt.row) * cellSize;
+    setAnimatingTo({ row: demoTarget.row, col: demoTarget.col });
+    Animated.sequence([
+      Animated.timing(pieceAnim, { toValue: { x: dx, y: dy }, duration: 480, useNativeDriver: true }),
+      Animated.delay(320),
+      Animated.timing(pieceAnim, { toValue: { x: 0, y: 0 }, duration: 380, useNativeDriver: true }),
+    ]).start(() => {
+      pieceAnim.setValue({ x: 0, y: 0 });
+      setAnimatingTo(null);
+      onDemoDone?.();
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [demoTarget, cellSize]);
 
   return (
     <View
-      style={[styles.board, { width: cellSize * cols + 12, height: cellSize * rows + 12 }]}
+      style={styles.messRahmen}
+      onLayout={(e) => setContainerWidth(e.nativeEvent.layout.width)}
+    >
+    <View
+      style={[
+        styles.board,
+        { width: cellSize * cols + RAHMEN_BREITE * 2, height: cellSize * rows + RAHMEN_BREITE * 2 },
+      ]}
       accessibilityRole="none"
     >
       {Array.from({ length: rows }).flatMap((_, r) =>
@@ -367,6 +599,8 @@ export function Board({
           const hasOpponent = k === opponentKey;
           const hasBlocker = blockerKeys.has(k);
           const istBedroht = k === bedrohtKey;
+          const istSammelfeld = k === sammelKey;
+          const zusatzfigurIcon = zusatzfigurenKeys.get(k);
 
           return (
             <Pressable
@@ -376,7 +610,7 @@ export function Board({
               accessibilityLabel={
                 hasPiece
                   ? "Dein Spielstein"
-                  : isLegal
+                  : isLegal && zeigeZielringe
                     ? "Zulässiges Zielfeld"
                     : hasOpponent
                       ? "Besuchende Figur"
@@ -386,9 +620,19 @@ export function Board({
               }
               style={[styles.cell, { width: cellSize, height: cellSize }]}
             >
+              {/* Bugfix (Nutzer-Feedback 2026-09-08, Android: `collapsable={false}` allein
+                  hat NICHT geholfen — "View Flattening" war also nicht die Ursache, siehe
+                  aktualisierte Kommentare unten). Neue Vermutung: Android kann ein normal
+                  im Fluss stehendes Geschwister-Element (die Figur), das NACH einem
+                  absolut positionierten `Image` (`StyleSheet.absoluteFillObject`, hier die
+                  Feld-Kachel) im JSX steht, beim Zeichnen trotzdem darunter statt darüber
+                  einsortieren, wenn keine explizite Stapelreihenfolge (`zIndex`) gesetzt ist
+                  — Android verlässt sich dabei nicht zuverlässig auf die reine JSX-
+                  Reihenfolge. Deshalb hier und bei allen Figur-/Marker-Ebenen weiter unten
+                  jetzt explizit `zIndex` gesetzt: Kachel ganz unten (0), alles andere darüber. */}
               <Image
                 source={isDark ? feldDunkel : feldHell}
-                style={StyleSheet.absoluteFillObject}
+                style={[StyleSheet.absoluteFillObject, { zIndex: 0 }]}
                 resizeMode="cover"
                 pointerEvents="none"
               />
@@ -400,14 +644,47 @@ export function Board({
                   <BedrohungsPuls size={cellSize} />
                 </View>
               )}
-              {isLegal && !(hasOpponent || hasBlocker) && <ZielfeldMarker size={cellSize} />}
+              {isLegal && zeigeZielringe && !(hasOpponent || hasBlocker) && <ZielfeldMarker size={cellSize} />}
+              {/* Neu (2026-09-08, Übungsphase): Sammel-Eichel NACH dem ZielfeldMarker
+                  gerendert, damit sie über dem grünen Punkt sichtbar bleibt — rein kosmetisch,
+                  siehe SammelMarker-Kommentar oben, dieses Feld bleibt trotzdem ein ganz
+                  normales legales Zielfeld unter vielen. */}
+              {istSammelfeld && isLegal && <SammelMarker size={cellSize} />}
               {isTrapped && <StoppMarker size={cellSize} />}
-              {hasOpponent && (opponentIcon ?? <View style={styles.opponentDot} />)}
-              {hasBlocker && (blockerIcon ?? <View style={styles.blockerDot} />)}
+              {/* Bugfix (Nutzer-Feedback 2026-09-08, Android, root-caused nach Analyse mit
+                  Opus): der eigentliche Fehler war weder View-Flattening noch Stapel-
+                  reihenfolge, sondern dass die Figuren-Icons die EINZIGEN Zell-Kinder waren,
+                  die im normalen Layout-Fluss standen (`position: relative`, Standard) statt
+                  absolut positioniert. Ausnahmslos alles, was auf Android sichtbar
+                  gerendert wurde (Feld-Kachel, alle Marker, das bewegliche Zug-Overlay),
+                  ist absolut positioniert. opponentIcon/blockerIcon jetzt ebenfalls über
+                  styles.markerWrap absolut + zentriert gerendert, exakt wie die bereits
+                  funktionierenden Marker. */}
+              {hasOpponent && (
+                <View pointerEvents="none" collapsable={false} style={[styles.markerWrap, { zIndex: 2 }]}>
+                  {opponentIcon ?? <View style={styles.opponentDot} />}
+                </View>
+              )}
+              {hasBlocker && (
+                <View pointerEvents="none" collapsable={false} style={[styles.markerWrap, { zIndex: 2 }]}>
+                  {blockerIcon ?? <View style={styles.blockerDot} />}
+                </View>
+              )}
+              {/* Fesselung-Bonuskapitel: zusätzliche statische Figur (z. B. der angreifende
+                  gegnerische Turm), siehe BoardConfig.zusatzfiguren-Kommentar oben. Dieselbe
+                  absolute Positionierung/zIndex wie opponentIcon/blockerIcon (Android-
+                  Rendering-Regel, siehe Datei-Kommentar). */}
+              {zusatzfigurIcon && (
+                <View pointerEvents="none" collapsable={false} style={[styles.markerWrap, { zIndex: 2 }]}>
+                  {zusatzfigurIcon}
+                </View>
+              )}
               {/* Bugfix (Opus-Review 2.5): Ring-Variante NACH der Figur gerendert (statt
                   davor wie der Punkt), damit sie als Kontur sichtbar bleibt statt hinter
                   der Figur zu verschwinden. */}
-              {isLegal && (hasOpponent || hasBlocker) && <ZielfeldMarker size={cellSize} variante="ring" />}
+              {isLegal && zeigeZielringe && (hasOpponent || hasBlocker) && (
+                <ZielfeldMarker size={cellSize} variante="ring" />
+              )}
               {/* Bugfix (Opus-Review, 2026-09-07, Befund 2.3, behebt zugleich 1.6, siehe
                   claude/review_logik_grafik_audiofuehrung.md): weicher Marken-Gold-Sockel
                   hinter der eigenen Figur, damit sie auf einen Blick von einer optisch
@@ -423,8 +700,23 @@ export function Board({
                   />
                 </View>
               )}
+              {/* ROOT CAUSE gefunden (Nutzer-Feedback 2026-09-08, Android, Analyse mit Opus):
+                  weder `collapsable={false}` noch `zIndex` noch das Entfernen von
+                  `overflow:"hidden"` hatten einen Effekt — selbst ein simpler, undurchsich-
+                  tiger 30×30-Testkasten ohne Image/Animated blieb unsichtbar. Der gemeinsame
+                  Nenner: dieser Zweig war der EINZIGE Zell-Inhalt im normalen Layout-Fluss
+                  (position: relative, RN-Standard) statt absolut positioniert — alles, was
+                  tatsächlich sichtbar gerendert wurde (Feld-Kachel, alle Marker via
+                  styles.markerWrap, das bewegliche Zug-Overlay unten), ist absolut
+                  positioniert. Fix: dieselbe styles.markerWrap-Positionierung (absolut,
+                  zentriert) wie bei den bereits funktionierenden Markern verwenden, statt
+                  einer im Fluss stehenden Animated.View ohne eigene Größe. */}
               {hasPiece && !animatingTo && (
-                <Animated.View style={{ transform: [{ scale: pulse }] }}>
+                <Animated.View
+                  pointerEvents="none"
+                  collapsable={false}
+                  style={[styles.markerWrap, { transform: [{ scale: pulse }], zIndex: 3 }]}
+                >
                   {pieceIcon ?? <View style={styles.pieceDot} />}
                 </Animated.View>
               )}
@@ -435,7 +727,7 @@ export function Board({
       {/* Bugfix (Opus-Review 2.6): gestrichelte Bedrohungslinie vom Angreifer zum bedrohten
           Feld, als L-förmiger Linienzug über zwei Segmente (siehe bedrohungsElbow oben)
           statt einer geraden Linie. */}
-      {bedrohtAt && angreiferAt && (
+      {effektivBedrohtAt && effektivAngreiferAt && (
         <Svg
           pointerEvents="none"
           width={cellSize * cols}
@@ -444,14 +736,80 @@ export function Board({
         >
           {(() => {
             const mitte = (s: BoardSquare) => ({ x: s.col * cellSize + cellSize / 2, y: s.row * cellSize + cellSize / 2 });
-            const elbow = bedrohungsElbow(angreiferAt, bedrohtAt);
-            const p1 = mitte(angreiferAt);
+            const elbow = bedrohungsElbow(effektivAngreiferAt, effektivBedrohtAt);
+            const p1 = mitte(effektivAngreiferAt);
             const pe = mitte(elbow);
-            const p2 = mitte(bedrohtAt);
+            const p2 = mitte(effektivBedrohtAt);
             return (
               <>
-                <Line x1={p1.x} y1={p1.y} x2={pe.x} y2={pe.y} stroke="#D98E72" strokeWidth={2.5} strokeDasharray="6,5" />
-                <Line x1={pe.x} y1={pe.y} x2={p2.x} y2={p2.y} stroke="#D98E72" strokeWidth={2.5} strokeDasharray="6,5" />
+                {/* Visuelle-Politur-Runde (2026-09-09): dezenter Verlauf entlang der
+                    Gesamtstrecke (userSpaceOnUse, damit beide Linien-Segmente denselben
+                    Verlauf konsistent fortsetzen) statt einer einfarbigen Linie. */}
+                <Defs>
+                  <LinearGradient id="bedrohungslinie" x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y} gradientUnits="userSpaceOnUse">
+                    <Stop offset="0%" stopColor="#E8A583" />
+                    <Stop offset="100%" stopColor="#D98E72" />
+                  </LinearGradient>
+                </Defs>
+                <Line x1={p1.x} y1={p1.y} x2={pe.x} y2={pe.y} stroke="url(#bedrohungslinie)" strokeWidth={2.5} strokeDasharray="6,5" />
+                <Line x1={pe.x} y1={pe.y} x2={p2.x} y2={p2.y} stroke="url(#bedrohungslinie)" strokeWidth={2.5} strokeDasharray="6,5" />
+              </>
+            );
+          })()}
+        </Svg>
+      )}
+      {/* Fesselung-Bonuskapitel: gerade "Kettenlinie" zwischen König und Angreifer (siehe
+          BoardConfig.kettenlinie-Kommentar oben) — bewusst KEIN Elbow (eine echte Fesselung
+          ist immer geometrisch gerade) und bewusst Marken-Gold statt des warmen Bedrohungs-
+          Orange, damit beide Signale nie miteinander verwechselt werden können. */}
+      {kettenlinie && (
+        <Svg
+          pointerEvents="none"
+          width={cellSize * cols}
+          height={cellSize * rows}
+          style={{ position: "absolute", left: 0, top: 0 }}
+        >
+          {(() => {
+            const mitte = (s: BoardSquare) => ({ x: s.col * cellSize + cellSize / 2, y: s.row * cellSize + cellSize / 2 });
+            const p1 = mitte(kettenlinie.von);
+            const p2 = mitte(kettenlinie.bis);
+            const ANZAHL_GLIEDER = 7;
+            const winkelGrad = (Math.atan2(p2.y - p1.y, p2.x - p1.x) * 180) / Math.PI;
+            const gliedBreite = Math.max(9, cellSize * 0.16);
+            const gliedHoehe = gliedBreite * 0.55;
+            const glieder = Array.from({ length: ANZAHL_GLIEDER }, (_, i) => {
+              const t = (i + 1) / (ANZAHL_GLIEDER + 1);
+              return { x: p1.x + (p2.x - p1.x) * t, y: p1.y + (p2.y - p1.y) * t };
+            });
+            return (
+              <>
+                {/* Visuelle-Politur-Runde (2026-09-09): echte, ineinandergreifende
+                    Kettenglieder (abwechselnd längs/quer zur Verbindungslinie gedreht, wie bei
+                    einer echten Kette) statt schlichter, flach gefüllter Punkte — Verlaufs-
+                    Stroke für einen leicht metallischen Eindruck, weiterhin Marken-Gold. */}
+                <Defs>
+                  <LinearGradient id="kettenglied" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <Stop offset="0%" stopColor="#F0D27A" />
+                    <Stop offset="50%" stopColor="#D7A52D" />
+                    <Stop offset="100%" stopColor="#A87A1E" />
+                  </LinearGradient>
+                </Defs>
+                <Line x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y} stroke="#D7A52D" strokeWidth={1.5} strokeOpacity={0.35} />
+                {glieder.map((g, i) => (
+                  <Ellipse
+                    key={i}
+                    cx={g.x}
+                    cy={g.y}
+                    rx={gliedBreite / 2}
+                    ry={gliedHoehe / 2}
+                    fill="none"
+                    stroke="url(#kettenglied)"
+                    strokeWidth={gliedHoehe * 0.45}
+                    rotation={i % 2 === 0 ? winkelGrad : winkelGrad + 90}
+                    originX={g.x}
+                    originY={g.y}
+                  />
+                ))}
               </>
             );
           })()}
@@ -479,18 +837,39 @@ export function Board({
         </Animated.View>
       )}
     </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  // Misst die tatsächlich verfügbare Breite an dieser Stelle im Layout (siehe onLayout
+  // oben) — `width: "100%"` sorgt dafür, dass onLayout die volle Breite des umgebenden
+  // Screens/SafeAreaView meldet, statt sich nur auf die Inhaltsgröße des Bretts zu
+  // beschränken (sonst würde sich die Messung selbst im Kreis drehen).
+  // Nutzer-Feedback 2026-09-08 ("98% der BILDSCHIRMBREITE", nicht bloß 98% des
+  // umgebenden Containers): Grund für die zunächst kaum sichtbare Wirkung der
+  // maxBrettBreite-Anpassung oben — alle sechs Quest*.tsx (styles.safe) setzen
+  // `padding: 16` auf die komplette SafeAreaView, wodurch der von onLayout gemessene
+  // Container ohnehin schon fest um 32px (16px je Seite) schmaler war als der Bildschirm
+  // — ein PROZENT-Anteil DAVON blieb dadurch nah an der alten festen Pixel-Reduktion, kaum
+  // wahrnehmbar unterschiedlich. Statt das Padding in allen sechs Quest-Dateien anzufassen
+  // (das würde auch den Lux-Icon-Abstand und die Sprechblase betreffen, nicht nur das
+  // Brett), kompensiert marginHorizontal hier gezielt NUR für den Brett-Messrahmen dieses
+  // eine, bekannte 16px-Padding wieder heraus — der Container, den onLayout misst, entspricht
+  // dadurch wieder der tatsächlichen (Safe-Area-)Bildschirmbreite, exakt wie gewünscht.
+  messRahmen: { width: "100%", alignItems: "center", marginHorizontal: -16 },
   board: {
     flexDirection: "row",
     flexWrap: "wrap",
-    borderRadius: 20,
-    borderWidth: 6,
+    borderRadius: 14,
+    // RAHMEN_BREITE (oben, aktuell 3px) statt eines eigenen Literals — Nutzer-Feedback
+    // 2026-09-08 ("nur ein minimaler Rahmen notwendig") reduzierte dies von zuvor 6px;
+    // borderRadius von 20 auf 14 mitverkleinert, damit die Ecken-Rundung bei dünnerem Rahmen
+    // proportional passend bleibt statt vergleichsweise klobig zu wirken.
+    borderWidth: RAHMEN_BREITE,
     // Bugfix (Opus-Review, 2026-09-07, Befund 2.7, siehe claude/review_logik_grafik_
     // audiofuehrung.md): borderColor war bislang identisch mit backgroundColor — der
-    // 6px-Rahmen war dadurch faktisch unsichtbar. Jetzt eine abgesetzte, aber verwandte
+    // Rahmen war dadurch faktisch unsichtbar. Jetzt eine abgesetzte, aber verwandte
     // Rahmenfarbe plus ein dezenter Schatten, damit sich das Brett vom Hintergrund löst.
     borderColor: "#E4DAC6",
     backgroundColor: "#F7F1E4",
@@ -511,6 +890,9 @@ const styles = StyleSheet.create({
     borderColor: "#C9C2B0",
     alignItems: "center",
     justifyContent: "center",
+    // Test (2026-09-08) rückgängig gemacht: ohne overflow:hidden verschob sich das ganze
+    // Brett spürbar (neue Regression, ohne das eigentliche Problem zu lösen) — overflow war
+    // also nicht die (alleinige) Ursache. Zurück auf den bekannten, funktionierenden Stand.
     overflow: "hidden",
   },
   // Gemeinsamer Positionierungs-Rahmen für ZielfeldMarker/StoppMarker (siehe oben) —
@@ -524,6 +906,9 @@ const styles = StyleSheet.create({
     bottom: 0,
     alignItems: "center",
     justifyContent: "center",
+    // Bugfix (Nutzer-Feedback 2026-09-08, Android-Stapelreihenfolge, siehe Kommentar bei
+    // der Feld-Kachel oben): explizit über der Kachel (zIndex 0) einsortiert.
+    zIndex: 1,
   },
   // Bugfix (Opus-Review, Befund 2.3/1.6): weicher Marken-Gold-Sockel hinter der eigenen
   // Figur (siehe Aufrufstelle oben) — Marken-Gold (#D7A52D, dieselbe Farbe wie Funkeln.tsx)

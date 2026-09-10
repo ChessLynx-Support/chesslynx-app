@@ -32,15 +32,28 @@
 // weil Titel und CTA-Button sich denselben vertikalen Platz teilen müssen.
 
 import { useEffect, useRef, useState } from "react";
-import { SafeAreaView, StyleSheet, Text, View, Pressable, Animated, useWindowDimensions } from "react-native";
+import { SafeAreaView, StyleSheet, Text, Pressable, Animated, useWindowDimensions } from "react-native";
 import { LuxHeroIcon, LuxAtem, LUX_HERO_ASPECT_RATIO } from "../lib/luxAssets";
-import { Funkeln } from "../components/Funkeln";
 // Opus-Review, 2026-09-07, Abschnitt 3.1, siehe claude/review_logik_grafik_
 // audiofuehrung.md: "Onboarding-CTA 'Loslegen' ist die allererste Interaktion der App und
 // verlangt Lesen — Icon/antippbarer Lux plus gesprochene Begrüßung gehört hierhin."
 import { useLuxSprechzeile } from "../lib/useLuxSprechzeile";
+// Update (2026-09-09, Nutzerwunsch "prüfen, ob der Button im Willkommensbildschirm weg
+// kann, sodass Lux angeklickt wird ... um weiter zu gelangen"): der bisher hier
+// eingesetzte ChessLynxButton-CTA ("Loslegen") entfällt ersatzlos — siehe Claude-Projekt
+// "ChessLynx", konzept_screen0_verschmelzung_appstart.md, Beat 2: genau dieselbe
+// Interaktion ist dort für die künftige Willkommens-Sequenz vorgesehen ("Statt eines
+// separaten CTA-Buttons wird jetzt Lux selbst angetippt"), hier bereits vorgezogen
+// unabhängig von der (noch ausstehenden) großen Zusammenführung. Der Funkeln-Ausbruch,
+// den ChessLynxButton beim Antippen bisher selbst auslöste, wird jetzt direkt beim
+// Lux-Tap ausgelöst (siehe zeigeFunkeln unten), damit dieser erste Tap der App weiterhin
+// denselben kleinen "magischen Moment" hat wie zuvor.
+import { Funkeln } from "../components/Funkeln";
 
-const BEGRUESSUNG = "Hallo! Ich bin Lux. Willkommen im Wald von ChessLynx!";
+// Update (2026-09-09, siehe Import-Kommentar oben): zweiter, kurzer Satz ergänzt, der die
+// neue Interaktion ansagt (Tap auf Lux statt auf einen Button) — Wortlaut wie im
+// Konzeptdokument vorgeschlagen (Beat 2).
+const BEGRUESSUNG = "Hallo! Ich bin Lux. Willkommen im Wald von ChessLynx! Tipp mich an, dann zeig ich dir meinen Wald!";
 
 export function Onboarding({ navigation }: any) {
   const { height: bildschirmHoehe } = useWindowDimensions();
@@ -49,24 +62,28 @@ export function Onboarding({ navigation }: any) {
   const luxBreite = Math.max(150, Math.min(220, Math.floor((bildschirmHoehe * 0.42) / LUX_HERO_ASPECT_RATIO)));
 
   const einblenden = useRef(new Animated.Value(0)).current;
-  const [funkelnAusloesen, setFunkelnAusloesen] = useState(0);
+  // Update (2026-09-09, siehe Import-Kommentar oben): kurzer Funkeln-Ausbruch beim
+  // Lux-Tap, Ersatz für den bisher von ChessLynxButton übernommenen Effekt.
+  const [zeigeFunkeln, setZeigeFunkeln] = useState(false);
 
   // `erinnerung: false` — anders als auf den Quest-Screens soll sich die einmalige
-  // Begrüßung NICHT alle 8 Sekunden wiederholen, solange der CTA nicht angetippt wird
-  // (kein "Auftrag", der eine Erinnerung bräuchte, siehe useLuxSprechzeile.ts). Tap auf
-  // Lux selbst wiederholt die Begrüßung weiterhin bewusst (wiederholen unten).
-  const { wiederholen } = useLuxSprechzeile("onboarding", BEGRUESSUNG, undefined, { erinnerung: false });
+  // Begrüßung NICHT alle 8 Sekunden wiederholen, solange nicht auf Lux getippt wurde
+  // (kein "Auftrag", der eine Erinnerung bräuchte, siehe useLuxSprechzeile.ts).
+  //
+  // Update (2026-09-09, siehe Import-Kommentar oben): `wiederholen` wird nicht mehr
+  // gebraucht — ein Tap auf Lux wiederholt die Begrüßung nicht mehr, sondern navigiert
+  // direkt weiter (Nutzerwunsch: "kein Wiederholen des Textes"). Der Hook selbst spricht
+  // die Zeile weiterhin beim Mount automatisch, ganz unabhängig vom Rückgabewert.
+  useLuxSprechzeile("onboarding", BEGRUESSUNG, undefined, { erinnerung: false });
 
   useEffect(() => {
     Animated.timing(einblenden, { toValue: 1, duration: 700, useNativeDriver: true }).start();
   }, [einblenden]);
 
-  function handleCta() {
-    // Kurzer Funkeln-Ausbruch (siehe components/Funkeln.tsx, bereits aus
-    // QuestGeschafft.tsx bekannt) vor der Navigation, damit der allererste Tap in der App
-    // sich genauso lebendig anfühlt wie ein Quest-Abschluss. 260ms Verzögerung: der Effekt
-    // soll kurz sichtbar sein, bevor der Screen wechselt.
-    setFunkelnAusloesen((n) => n + 1);
+  function handleLuxTap() {
+    // Kurzer Funkeln-Ausbruch, dann Navigation — dieselbe 260ms-Verzögerung wie zuvor
+    // beim CTA-Button, damit der Effekt kurz sichtbar ist, bevor der Screen wechselt.
+    setZeigeFunkeln(true);
     setTimeout(() => navigation.replace("KidHome"), 260);
   }
 
@@ -75,25 +92,18 @@ export function Onboarding({ navigation }: any) {
       <Animated.View style={[styles.content, { opacity: einblenden }]}>
         <Text style={styles.titel}>ChessLynx</Text>
         <Pressable
-          onPress={wiederholen}
+          onPress={handleLuxTap}
+          hitSlop={16}
           accessibilityRole="button"
-          accessibilityLabel="Lux, tippen zum Wiederholen"
+          accessibilityLabel="Lux, tippen um loszulegen"
         >
           <LuxAtem>
             <LuxHeroIcon width={luxBreite} />
           </LuxAtem>
+          {zeigeFunkeln && (
+            <Funkeln size={luxBreite * 0.8} />
+          )}
         </Pressable>
-        <View style={styles.ctaWrap}>
-          {funkelnAusloesen > 0 && <Funkeln key={funkelnAusloesen} size={140} />}
-          <Pressable
-            style={({ pressed }) => [styles.cta, pressed && styles.ctaPressed]}
-            onPress={handleCta}
-            accessibilityRole="button"
-            accessibilityLabel="Loslegen"
-          >
-            <Text style={styles.ctaText}>Loslegen</Text>
-          </Pressable>
-        </View>
       </Animated.View>
     </SafeAreaView>
   );
@@ -110,17 +120,4 @@ const styles = StyleSheet.create({
     color: "#4A4038",
     marginBottom: 8,
   },
-  ctaWrap: {
-    marginTop: 28,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  cta: {
-    backgroundColor: "#C9855F",
-    paddingVertical: 16,
-    paddingHorizontal: 48,
-    borderRadius: 20,
-  },
-  ctaPressed: { opacity: 0.85 },
-  ctaText: { color: "#FFFFFF", fontSize: 18, fontWeight: "600" },
 });

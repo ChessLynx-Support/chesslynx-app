@@ -27,7 +27,13 @@ const SCHLUESSEL = "chesslynx:bevorzugteStimmeId";
 // Design-Vorgabe 3.1, Schritt 3 (siehe luxStimme.ts) — hier als einzige Quelle definiert
 // und von luxStimme.ts importiert, damit das Vorhören unten exakt so klingt wie Lux
 // später tatsächlich im Spiel spricht (gleiche Geschwindigkeit/Tonhöhe).
-export const STIMME_OPTIONEN = { language: "de-DE", rate: 0.85, pitch: 1.1 } as const;
+//
+// Nutzer-Feedback 2026-09-08 (nach Test der Stimmauswahl im Eltern-Dashboard):
+// "Sprechgeschwindigkeit kann leicht erhöht werden" — löst die vorherige Einschätzung vom
+// 2026-09-07 ("Sprechgeschwindigkeit ist gut", siehe luxStimme.ts-Kommentar dort) ab.
+// 0.85 -> 0.95, bewusst nur ein kleiner Schritt (kein Sprung auf 1.0/Normalgeschwindigkeit),
+// um für Kinderohren weiterhin klar artikuliert zu bleiben.
+export const STIMME_OPTIONEN = { language: "de-DE", rate: 0.95, pitch: 1.1 } as const;
 
 const VORHOER_SATZ = "Hallo, ich bin Lux! Hörst du mich gerne so sprechen?";
 

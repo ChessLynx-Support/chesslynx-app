@@ -5,16 +5,35 @@
     "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.chesslynx.app"
     },
     "android": {
-      "package": "com.chesslynx.app"
+      "package": "com.chesslynx.app",
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
+      ]
     },
     "extra": {
-      "note": "Firebase-Config in src/lib/firebase.ts über Umgebungsvariablen befüllen, siehe README."
-    }
+      "note": "Firebase-Config in src/lib/firebase.ts über Umgebungsvariablen befüllen, siehe README.",
+      "eas": {
+        "projectId": "9a26b0f4-1115-426a-958d-4cc8fb8bc797"
+      }
+    },
+    "plugins": [
+      "expo-asset",
+      "expo-status-bar",
+      "expo-audio",
+      "expo-video",
+      "expo-iap"
+    ],
+    "owner": "cmzen"
   }
 }

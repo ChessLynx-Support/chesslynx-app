@@ -7,15 +7,19 @@
 // (Korrigiert 2026-09-06: war bis dahin noch auf die alte Wiesel-Zuordnung codiert,
 // siehe projektwissen.md.)
 
-import { useState } from "react";
-import { View, Text, Pressable, StyleSheet, SafeAreaView } from "react-native";
+import { useRef, useState } from "react";
+import { View, Pressable, StyleSheet, SafeAreaView } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { QUEST3_POSITIONS, type BoardSquare } from "../lib/chessEngine";
 import { saveQuestFortschrittLocal } from "../lib/storage";
 // Opus-Review, 2026-09-07, Abschnitt 3.2 ("QuestMoveScreen.tsx-Zusammenführung", siehe
 // claude/review_logik_grafik_audiofuehrung.md): löst die bisher hier lokal definierte
 // MoveScreen()-Funktion ab, siehe ausführlicher Kommentar in QuestMoveScreen.tsx.
-import { QuestMoveScreen } from "../lib/QuestMoveScreen";
+// Update (2026-09-08, Task #109, siehe claude/vorgemerkt_quest_tempo_und_
+// automatikvorfuehrung.md Punkt 2 + claude/quest_review_automatik_vollbrett_vorschlag.md
+// Abschnitt 3): QuestPhase-Typ mitimportiert, für dieselbe Automatik-Vorführung +
+// Übungsphase auf Screen 2, die Quest 1 bereits nutzt.
+import { QuestMoveScreen, type QuestPhase } from "../lib/QuestMoveScreen";
 // Grundgerüst-Integrationsplan-Schritt 4-6 (priorisierter_umsetzungsplan.md), analog zu
 // Quest1.tsx umgesetzt: Screen 1, Verwandlungsmoment, Spielerfigur (pieceIcon), Gegner-/
 // "Besuchsfigur" (opponentIcon) und QuestGeschafft nutzen jetzt die neue Eule/Läufer-
@@ -23,10 +27,17 @@ import { QuestMoveScreen } from "../lib/QuestMoveScreen";
 import { LaeuferMasterIcon, LaeuferMasterDunkelIcon, LaeuferMasterGrossIcon } from "../lib/pieceMasters";
 // Bugfix (Opus-Review, 2026-09-07, Befund 2.1, siehe claude/review_logik_grafik_
 // audiofuehrung.md): LuxEckIcon statt des beigen Platzhalter-Kreises (styles.luxHead).
-import { LuxEckIcon } from "../lib/luxAssets";
+// LuxAtem (Update 2026-09-08, Task #109, siehe Screen-1-Aufrufstelle unten): dasselbe
+// Puls-Muster wie bei Quest 1s Igel, jetzt auch für die antippbare Eule hier.
+import { LuxEckIcon, LuxAtem } from "../lib/luxAssets";
 // Opus-Review, 2026-09-07, Abschnitt 3.1 (siehe claude/review_logik_grafik_
 // audiofuehrung.md): gemeinsamer Sprech-Hook + Untertitel-Flag, siehe Aufrufstellen unten.
 import { useLuxSprechzeile } from "../lib/useLuxSprechzeile";
+// Sprach-Harmonie-Review (2026-09-09, siehe lib/luxVarianten.ts für die volle
+// Begründung): die drei über alle sechs Waldabenteuer wortidentischen PHASE_LINES-Zeilen
+// unten (interaktiv/uebung/fertig) rotieren jetzt durch mehrere kindgerechte Varianten,
+// statt bei jeder 8-Sekunden-Erinnerung bzw. in jedem Abenteuer identisch zu klingen.
+import { luxVariante, INTERAKTIV_HINWEIS_VARIANTEN, UEBUNG_HINWEIS_VARIANTEN, FERTIG_LOB_VARIANTEN } from "../lib/luxVarianten";
 import { useUntertitelAktiv } from "../lib/untertitelEinstellung";
 import { Verwandlung } from "../lib/Verwandlung";
 import { QuestGeschafft } from "../components/QuestGeschafft";
@@ -34,25 +45,51 @@ import { QuestGeschafft } from "../components/QuestGeschafft";
 // gemeinsame Wald-Lichtung-Kulisse für alle Quests, siehe ausführlicher Kommentar in
 // WaldHintergrund.tsx.
 import { WaldHintergrund } from "../components/WaldHintergrund";
+// Sprechblasen-Rollout (2026-09-09, siehe claude/sprechblasen_gestaltungskonzept.md,
+// Abschnitt 5): löst die bisherige, hier lokal gebaute Box+Schweif-Kombination ab —
+// dieselbe Umstellung, die Quest1.tsx bereits durchlaufen hat, jetzt vom Nutzer am Gerät
+// bestätigt und auf Quest 2-6 ausgerollt.
+import { LuxSprechblase } from "../components/LuxSprechblase";
 
 type ScreenId = 0 | 1 | "verwandlung" | 2 | 4 | 5 | 7;
 
-const SCREEN_SCRIPTS: Record<ScreenId, string[]> = {
+// Update (2026-09-08, Task #109, siehe claude/quest_review_automatik_vollbrett_
+// vorschlag.md Abschnitt 5 und Quest1.tsx-Kommentar): Screen 2 hat ab jetzt KEINEN
+// eigenen Eintrag mehr hier — seine Zeilen sind phasenabhängig, siehe PHASE_LINES unten.
+const SCREEN_SCRIPTS: Record<Exclude<ScreenId, 2>, string[]> = {
   0: [
     "Weiter geht's durch den Wald von ChessLynx!",
     "Hier lebt eine neue Freundin.",
     "Tipp weiter, um sie kennenzulernen.",
   ],
-  1: ["Hallo! Ich bin's wieder, Lux.", "Das ist eine Eule.", "Tipp irgendwo hin, um weiterzumachen."],
+  1: [
+    "Hallo! Ich bin's wieder, Lux.",
+    "Das ist eine Eule.",
+    // Update (2026-09-08, Task #109, siehe claude/vorgemerkt_quest_tempo_und_
+    // automatikvorfuehrung.md Punkt 3): löst "Tipp irgendwo hin, um weiterzumachen" ab —
+    // fordert jetzt konkret dazu auf, GENAU die (jetzt sichtbar pulsierende) Eule
+    // anzutippen, siehe Screen-1-Aufrufstelle unten.
+    "Tippe die Eule an, um die Verwandlung zur Schachfigur zu sehen.",
+  ],
   verwandlung: ["Und jetzt die Verwandlung: Aus der Eule wird ein Läufer!"],
-  2: ["Der Läufer zieht immer schräg, nie gerade.", "Tipp auf ein leuchtendes Feld."],
   4: [
     "Da steht jemand mitten auf dem Weg.",
     "Der Läufer kann nicht darüber hinwegziehen.",
     "Er darf aber die andere Richtung nehmen.",
   ],
   5: ["Am Ende des Weges wartet eine Figur.", "Der Läufer kann sie freundlich begrüßen."],
-  7: ["Lux hat ein neues Gebiet entdeckt!", "Wunderbar gemacht."],
+  // Update (2026-09-08, siehe Kommentar an der screen===7-Stelle unten): zweite Zeile nennt
+  // jetzt explizit das Antippen und wohin es führt (Karte statt nächste Quest).
+  7: ["Lux hat ein neues Gebiet entdeckt!", "Wunderbar gemacht! Tippe, um zurück zur Karte zu gehen."],
+};
+
+// Neu (2026-09-08, Task #109, siehe Kommentar bei SCREEN_SCRIPTS oben und Quest1.tsx):
+// Screen 2s Zeilen sind jetzt an die von QuestMoveScreen gemeldete QuestPhase gekoppelt.
+const PHASE_LINES: Record<QuestPhase, string[]> = {
+  vorfuehrung: ["Der Läufer zieht immer schräg, nie gerade.", "Schau mal, so zieht der Läufer!"],
+  interaktiv: ["Jetzt bist du dran!", "Tipp auf ein leuchtendes Feld."],
+  uebung: ["Kannst du das noch ein paar Mal?"],
+  fertig: ["Super, das kannst du schon richtig gut!"],
 };
 
 // Startfeld des Läufers in allen Quest3-FENs.
@@ -62,8 +99,10 @@ export default function Quest3() {
   const navigation = useNavigation<any>();
   const [screen, setScreen] = useState<ScreenId>(0);
   const [lineIndex, setLineIndex] = useState(0);
+  // Neu (2026-09-08, Task #109, siehe PHASE_LINES-Kommentar oben und Quest1.tsx).
+  const [movePhase, setMovePhase] = useState<QuestPhase>("vorfuehrung");
 
-  const lines = SCREEN_SCRIPTS[screen];
+  const lines = screen === 2 ? PHASE_LINES[movePhase] : SCREEN_SCRIPTS[screen];
   const isLastLine = lineIndex === lines.length - 1;
 
   function advanceOrGo(next: ScreenId) {
@@ -78,23 +117,55 @@ export default function Quest3() {
   // Opus-Review, 2026-09-07, Abschnitt 3.1 (siehe claude/review_logik_grafik_
   // audiofuehrung.md): siehe ausführlicher Kommentar in Quest1.tsx — löst den bisherigen
   // advanceLine()-Mechanismus (Befund 1.1) ab.
-  const autoWeiter = screen !== 0 && screen !== 1 && screen !== "verwandlung";
-  const { wiederholen } = useLuxSprechzeile(
-    `${screen}-${lineIndex}`,
-    lines[lineIndex],
-    autoWeiter && !isLastLine ? () => setLineIndex((i) => i + 1) : undefined
+  //
+  // Update (2026-09-08, Task #109, siehe claude/vorgemerkt_quest_tempo_und_
+  // automatikvorfuehrung.md Punkt 3): Screen 1 ist hier nicht mehr ausgenommen, siehe
+  // Quest1.tsx-Kommentar zum identischen Muster. Screen 0 bleibt bewusst ausgenommen.
+  const autoWeiter = screen !== 0 && screen !== "verwandlung";
+  // Sprach-Harmonie-Review (2026-09-09, siehe lib/luxVarianten.ts): genau die drei
+  // Stellen, an denen Screen 2 sonst wortidentisch zu den anderen fünf Abenteuern wäre
+  // UND die bei einer 8-Sekunden-Erinnerung (kein onFertig, da jeweils letzte Zeile
+  // ihrer Phase) sonst identisch wiederholt würden, bekommen hier eine rotierende
+  // Variante statt der festen PHASE_LINES-Zeile.
+  const zeileZuSprechen =
+    screen === 2 && movePhase === "uebung"
+      ? () => luxVariante(UEBUNG_HINWEIS_VARIANTEN, "uebung-hinweis")
+      : screen === 2 && movePhase === "interaktiv" && isLastLine
+        ? () => luxVariante(INTERAKTIV_HINWEIS_VARIANTEN, "interaktiv-hinweis")
+        : screen === 2 && movePhase === "fertig"
+          ? () => luxVariante(FERTIG_LOB_VARIANTEN, "fertig-lob")
+          : lines[lineIndex];
+  // Sprechblasen-Rollout (2026-09-09): einmal berechnet statt an zwei Stellen dupliziert —
+  // auch an LuxSprechblase weitergereicht, siehe identische Verdrahtung in Quest1.tsx.
+  const zeilenSchluessel = screen === 2 ? `2-${movePhase}-${lineIndex}` : `${screen}-${lineIndex}`;
+  // Sterne-Logik "Eigenständigkeit zählt" (Nutzerentscheidung 2026-09-09, siehe
+  // Claude-Projekt "ChessLynx", aktueller_projektstand_2026-09-09.md): zählt über die
+  // gesamte Quest hinweg, wie oft Lux' 8-Sekunden-Erinnerung (useLuxSprechzeile.ts)
+  // tatsächlich einspringen musste — kein Fehlerzähler, sondern ein Signal für
+  // eigenständiges Drankleiben vs. Nachhelfen-müssen. Bewusst ein Ref statt State: die
+  // Zählung soll den Verlauf nicht rerendern, sie wird erst bei handleQuestComplete
+  // ausgelesen.
+  const erinnerungenRef = useRef(0);
+  const { wiederholen, aktuelleZeile } = useLuxSprechzeile(
+    zeilenSchluessel,
+    zeileZuSprechen,
+    autoWeiter && !isLastLine ? () => setLineIndex((i) => i + 1) : undefined,
+    { onErinnerung: () => { erinnerungenRef.current += 1; } }
   );
   // Echter Eltern-Dashboard-Schalter statt der früheren ZEIGE_UNTERTITEL-Konstante,
   // siehe src/lib/untertitelEinstellung.ts.
   const zeigeUntertitel = useUntertitelAktiv();
 
   async function handleQuestComplete() {
-    await saveQuestFortschrittLocal("quest3", { sterne: 3, abgeschlossen: true, letzterSchritt: "screen7" });
+    // 0 Erinnerungen → 3 Sterne (ganz eigenständig), 1-2 → 2 Sterne, ab 3 → 1 Stern.
+    const sterne: 0 | 1 | 2 | 3 =
+      erinnerungenRef.current === 0 ? 3 : erinnerungenRef.current <= 2 ? 2 : 1;
+    await saveQuestFortschrittLocal("quest3", { sterne, abgeschlossen: true, letzterSchritt: "screen7" });
   }
 
   return (
     <SafeAreaView style={styles.safe}>
-      <WaldHintergrund />
+      <WaldHintergrund variante={3} />
       <Pressable
         style={styles.luxCorner}
         onPress={wiederholen}
@@ -103,22 +174,32 @@ export default function Quest3() {
       >
         <LuxEckIcon size={52} />
       </Pressable>
-      {/* Bugfix (Opus-Review, 2026-09-07, Befund 2.2, siehe claude/review_logik_grafik_
-          audiofuehrung.md): Sprechblase statt freistehendem Text, siehe Quest1.tsx.
-          Abschnitt 3.1, Schritt 6: Text jetzt hinter einem echten Eltern-Schalter (siehe
-          src/lib/untertitelEinstellung.ts). */}
+      {/* Sprechblasen-Rollout (2026-09-09, siehe claude/sprechblasen_gestaltungskonzept.md):
+          echte, einteilige SVG-Sprechblase statt der früheren Box+Schweif-Kombination —
+          siehe LuxSprechblase.tsx für die volle Begründung. Abschnitt 3.1, Schritt 6: Text
+          jetzt hinter einem echten Eltern-Schalter (siehe src/lib/untertitelEinstellung.ts). */}
       {zeigeUntertitel && (
-        <View style={styles.sprechblase}>
-          <View style={styles.sprechblaseSchweif} />
-          <Text style={styles.speech}>{lines[lineIndex]}</Text>
-        </View>
+        <LuxSprechblase text={aktuelleZeile} zeilenSchluessel={zeilenSchluessel} style={styles.sprechblase} />
       )}
 
       {screen === 0 && <Pressable style={styles.tapArea} onPress={() => advanceOrGo(1)} />}
       {screen === 1 && (
-        <Pressable style={styles.tapArea} onPress={() => advanceOrGo("verwandlung")}>
-          <LaeuferMasterGrossIcon size={150} />
-        </Pressable>
+        // Update (2026-09-08, Task #109, siehe Quest1.tsx-Kommentar zum identischen
+        // Muster): Pressable jetzt direkt am Eulen-Icon (großzügiger hitSlop), LuxAtem
+        // lässt sie sichtbar pulsieren, disabled={!isLastLine} sperrt Taps, bis die
+        // letzte Zeile ("Tippe die Eule an...") gezeigt wird.
+        <View style={styles.tapArea}>
+          <Pressable
+            onPress={() => advanceOrGo("verwandlung")}
+            disabled={!isLastLine}
+            hitSlop={{ top: 24, left: 24, right: 24, bottom: 24 }}
+            accessibilityLabel="Die Eule antippen, um die Verwandlung zu sehen"
+          >
+            <LuxAtem dauer={900} betrag={1.08}>
+              <LaeuferMasterGrossIcon size={150} />
+            </LuxAtem>
+          </Pressable>
+        </View>
       )}
 
       {screen === "verwandlung" && (
@@ -138,6 +219,14 @@ export default function Quest3() {
           fen={QUEST3_POSITIONS.screen2}
           pieceAt={PIECE_AT}
           pieceIcon={<LaeuferMasterIcon />}
+          // Neu (2026-09-08, Task #109, siehe Quest1.tsx): erst Automatik-Vorführung,
+          // dann eigener Zug, dann fünf Übungsrunden, bevor onSolved() greift.
+          autoDemo
+          uebungsrunden={5}
+          onPhaseChange={(neu) => {
+            setMovePhase(neu);
+            setLineIndex(0);
+          }}
           onSolved={() => { setLineIndex(0); setScreen(4); }}
         />
       )}
@@ -188,7 +277,11 @@ export default function Quest3() {
       )}
 
       {screen === 7 && (
-        <Pressable style={styles.tapArea} onPress={() => navigation.navigate("Quest4")}>
+        // Update (2026-09-08, Nutzerwunsch "nach jedem Quest zu dieser Karte zurückgekehrt,
+        // nicht die Quests nacheinander einfach durchgeklickt werden"): führte bisher direkt
+        // zu Quest4 weiter — jetzt bewusst zurück zum Luchs-Revier (KidHome, siehe
+        // components/LuchsRevierKarte.tsx), analog zu Quest1/2 und Quest6.
+        <Pressable style={styles.tapArea} onPress={() => navigation.navigate("KidHome")}>
           <QuestGeschafft>
             <LaeuferMasterIcon size={92} />
           </QuestGeschafft>
@@ -201,33 +294,14 @@ export default function Quest3() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: "#F7F1E4", alignItems: "center", justifyContent: "center", padding: 16 },
   luxCorner: { position: "absolute", top: 24, left: 24, zIndex: 10 },
-  // Bugfix (Opus-Review, Befund 2.2): Sprechblase statt freistehendem Text, siehe
-  // ausführlicher Kommentar in Quest1.tsx.
+  // Sprechblasen-Rollout (2026-09-09): nur noch reine Positionierung, siehe Quest1.tsx.
   sprechblase: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 18,
-    paddingVertical: 14,
-    paddingHorizontal: 18,
-    marginTop: 8,
-    marginBottom: 20,
-    marginHorizontal: 8,
-    minHeight: 76,
-    justifyContent: "center",
-    shadowColor: "#4A4038",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 2,
-  },
-  sprechblaseSchweif: {
     position: "absolute",
-    top: -6,
-    left: 28,
-    width: 14,
-    height: 14,
-    backgroundColor: "#FFFFFF",
-    transform: [{ rotate: "45deg" }],
+    top: 20,
+    left: 92,
+    right: 16,
+    maxHeight: 170,
+    zIndex: 15,
   },
-  speech: { fontSize: 16, color: "#4A4038", textAlign: "center" },
   tapArea: { width: "100%", flex: 1, alignItems: "center", justifyContent: "center" },
 });

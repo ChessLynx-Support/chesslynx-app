@@ -1,0 +1,14 @@
+# Kompiliertes Ausgabeverzeichnis (aus src/ per `npm run build` erzeugt)
+lib/
+
+# Abhängigkeiten — werden lokal bzw. beim Deploy installiert
+node_modules/
+
+# Lokale Secrets/Emulator-Zustand
+.env
+.env.*
+!.env.example
+.runtimeconfig.json
+firebase-debug.log
+firebase-debug.*.log
+ui-debug.log

@@ -18,9 +18,21 @@
 
 import { useEffect, useRef } from "react";
 import { Animated, Easing, StyleSheet, View } from "react-native";
+import Svg, { Path } from "react-native-svg";
 
 const PARTIKEL_ANZAHL = 8;
 const GOLD = "#D7A52D";
+
+// Visuelle-Politur-Runde (2026-09-09): kleine 4-zackige Funkel-Form statt eines schlichten
+// gefüllten Kreises — dieselbe "Twinkle/Sparkle"-Silhouette, die auch in Sammel-/Bonus-
+// Kontexten verbreitet ist. Reines statisches SVG innerhalb des bereits animierten
+// Animated.View (Transform/Opacity bleiben unverändert auf dem Wrapper) — kein Eingriff in
+// die bestehende Animations-/useNativeDriver-Architektur nötig.
+function funkelPfad(r: number): string {
+  const c = r;
+  const k = r * 0.22; // kleiner Wert = spitzere Zacken
+  return `M${c} 0 Q${c + k} ${c - k} ${2 * r} ${c} Q${c + k} ${c + k} ${c} ${2 * r} Q${c - k} ${c + k} 0 ${c} Q${c - k} ${c - k} ${c} 0 Z`;
+}
 
 // Update (Opus-Review, 2026-09-07, Befund 2.9, siehe claude/review_logik_grafik_
 // audiofuehrung.md): neue `loop`-Prop. Bisher lief der Ausbruch nur einmalig ab, wodurch
@@ -79,7 +91,6 @@ export function Funkeln({ size = 90, loop = false, pause = 2600 }: { size?: numb
               {
                 width: partikelGroesse,
                 height: partikelGroesse,
-                borderRadius: partikelGroesse / 2,
                 opacity: wert.interpolate({ inputRange: [0, 0.15, 1], outputRange: [0, 1, 0] }),
                 transform: [
                   { translateX: wert.interpolate({ inputRange: [0, 1], outputRange: [0, zielX] }) },
@@ -88,7 +99,11 @@ export function Funkeln({ size = 90, loop = false, pause = 2600 }: { size?: numb
                 ],
               },
             ]}
-          />
+          >
+            <Svg width={partikelGroesse} height={partikelGroesse} viewBox={`0 0 ${partikelGroesse} ${partikelGroesse}`}>
+              <Path d={funkelPfad(partikelGroesse / 2)} fill={GOLD} />
+            </Svg>
+          </Animated.View>
         );
       })}
     </View>
@@ -103,6 +118,5 @@ const styles = StyleSheet.create({
   },
   partikel: {
     position: "absolute",
-    backgroundColor: GOLD,
   },
 });

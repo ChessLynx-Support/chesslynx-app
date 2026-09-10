@@ -9,66 +9,138 @@
 // waldkulisse_oben.png/waldkulisse_unten.png) — die eigentliche Übungsfläche (Board.tsx,
 // Sprechblase, Lux-Ecke) sitzt dadurch unverändert auf dem bisherigen cremefarbenen
 // Hintergrund (#F7F1E4, siehe styles.safe in den Quest*.tsx), umrahmt statt überdeckt.
+// Setzt die bereits in checkliste_produktionsphasen.md (Abschnitt "L5") festgehaltene
+// Entscheidung "Board-Kulisse = eine durchgängige Trainingslichtung" erstmals mit echter
+// Illustration um, statt nur den Feld-Kacheln (tile_hell.png/tile_dunkel.png).
 //
-// Update (Nutzer-Feedback 2026-09-07, zweite Rückmeldung: "Lux, die Sprechblasen und alle
-// Aktionen sollen vor dem Hintergrund passieren. Aktuell wirkt das sehr abgeschnitten und
-// ergibt keinen Sinn. Die Interaktionen finden in der Mitte statt."): die erste Fassung
-// nutzte feste Pixelhöhen (150px oben, 92px unten) für die beiden Kulissen-Streifen. Auf
-// einem normal hohen Handy-Bildschirm (oft 700-900 logische Pixel netto) blieb dadurch ein
-// riesiger, komplett unbebilderter beiger Bereich in der Bildmitte übrig — genau dort, wo
-// Lux, die Sprechblase und die eigentliche Spielfläche liegen. Das wirkte nicht wie eine
-// Kulisse, VOR der die Handlung stattfindet, sondern wie zwei lose angeschnittene
-// Bildstreifen an den Bildschirmrändern mit einer großen Lücke dazwischen.
+// Update (2026-09-08, Nutzerwunsch): Wie hier oben bereits vorgesehen, jetzt um eine
+// `variante`-Prop erweitert — Quest1.tsx–Quest6.tsx übergeben ihre Quest-Nummer (1–6) und
+// bekommen dadurch je einen eigenen Bildausschnitt statt der bisher für alle Quests
+// identischen Kulisse. Aufrufstellen ohne `variante` (falls es je welche außerhalb der
+// sechs Quests gibt) verhalten sich unverändert wie zuvor.
 //
-// Jetzt sind beide Bänder PROZENTUAL zur tatsächlichen Bildschirmhöhe skaliert (TOP_ANTEIL/
-// UNTEN_ANTEIL unten) statt fest — die beiden Anteile entsprechen bewusst genau dem Anteil,
-// den die jeweils schachbrett-freie Zone in der Quell-Illustration selbst einnimmt (oben
-// ca. 36%, unten ca. 19% der Bildhöhe, siehe Zuschnitt im Erzeugungsskript), damit die
-// Kulisse auf einem ähnlich hochformatigen Handy-Bildschirm (Quellbild-Seitenverhältnis
-// 941:1672 liegt nahe an typischen Telefon-Seitenverhältnissen) proportional genauso wirkt
-// wie im Originalgemälde. Beide PNGs wurden dafür deutlich großzügiger aus dem Originalbild
-// zugeschnitten (mehr Baumkronen oben, mehr Wiese/Steine unten) und tragen weiterhin einen
-// weichen, jetzt aber prozentual zur neuen (größeren) Bandhöhe passenden Alpha-Verlauf zur
-// Bildschirmfarbe (#F7F1E4) hin eingebacken — der Übergang zur beigen Mitte bleibt dadurch
-// weich statt hart abgeschnitten, auch mit den jetzt viel größeren Bändern. Die verbleibende
-// Mittelzone (wo Lux/Sprechblase/Board tatsächlich liegen) ist dadurch deutlich kleiner als
-// vorher und liegt sichtbar VOR den beiden ineinander verlaufenden Kulissenteilen, statt in
-// einer bildlosen Lücke dazwischen zu schweben.
+// Bildquelle der sechs Ausschnitte (Update 2026-09-08, DRITTE Iteration, Nutzerwunsch
+// "Bitte folgende Datei als neue Saga Karte verwenden und neue Ausschnitte davon
+// erstellen."): Achtung — die zweite Iteration (Kommentar-Historie s. Git) hatte
+// versehentlich ein ANDERES, bereits im Chat-Verlauf vorhandenes Referenzbild verwendet
+// ("Deine Schach-Saga" mit Text-Bannern und Tier-Medaillons) statt der tatsächlich vom
+// Nutzer zu dieser Anfrage hochgeladenen Datei — vom Nutzer zu Recht als "falsche,
+// veraltete Saga-Karte" zurückgewiesen. Jetzt korrigiert: Quelle ist die tatsächlich
+// angehängte Illustration (reine Landschaft ohne Text/Medaillons — Goldpfad von einem
+// Teich/Wiesental über mehrere Brücken, ein Baumhaus und ein Bauernhaus, vorbei an einem
+// ersten Schloss samt Wasserfall, hinauf zu einem Gipfelschloss vor schneebedeckten
+// Bergen). Ohne eingebaute Spielelemente ist die Zuordnung diesmal frei gewählt statt
+// durch Medaillons vorgegeben: sechs Anker-Höhen wurden gleichmäßig vom untersten
+// Teich (Quest 1, Start) bis zum ersten/unteren Schloss (Quest 6, "Wisentfeste"-
+// Äquivalent) verteilt — das Gipfelschloss ganz oben bleibt bewusst jenseits von Quest 6
+// (Bonus-/Endgame-Bereich). "oben" zeigt je den Kartenbereich OBERHALB des Ankers (weiter
+// fortgeschritten), "unten" den Bereich UNTERHALB (Richtung Start) — beide je
+// 750×477/750×257px, per Skript aus der Karte geschnitten und auf die App-Zielgröße
+// reduziert. Weiterhin AUSDRÜCKLICH NUR ALS ÜBERGANGSLÖSUNG ("vorübergehend",
+// Nutzerzitat), bis die in `produktionsplan_saga_karte_18_ansichten.md` (Claude-Projekt)
+// geplanten 18 Einzelansichten produziert sind.
 //
-// Bewusst eine einzige, für alle Quests gemeinsame Komponente (siehe Nutzer-Zitat oben:
-// "Bis wir das generell oder ggf. sogar je Quest individualisieren") — eine spätere
-// Individualisierung je Quest (eigene Kulisse pro Waldgefährten-Gebiet, siehe
-// projektwissen_verlauf.md "Gebiets-Welten"-Konzept) kann diese Komponente um eine
-// `variante`-Prop erweitern, ohne die Aufrufstellen in den Quest*.tsx grundlegend zu
-// ändern.
+// Alpha-Verlauf (ebenfalls in dieser dritten Iteration korrigiert, Nutzer-Feedback
+// "Ich will diesen weißen Bereich in der Mitte nicht haben!!!"): die vorige Fassung fadete
+// über die GESAMTE innere Hälfte jedes Bildes aus (frac 0,5–1,0) — kombiniert mit der
+// vorherigen 50%/50%-Bandhöhe (siehe styles-Kommentar unten) traf das dazu, dass GENAU in
+// der Bildschirmmitte beide Bänder gleichzeitig bei Alpha 0 (voll durchsichtig) ankamen,
+// also exakt dort der nackte cremefarbene App-Hintergrund durchschien — derselbe helle
+// Balken wie beim allerersten Bugfix, nur diesmal durch den Alpha-Verlauf selbst erzeugt
+// statt durch zu kurze Bänder. Jetzt fadet jedes Bild nur noch in seinen ÄUSSEREN 20%
+// (oben: frac 0,8–1,0; unten: frac 0–0,2) — der Rest bleibt voll deckend. Zusammen mit der
+// auf 65% erhöhten Bandhöhe (s. u.) überlappen sich beide Bänder in der Bildschirmmitte so
+// weit, dass an JEDER Bildschirmposition mindestens eines der beiden Bilder noch voll
+// deckend ist (rechnerisch geprüft) — kein Punkt mehr, an dem beide gleichzeitig
+// durchsichtig sind.
 //
 // Rein dekorativ (`pointerEvents="none"`), liegt als absolut positionierter Rahmen HINTER
 // dem eigentlichen Bildschirminhalt — bewusst als erstes Kind der jeweiligen
 // SafeAreaView, damit spätere Geschwister-Elemente (Sprechblase, Board, Lux-Ecke) beim
-// Stapeln automatisch darüber liegen (Stapelreihenfolge war nie das Problem — die
-// Bänder selbst waren schlicht zu klein, siehe Update oben).
+// Stapeln automatisch darüber liegen.
 
-import { View, Image, StyleSheet, useWindowDimensions } from "react-native";
+import { View, Image, StyleSheet } from "react-native";
 
-const oben = require("../../assets/hintergrund/waldkulisse_oben.png");
-const unten = require("../../assets/hintergrund/waldkulisse_unten.png");
+const obenStandard = require("../../assets/hintergrund/waldkulisse_oben.png");
+const untenStandard = require("../../assets/hintergrund/waldkulisse_unten.png");
 
-// Siehe Update-Kommentar oben: entsprechen dem schachbrett-freien Anteil der jeweiligen
-// Zone im Quellbild (598px bzw. 322px von 1672px Gesamthöhe).
-const TOP_ANTEIL = 0.35;
-const UNTEN_ANTEIL = 0.19;
+// Update (2026-09-09, Nutzerwunsch "auch alle anderen prüfen"): alle sechs Quest-Varianten
+// (oben + unten) wurden aus dem später aufgetauchten, deutlich höher aufgelösten Master
+// `davinci_enhancer_image_1788860236858.jpg` neu geschnitten und als WebP bei 2x Pixelgröße
+// ausgeliefert (750×477px → 1500×954px bzw. 750×257px → 1500×514px) — der eingebaute
+// Alpha-Verlauf (siehe Datei-Kommentar oben, Abschnitt "Alpha-Verlauf") wurde dabei aus den
+// alten PNGs übernommen und auf die neue Höhe skaliert, da der JPG-Master selbst keinen
+// Alphakanal hat. `waldkulisse_oben.png`/`waldkulisse_unten.png` (die generische
+// Standard-Kulisse ohne `variante`-Prop) bleiben unverändert — Bildvergleich ergab, dass sie
+// aus einer ANDEREN, nicht verwandten Illustration stammen und daher nicht aus diesem Master
+// nachgeschärft werden können.
+//
+// Statische require()-Tabelle statt dynamischem Pfad — Metro/Expo muss jeden
+// Bild-Import zur Bundle-Zeit auflösen können, ein zusammengesetzter Pfad
+// (`` `...q${variante}.png` ``) funktioniert dafür nicht.
+const OBEN_JE_QUEST: Record<number, ReturnType<typeof require>> = {
+  1: require("../../assets/hintergrund/waldkulisse_oben_q1.webp"),
+  2: require("../../assets/hintergrund/waldkulisse_oben_q2.webp"),
+  3: require("../../assets/hintergrund/waldkulisse_oben_q3.webp"),
+  4: require("../../assets/hintergrund/waldkulisse_oben_q4.webp"),
+  5: require("../../assets/hintergrund/waldkulisse_oben_q5.webp"),
+  6: require("../../assets/hintergrund/waldkulisse_oben_q6.webp"),
+};
+const UNTEN_JE_QUEST: Record<number, ReturnType<typeof require>> = {
+  1: require("../../assets/hintergrund/waldkulisse_unten_q1.webp"),
+  2: require("../../assets/hintergrund/waldkulisse_unten_q2.webp"),
+  3: require("../../assets/hintergrund/waldkulisse_unten_q3.webp"),
+  4: require("../../assets/hintergrund/waldkulisse_unten_q4.webp"),
+  5: require("../../assets/hintergrund/waldkulisse_unten_q5.webp"),
+  6: require("../../assets/hintergrund/waldkulisse_unten_q6.webp"),
+};
 
-export function WaldHintergrund() {
-  const { height } = useWindowDimensions();
+export function WaldHintergrund({ variante }: { variante?: 1 | 2 | 3 | 4 | 5 | 6 } = {}) {
+  const oben = variante ? OBEN_JE_QUEST[variante] : obenStandard;
+  const unten = variante ? UNTEN_JE_QUEST[variante] : untenStandard;
   return (
-    <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
-      <Image source={oben} style={[styles.oben, { height: height * TOP_ANTEIL }]} resizeMode="cover" />
-      <Image source={unten} style={[styles.unten, { height: height * UNTEN_ANTEIL }]} resizeMode="cover" />
+    // Bugfix, fünfte Iteration (Nutzer-Feedback 2026-09-08, nach der vierten Iteration:
+    // "jetzt heller Bereich unten, kein vollständiger Hintergrund" — die vierte Iteration
+    // (zwei GETRENNTE, je absolut positionierte Wrapper als direkte JSX-Geschwister
+    // innerhalb der SafeAreaView) hat das Problem NICHT gelöst, sondern nur verschoben:
+    // vorher war WaldHintergrund aus Sicht von Quest1.tsx usw. genau EIN Geschwister-
+    // Element (eine gemeinsame Wrapper-View) — mit der Aufteilung in zwei Fragmente wurde
+    // daraus versehentlich ZWEI direkte Geschwister-Views in der SafeAreaView, und davon
+    // rendert auf diesem Android-Gerät wieder nur das ERSTE zuverlässig (hier: "oben"),
+    // exakt dasselbe Muster wie beim KidHome-Bug, nur eine Ebene weiter oben wieder
+    // eingeführt. Jetzt zurück zu EINER gemeinsamen Wrapper-View (wie ursprünglich), die
+    // beide Image-Elemente als direkte Kinder enthält — genau das Muster, das in
+    // Board.tsx pro Zelle zuverlässig funktioniert (eine nicht wegoptimierbare Elternview
+    // mit mehreren absolut positionierten Kindern direkt darin, nicht mehrere
+    // eigenständige Elternviews nebeneinander). NEU dazugekommen (gegenüber der
+    // ursprünglichen ersten Fassung) ist nur `collapsable={false}` auf dieser einen
+    // Wrapper-View — die fehlte dort komplett und ist nach der Erkenntnis aus
+    // LeeresBrettMitAllenTieren.tsx (siehe dortiger Kommentar: eine einfache `View` ohne
+    // Touch-Handler kann von Androids View-Flattening wegoptimiert werden und dadurch die
+    // Bezugsebene für `position:absolute`-Kinder verschieben) die naheliegende
+    // Zusatzabsicherung.
+    <View style={styles.wrap} collapsable={false} pointerEvents="none">
+      <Image source={oben} style={styles.oben} resizeMode="cover" />
+      <Image source={unten} style={styles.unten} resizeMode="cover" />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  oben: { position: "absolute", top: 0, left: 0, right: 0 },
-  unten: { position: "absolute", bottom: 0, left: 0, right: 0 },
+  wrap: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0 },
+  // Bugfix, dritte Iteration (Nutzer-Feedback 2026-09-08, "Ich will diesen weißen Bereich
+  // in der Mitte nicht haben!!!"): 50%/50% (vorige Fassung) reichte NICHT aus, weil sich
+  // beide Bänder dabei exakt an der Bildschirmmitte trafen — dort, wo der eingebaute
+  // Alpha-Verlauf beider Bilder gleichzeitig bei 0 ankam (siehe Datei-Kommentar oben,
+  // Abschnitt "Alpha-Verlauf"). Jetzt je 65%, sodass sich beide Bänder in der mittleren
+  // 30% der Bildschirmhöhe überlappen — kombiniert mit dem auf die äußeren 20% verkürzten
+  // Alpha-Verlauf bleibt in dieser Überlappungszone immer mindestens ein Bild voll
+  // deckend, der cremefarbene App-Hintergrund (#F7F1E4) scheint nirgendmehr durch. Bugfix
+  // aus der vorigen Iteration weiterhin gültig: Board.tsx/die Sprechblase/Lux liegen als
+  // spätere Geschwister-Elemente ohnehin bereits "vor" dieser Kulisse (siehe
+  // Datei-Kommentar, "liegt ... HINTER dem eigentlichen Bildschirminhalt") — Schachbrett
+  // und jede andere Interaktion laufen also unverändert ÜBER dem Bildausschnitt ab, nie
+  // dahinter.
+  oben: { position: "absolute", top: 0, left: 0, right: 0, height: "65%" },
+  unten: { position: "absolute", bottom: 0, left: 0, right: 0, height: "65%" },
 });

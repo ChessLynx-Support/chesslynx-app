@@ -44,6 +44,16 @@
 
 import { Image } from "react-native";
 
+// Bugfix (Nutzer-Feedback 2026-09-08, Android: "Spielfigur/Tier wird vorher nicht
+// geladen/angezeigt, nur kurz während einer Animation sichtbar"): `fadeDuration` ist ein
+// reiner Android-Parameter von `Image` (Standardwert 300ms) — beim allerersten Laden eines
+// Bildes blendet Android es sanft ein. In Kombination mit dem in Board.tsx behobenen
+// "View Flattening"-Verhalten (siehe dortiger Kommentar) sicherheitshalber auf 0 gesetzt,
+// damit ein Bild in jedem Fall sofort mit voller Deckkraft erscheint, statt theoretisch bei
+// 0% Deckkraft "hängen" zu bleiben, falls der Einblend-Übergang durch ein schnelles
+// Neu-Mounten (z. B. bei jedem Zug, siehe Board.tsx animatingTo) unterbrochen wird.
+const ANDROID_FIX_PROPS = { fadeDuration: 0 } as const;
+
 type MasterIconProps = { size?: number };
 
 const hedgehogPawnLight = require("../../assets/figuren/chesslynx_hedgehog_pawn_light_export.png");
@@ -51,7 +61,7 @@ const hedgehogPawnDark = require("../../assets/figuren/chesslynx_hedgehog_pawn_d
 
 /** Bauer (Igel), helle Master-Variante — Spielerfigur auf dem Brett, Quest 1. */
 export function BauerMasterIcon({ size = 34 }: MasterIconProps) {
-  return <Image source={hedgehogPawnLight} style={{ width: size, height: size }} resizeMode="contain" />;
+  return <Image source={hedgehogPawnLight} style={{ width: size, height: size }} resizeMode="contain" {...ANDROID_FIX_PROPS} />;
 }
 
 /**
@@ -61,7 +71,7 @@ export function BauerMasterIcon({ size = 34 }: MasterIconProps) {
  * Platzhalter-Punkts) — beide Seiten derselben Figur sollen gleich groß wirken.
  */
 export function BauerMasterDunkelIcon({ size = 34 }: MasterIconProps) {
-  return <Image source={hedgehogPawnDark} style={{ width: size, height: size }} resizeMode="contain" />;
+  return <Image source={hedgehogPawnDark} style={{ width: size, height: size }} resizeMode="contain" {...ANDROID_FIX_PROPS} />;
 }
 
 // ---------------------------------------------------------------------------------------
@@ -84,52 +94,52 @@ const deerKingDark = require("../../assets/figuren/chesslynx_deer_king_dark_expo
 
 /** Turm (Bär), helle Master-Variante — Spielerfigur auf dem Brett, Quest 2. */
 export function TurmMasterIcon({ size = 34 }: MasterIconProps) {
-  return <Image source={bearRookLight} style={{ width: size, height: size }} resizeMode="contain" />;
+  return <Image source={bearRookLight} style={{ width: size, height: size }} resizeMode="contain" {...ANDROID_FIX_PROPS} />;
 }
 
 /** Turm (Bär), dunkle Master-Variante — Gegner-/"Besuchsfigur", Quest 2. */
 export function TurmMasterDunkelIcon({ size = 34 }: MasterIconProps) {
-  return <Image source={bearRookDark} style={{ width: size, height: size }} resizeMode="contain" />;
+  return <Image source={bearRookDark} style={{ width: size, height: size }} resizeMode="contain" {...ANDROID_FIX_PROPS} />;
 }
 
 /** Läufer (Eule), helle Master-Variante — Spielerfigur auf dem Brett, Quest 3. */
 export function LaeuferMasterIcon({ size = 34 }: MasterIconProps) {
-  return <Image source={owlBishopLight} style={{ width: size, height: size }} resizeMode="contain" />;
+  return <Image source={owlBishopLight} style={{ width: size, height: size }} resizeMode="contain" {...ANDROID_FIX_PROPS} />;
 }
 
 /** Läufer (Eule), dunkle Master-Variante — Gegner-/"Besuchsfigur", Quest 3. */
 export function LaeuferMasterDunkelIcon({ size = 34 }: MasterIconProps) {
-  return <Image source={owlBishopDark} style={{ width: size, height: size }} resizeMode="contain" />;
+  return <Image source={owlBishopDark} style={{ width: size, height: size }} resizeMode="contain" {...ANDROID_FIX_PROPS} />;
 }
 
 /** Springer (Pferd), helle Master-Variante — Spielerfigur auf dem Brett, Quest 4. */
 export function SpringerMasterIcon({ size = 34 }: MasterIconProps) {
-  return <Image source={horseKnightLight} style={{ width: size, height: size }} resizeMode="contain" />;
+  return <Image source={horseKnightLight} style={{ width: size, height: size }} resizeMode="contain" {...ANDROID_FIX_PROPS} />;
 }
 
 /** Springer (Pferd), dunkle Master-Variante — Gegner-/"Besuchsfigur", Quest 4. */
 export function SpringerMasterDunkelIcon({ size = 34 }: MasterIconProps) {
-  return <Image source={horseKnightDark} style={{ width: size, height: size }} resizeMode="contain" />;
+  return <Image source={horseKnightDark} style={{ width: size, height: size }} resizeMode="contain" {...ANDROID_FIX_PROPS} />;
 }
 
 /** Dame (Schwan), helle Master-Variante — Spielerfigur auf dem Brett, Quest 5. */
 export function DameMasterIcon({ size = 34 }: MasterIconProps) {
-  return <Image source={swanQueenLight} style={{ width: size, height: size }} resizeMode="contain" />;
+  return <Image source={swanQueenLight} style={{ width: size, height: size }} resizeMode="contain" {...ANDROID_FIX_PROPS} />;
 }
 
 /** Dame (Schwan), dunkle Master-Variante — Gegner-/"Besuchsfigur", Quest 5. */
 export function DameMasterDunkelIcon({ size = 34 }: MasterIconProps) {
-  return <Image source={swanQueenDark} style={{ width: size, height: size }} resizeMode="contain" />;
+  return <Image source={swanQueenDark} style={{ width: size, height: size }} resizeMode="contain" {...ANDROID_FIX_PROPS} />;
 }
 
 /** König (Hirsch), helle Master-Variante — Spielerfigur auf dem Brett, Quest 6. */
 export function KoenigMasterIcon({ size = 34 }: MasterIconProps) {
-  return <Image source={deerKingLight} style={{ width: size, height: size }} resizeMode="contain" />;
+  return <Image source={deerKingLight} style={{ width: size, height: size }} resizeMode="contain" {...ANDROID_FIX_PROPS} />;
 }
 
 /** König (Hirsch), dunkle Master-Variante — Gegner-/"Besuchsfigur", Quest 6. */
 export function KoenigMasterDunkelIcon({ size = 34 }: MasterIconProps) {
-  return <Image source={deerKingDark} style={{ width: size, height: size }} resizeMode="contain" />;
+  return <Image source={deerKingDark} style={{ width: size, height: size }} resizeMode="contain" {...ANDROID_FIX_PROPS} />;
 }
 
 // ---------------------------------------------------------------------------------------
@@ -159,60 +169,60 @@ const GROSS_DEFAULT_SIZE = 140;
 
 /** Bauer (Igel), helle Master-Variante, groß — Screen 1 ("Das ist ein kleiner Igel") und Verwandlung.tsx. */
 export function BauerMasterGrossIcon({ size = GROSS_DEFAULT_SIZE }: MasterIconProps) {
-  return <Image source={hedgehogPawnLightGross} style={{ width: size, height: size }} resizeMode="contain" />;
+  return <Image source={hedgehogPawnLightGross} style={{ width: size, height: size }} resizeMode="contain" {...ANDROID_FIX_PROPS} />;
 }
 
 /** Bauer (Igel), dunkle Master-Variante, groß. Noch ohne Verwendungsstelle (vorbereitet). */
 export function BauerMasterGrossDunkelIcon({ size = GROSS_DEFAULT_SIZE }: MasterIconProps) {
-  return <Image source={hedgehogPawnDarkGross} style={{ width: size, height: size }} resizeMode="contain" />;
+  return <Image source={hedgehogPawnDarkGross} style={{ width: size, height: size }} resizeMode="contain" {...ANDROID_FIX_PROPS} />;
 }
 
 /** Turm (Bär), helle Master-Variante, groß — Screen 1 ("Das ist ein Bär") und Verwandlung.tsx, Quest 2. */
 export function TurmMasterGrossIcon({ size = GROSS_DEFAULT_SIZE }: MasterIconProps) {
-  return <Image source={bearRookLightGross} style={{ width: size, height: size }} resizeMode="contain" />;
+  return <Image source={bearRookLightGross} style={{ width: size, height: size }} resizeMode="contain" {...ANDROID_FIX_PROPS} />;
 }
 
 /** Turm (Bär), dunkle Master-Variante, groß. Noch ohne Verwendungsstelle (vorbereitet). */
 export function TurmMasterGrossDunkelIcon({ size = GROSS_DEFAULT_SIZE }: MasterIconProps) {
-  return <Image source={bearRookDarkGross} style={{ width: size, height: size }} resizeMode="contain" />;
+  return <Image source={bearRookDarkGross} style={{ width: size, height: size }} resizeMode="contain" {...ANDROID_FIX_PROPS} />;
 }
 
 /** Läufer (Eule), helle Master-Variante, groß — Screen 1 ("Das ist eine Eule") und Verwandlung.tsx, Quest 3. */
 export function LaeuferMasterGrossIcon({ size = GROSS_DEFAULT_SIZE }: MasterIconProps) {
-  return <Image source={owlBishopLightGross} style={{ width: size, height: size }} resizeMode="contain" />;
+  return <Image source={owlBishopLightGross} style={{ width: size, height: size }} resizeMode="contain" {...ANDROID_FIX_PROPS} />;
 }
 
 /** Läufer (Eule), dunkle Master-Variante, groß. Noch ohne Verwendungsstelle (vorbereitet). */
 export function LaeuferMasterGrossDunkelIcon({ size = GROSS_DEFAULT_SIZE }: MasterIconProps) {
-  return <Image source={owlBishopDarkGross} style={{ width: size, height: size }} resizeMode="contain" />;
+  return <Image source={owlBishopDarkGross} style={{ width: size, height: size }} resizeMode="contain" {...ANDROID_FIX_PROPS} />;
 }
 
 /** Springer (Pferd), helle Master-Variante, groß — Screen 1 ("Das ist ein Pferd") und Verwandlung.tsx, Quest 4. */
 export function SpringerMasterGrossIcon({ size = GROSS_DEFAULT_SIZE }: MasterIconProps) {
-  return <Image source={horseKnightLightGross} style={{ width: size, height: size }} resizeMode="contain" />;
+  return <Image source={horseKnightLightGross} style={{ width: size, height: size }} resizeMode="contain" {...ANDROID_FIX_PROPS} />;
 }
 
 /** Springer (Pferd), dunkle Master-Variante, groß. Noch ohne Verwendungsstelle (vorbereitet). */
 export function SpringerMasterGrossDunkelIcon({ size = GROSS_DEFAULT_SIZE }: MasterIconProps) {
-  return <Image source={horseKnightDarkGross} style={{ width: size, height: size }} resizeMode="contain" />;
+  return <Image source={horseKnightDarkGross} style={{ width: size, height: size }} resizeMode="contain" {...ANDROID_FIX_PROPS} />;
 }
 
 /** Dame (Schwan), helle Master-Variante, groß — Screen 1 ("Das ist ein Schwan") und Verwandlung.tsx, Quest 5. */
 export function DameMasterGrossIcon({ size = GROSS_DEFAULT_SIZE }: MasterIconProps) {
-  return <Image source={swanQueenLightGross} style={{ width: size, height: size }} resizeMode="contain" />;
+  return <Image source={swanQueenLightGross} style={{ width: size, height: size }} resizeMode="contain" {...ANDROID_FIX_PROPS} />;
 }
 
 /** Dame (Schwan), dunkle Master-Variante, groß. Noch ohne Verwendungsstelle (vorbereitet). */
 export function DameMasterGrossDunkelIcon({ size = GROSS_DEFAULT_SIZE }: MasterIconProps) {
-  return <Image source={swanQueenDarkGross} style={{ width: size, height: size }} resizeMode="contain" />;
+  return <Image source={swanQueenDarkGross} style={{ width: size, height: size }} resizeMode="contain" {...ANDROID_FIX_PROPS} />;
 }
 
 /** König (Hirsch), helle Master-Variante, groß — Screen 1 ("Das ist ein Hirsch") und Verwandlung.tsx, Quest 6. */
 export function KoenigMasterGrossIcon({ size = GROSS_DEFAULT_SIZE }: MasterIconProps) {
-  return <Image source={deerKingLightGross} style={{ width: size, height: size }} resizeMode="contain" />;
+  return <Image source={deerKingLightGross} style={{ width: size, height: size }} resizeMode="contain" {...ANDROID_FIX_PROPS} />;
 }
 
 /** König (Hirsch), dunkle Master-Variante, groß. Noch ohne Verwendungsstelle (vorbereitet). */
 export function KoenigMasterGrossDunkelIcon({ size = GROSS_DEFAULT_SIZE }: MasterIconProps) {
-  return <Image source={deerKingDarkGross} style={{ width: size, height: size }} resizeMode="contain" />;
+  return <Image source={deerKingDarkGross} style={{ width: size, height: size }} resizeMode="contain" {...ANDROID_FIX_PROPS} />;
 }

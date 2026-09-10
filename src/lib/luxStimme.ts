@@ -23,11 +23,11 @@ import { STIMME_OPTIONEN, bevorzugteStimmeIdSynchron, leseBevorzugteStimmeId } f
 
 // Design-Vorgabe 3.1, Schritt 3: etwas langsamer und eine Idee höher als die
 // Systemstimme im Standard — für Kinderohren klarer artikuliert, ohne kindisch/
-// übertrieben zu klingen. Nutzer-Feedback 2026-09-07 ("Sprechgeschwindigkeit ist gut"):
-// `rate` bewusst unverändert gelassen, nur die tatsächlich bemängelte Stimmqualität
-// (siehe ermittleBevorzugteStimme unten) wird angegangen. `STIMME_OPTIONEN` selbst steht
-// inzwischen in stimmeAuswahl.ts (einzige Quelle), damit das dortige Vorhören exakt so
-// klingt wie Lux tatsächlich im Spiel.
+// übertrieben zu klingen. Nutzer-Feedback 2026-09-07 ("Sprechgeschwindigkeit ist gut")
+// ließ `rate` zunächst unverändert; Feedback 2026-09-08 nach Test der Stimmauswahl
+// ("kann leicht erhöht werden") passte `rate` dann leicht nach oben an — siehe die
+// eigentliche Definition samt Versionsgeschichte in stimmeAuswahl.ts (einzige Quelle),
+// damit das dortige Vorhören exakt so klingt wie Lux tatsächlich im Spiel.
 
 // Nutzer-Feedback 2026-09-07: "Stimme ist sehr künstlich, computergesteuert. Wir brauchen
 // hier eine sehr freundliche, kindliche Stimme." Ohne eigene `voice`-Angabe wählt

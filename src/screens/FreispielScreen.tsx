@@ -30,7 +30,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { ComponentType, ReactNode } from "react";
-import { View, StyleSheet, SafeAreaView, ScrollView, Pressable, ActivityIndicator } from "react-native";
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, Pressable, ActivityIndicator } from "react-native";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -55,6 +55,32 @@ import {
   WolfIcon,
   WisentIcon,
 } from "../lib/waldgefaehrten";
+// Sprach-Vollständigkeit (Claude-Projekt "ChessLynx",
+// sprechzeilen_vorschlaege_bonus_endlosspiel_und_hinweisfunktion_2026-09-09.md, Fund A1):
+// dieser Screen war die einzige Stelle im ganzen Spiel ohne jede gesprochene
+// Orientierung für ein nicht lesefähiges Kind — weder beim Betreten noch bei der
+// Freischalt-Feier. Gleiche Sprech-Infrastruktur wie überall sonst.
+import { LuxEckIcon } from "../lib/luxAssets";
+import { useLuxSprechzeile } from "../lib/useLuxSprechzeile";
+import { useUntertitelAktiv } from "../lib/untertitelEinstellung";
+import { luxVariante } from "../lib/luxVarianten";
+
+// Rotierende Begrüßung beim (Wieder-)Betreten der Liste — dasselbe Prinzip wie die
+// KidHome-Begrüßung (RootNavigator.tsx): ein Kind, das öfter hierher zurückkehrt, soll
+// nicht jedes Mal denselben Satz hören.
+const BEGRUESSUNG_VARIANTEN = [
+  "Welches Tier forderst du heute heraus?",
+  "Schau dir deine Waldfreunde an. Gegen wen spielst du diesmal?",
+  "Tipp auf ein Tier, das du schon erreicht hast, und leg los!",
+];
+// Rotierende Feier-Zeile bei einer frisch freigeschalteten Stufe — bisher rein optisch
+// (Funkeln/Icon), obwohl jeder andere Feiermoment im Spiel (QuestGeschafft & Co.) eine
+// gesprochene Zeile hat.
+const FREISCHALTUNG_VARIANTEN = [
+  "Super! Ein neues Tier wartet jetzt auf dich!",
+  "Du hast eine neue Stufe erspielt! Weiter geht's!",
+  "Stark gespielt! Schau, wer als Nächstes auf dich wartet.",
+];
 
 type StufeMitStatus = WaldfreundeStufe & { freigeschaltet: boolean };
 
@@ -92,6 +118,15 @@ export default function FreispielScreen() {
   const route = useRoute<any>();
   const [stufen, setStufen] = useState<StufeMitStatus[] | null>(null);
   const [feierStufe, setFeierStufe] = useState<WaldfreundeStufe | null>(null);
+  const zeigeUntertitel = useUntertitelAktiv();
+  // Begrüßung nur, solange keine Freischalt-Feier läuft (die spricht ihre eigene Zeile,
+  // siehe FeierUeberlagerung unten) — sonst würden beide gleichzeitig sprechen wollen.
+  // Vor dem `if (!stufen) return` platziert (React-Hook-Regel: keine bedingten
+  // Hook-Aufrufe), genau wie schon in FreispielPartie.tsx gelöst.
+  const { wiederholen: begruessungWiederholen, aktuelleZeile: begruessungZeile } = useLuxSprechzeile(
+    stufen ? (feierStufe ? "feier-aktiv" : "begruessung") : "laden",
+    stufen && !feierStufe ? () => luxVariante(BEGRUESSUNG_VARIANTEN, "freispiel-liste-begruessung") : undefined
+  );
 
   const ladeStufen = useCallback(async () => {
     const geladen = await ladeFreispielStufenMitStatus();
@@ -135,7 +170,21 @@ export default function FreispielScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.liste}>
+      <Pressable
+        style={styles.luxCorner}
+        onPress={begruessungWiederholen}
+        hitSlop={{ top: 12, left: 12, right: 12, bottom: 12 }}
+        accessibilityLabel="Lux, tippen zum Wiederholen"
+      >
+        <LuxEckIcon size={52} />
+      </Pressable>
+      {zeigeUntertitel && !feierStufe && (
+        <View style={styles.sprechblase}>
+          <View style={styles.sprechblaseSchweif} />
+          <Text style={styles.speech}>{begruessungZeile}</Text>
+        </View>
+      )}
+      <ScrollView style={styles.scrollFlex} contentContainerStyle={styles.liste}>
         {stufen.map((stufe) => (
           <StufenEintrag
             key={stufe.elo}
@@ -249,6 +298,16 @@ function RangPunkte({ rang, maxRang, aktiv }: { rang: number; maxRang: number; a
  * Konzept-Dokument). Tippen oder automatisches Ausblenden nach ~3,5 s schließt sie. */
 function FeierUeberlagerung({ stufe, onSchliessen }: { stufe: WaldfreundeStufe; onSchliessen: () => void }) {
   const Icon = TIER_ICONS[stufe.tier];
+  const zeigeUntertitel = useUntertitelAktiv();
+  // `erinnerung: false`: die Karte schließt sich ohnehin automatisch nach 3,5 s (unten,
+  // deutlich vor der sonst üblichen 8-Sekunden-Erinnerung) und hat kein eigenes
+  // Lux-Antipp-Icon — eine Wiederholung wäre hier ohne jeden Nutzen.
+  const { aktuelleZeile } = useLuxSprechzeile(
+    `freischaltung-${stufe.elo}`,
+    () => luxVariante(FREISCHALTUNG_VARIANTEN, "freispiel-freischaltung"),
+    undefined,
+    { erinnerung: false }
+  );
   const skalierung = useSharedValue(0.6);
   const deckkraft = useSharedValue(0);
 
@@ -281,6 +340,7 @@ function FeierUeberlagerung({ stufe, onSchliessen }: { stufe: WaldfreundeStufe; 
       <View style={styles.feierMitte}>
         <Animated.View style={[styles.feierKarte, kartenStil]}>
           <Icon size={84} />
+          {zeigeUntertitel && <Text style={styles.feierText}>{aktuelleZeile}</Text>}
         </Animated.View>
       </View>
     </Pressable>
@@ -290,6 +350,37 @@ function FeierUeberlagerung({ stufe, onSchliessen }: { stufe: WaldfreundeStufe; 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: "#F7F1E4" },
   safeLaden: { flex: 1, backgroundColor: "#F7F1E4", alignItems: "center", justifyContent: "center" },
+  // Lux-Ecke + Sprechblase — dieselben Werte wie in den Bonuskapiteln/Quest-Screens,
+  // damit sich dieser Screen konsistent in den Rest der App einfügt.
+  luxCorner: { position: "absolute", top: 24, left: 24, zIndex: 10 },
+  sprechblase: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+    marginTop: 84,
+    marginHorizontal: 20,
+    minHeight: 60,
+    justifyContent: "center",
+    shadowColor: "#4A4038",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 2,
+    zIndex: 9,
+  },
+  sprechblaseSchweif: {
+    position: "absolute",
+    top: -6,
+    left: 28,
+    width: 14,
+    height: 14,
+    backgroundColor: "#FFFFFF",
+    transform: [{ rotate: "45deg" }],
+  },
+  speech: { fontSize: 16, color: "#4A4038", textAlign: "center" },
+  feierText: { fontSize: 15, color: "#4A4038", textAlign: "center", marginTop: 10, paddingHorizontal: 8 },
+  scrollFlex: { flex: 1 },
   liste: { alignItems: "center", paddingVertical: 24, paddingHorizontal: 20, gap: 14 },
   eintrag: {
     width: "100%",

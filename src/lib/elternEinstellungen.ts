@@ -17,6 +17,10 @@ const STANDARD_EINSTELLUNGEN: ElternEinstellungen = {
   einwilligungErteiltAm: null,
   einwilligungVersion: null,
   benachrichtigungenAktiv: false,
+  // Ergänzt 2026-09-09 (Monetarisierung/IAP-Vorbereitung) — siehe Kommentar bei der
+  // Typdefinition in firebase.ts.
+  vollstaendigerLernpfadFreigeschaltet: false,
+  freischaltungAm: null,
 };
 
 /**
