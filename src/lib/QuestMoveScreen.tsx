@@ -119,6 +119,51 @@ function alsArray(at: BoardSquare | BoardSquare[] | undefined): BoardSquare[] {
   return Array.isArray(at) ? at : [at];
 }
 
+// Bugfix (2026-09-10, Kurztest-Feedback: "Turm bleibt hängen bei der Eichel", "Läufer:
+// die Eichel sollte nicht nur [auf einem] entfernten [Feld] liegen"): `vorschlagZiel` nahm
+// bisher IMMER `legalTargets[0]` — die Reihenfolge, in der chess.js legale Zielfelder
+// liefert, ist ein reines Bibliotheks-Detail (siehe android_geraetetest_2026-09-09.md,
+// Punkt 12: alle Linienfelder VOR allen Reihenfeldern) und zeigte dadurch über alle
+// Übungsrunden hinweg immer dieselbe Richtung (Turm: nur die a-Linie hinauf) bzw. beim
+// Läufer bevorzugt das am weitesten entfernte Feld einer Diagonale statt eines in der Nähe.
+// Der damals dokumentierte, aber nie umgesetzte Fix-Vorschlag ("zwischen den tatsächlich
+// nutzbaren Richtungen abwechseln") ist jetzt hier tatsächlich umgesetzt, und zwar generisch
+// über die Vorzeichen der Zeilen-/Spaltendifferenz zur aktuellen Position — funktioniert
+// dadurch gleichermaßen für Turm (4 Richtungen), Läufer (4 Diagonalen), Dame (8) und in
+// abgeschwächter Form auch den Springer (mehrere Sprünge können sich einen Vorzeichen-
+// "Oktanten" teilen, was hier keinen Schaden anrichtet, da ohnehin nur EIN Zielfeld pro
+// Runde vorgeschlagen wird).
+function waehleVorschlagZiel(
+  legalTargets: BoardSquare[],
+  von: BoardSquare,
+  rundenIndex: number
+): BoardSquare | undefined {
+  if (!legalTargets.length) return undefined;
+
+  const richtungsSchluessel = (ziel: BoardSquare) =>
+    `${Math.sign(ziel.row - von.row)},${Math.sign(ziel.col - von.col)}`;
+
+  const richtungen: string[] = [];
+  for (const ziel of legalTargets) {
+    const schluessel = richtungsSchluessel(ziel);
+    if (!richtungen.includes(schluessel)) richtungen.push(schluessel);
+  }
+
+  const gewaehlteRichtung = richtungen[rundenIndex % richtungen.length];
+  const kandidaten = legalTargets.filter((ziel) => richtungsSchluessel(ziel) === gewaehlteRichtung);
+
+  // Innerhalb der gewählten Richtung das NÄCHSTGELEGENE Feld (kleinster Abstand), nicht das
+  // am weitesten entfernte — fühlt sich für ein Kind als natürlicherer, kleiner Schritt an
+  // (genau der Läufer-Punkt aus dem Kurztest-Feedback).
+  kandidaten.sort((a, b) => {
+    const distA = Math.max(Math.abs(a.row - von.row), Math.abs(a.col - von.col));
+    const distB = Math.max(Math.abs(b.row - von.row), Math.abs(b.col - von.col));
+    return distA - distB;
+  });
+
+  return kandidaten[0];
+}
+
 /**
  * Kapselt "eine chess.js-Stellung laden, Legalzüge für die Übungsfigur anzeigen, bei
  * korrektem Zug weiter" — ersetzt die sechs fast identischen MoveScreen()-Funktionen aus
@@ -198,8 +243,13 @@ export function QuestMoveScreen({
   // Sammel-Marker-Vorschlag (Phase "uebung"). Rein visuelle Führung: schränkt NICHT ein,
   // welches Feld tatsächlich antippbar ist (Design-Grundsatz "immer alle Legalzüge
   // anbieten") — jedes andere Feld aus legalTargets bleibt genauso lösend.
-  const vorschlagZiel = legalTargets.length
-    ? { row: legalTargets[0].row - rowOffset, col: legalTargets[0].col - colOffset }
+  // Siehe waehleVorschlagZiel oben (Bugfix 2026-09-10): rotiert durch die tatsächlich
+  // verfügbaren Richtungen statt immer legalTargets[0] zu nehmen. rundenIndex ist die
+  // Anzahl bereits erledigter Übungsrunden (0 für Vorführung/den allerersten Zug).
+  const rundenIndex = phase === "uebung" ? uebungenErledigt : 0;
+  const gewaehltesZiel = waehleVorschlagZiel(legalTargets, aktuellerOrt, rundenIndex);
+  const vorschlagZiel = gewaehltesZiel
+    ? { row: gewaehltesZiel.row - rowOffset, col: gewaehltesZiel.col - colOffset }
     : undefined;
 
   const config: BoardConfig = {

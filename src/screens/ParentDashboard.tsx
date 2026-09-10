@@ -1138,6 +1138,26 @@ export function ParentDashboard({ navigation }: any) {
               Springt direkt zu einem Bildschirm, ohne den Lernpfad durchzuspielen. Nur in
               Entwicklungs-Builds sichtbar, kein Bestandteil der Kind-Oberfläche.
             </Text>
+            {/* Ergänzt (2026-09-10, Kurztest-Feedback "Willkommensbildschirm nach Video
+                erscheint nicht mehr, es geht direkt zur Saga-Karte"): kein Bug — die
+                Sequenz läuft laut Design (siehe WillkommensSequenz.tsx-Kopfkommentar und
+                lib/storage.ts, WILLKOMMEN_GESEHEN_KEY) bewusst nur beim allerersten
+                App-Start, das Flag war auf diesem Testgerät aus einem früheren Durchlauf
+                bereits gesetzt. Dieser Button setzt das Flag zurück und springt direkt
+                zur Sequenz, damit sie erneut angesehen werden kann, ohne die App
+                neu zu installieren/Daten zu löschen. */}
+            <Text style={styles.testGruppenTitel}>Willkommens-Sequenz</Text>
+            <View style={styles.testKnopfReihe}>
+              <Pressable
+                style={styles.testKnopf}
+                onPress={async () => {
+                  await AsyncStorage.removeItem("chesslynx:hatWillkommenGesehen");
+                  navigation.navigate("WillkommensSequenz");
+                }}
+              >
+                <Text style={styles.testKnopfText}>Erneut ansehen (setzt Flag zurück)</Text>
+              </Pressable>
+            </View>
             <Text style={styles.testGruppenTitel}>Waldabenteuer (Grundfiguren)</Text>
             <View style={styles.testKnopfReihe}>
               <Pressable style={styles.testKnopf} onPress={() => navigation.navigate("Quest1")}>

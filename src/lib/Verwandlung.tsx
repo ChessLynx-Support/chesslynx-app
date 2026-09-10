@@ -9,6 +9,18 @@
 // Countdown/Zeitdruck-Element (Design-Grundsatz 1), die Animation läuft einmal ab und
 // ruft danach `onDone` auf, das den nächsten Screen zeigt.
 //
+// Update (2026-09-10, Kurztest-Feedback: "Die Einführung in die Quests, mit Animation,
+// sollte nicht durch Klick zu unterbrechen sein"): die Animation war bisher komplett in
+// einen Pressable gehüllt (eine `ueberspringen()`-Funktion stoppte die Sequenz und rief
+// sofort `onDone()` auf), ursprünglich als bewusste Opus-Review-Entscheidung vom
+// 2026-09-07 ("Wiederholbarkeit statt Zeitdruck ... antippbar überspringbar"). Genau
+// dieses Antippbar-Sein führte jetzt dazu, dass ein einzelner, auch unabsichtlicher Tipp
+// des Kindes den eigentlichen Verwandlungsmoment abschnitt, bevor er zu sehen war — das
+// widerspricht dem eigentlichen Zweck dieser Animation (siehe oben: "GRÖSSEN-Verwandlung
+// ... exakt dieselbe Grafik"). Pressable und die Skip-Funktion sind deshalb ersatzlos
+// entfernt — die Animation läuft jetzt immer vollständig durch.
+
+//
 // Update (Schritt 6 der Grundgerüst-Integrationsplan-Liste, priorisierter_
 // umsetzungsplan.md, 2026-09-07): komplett neu gedacht, siehe Rückfrage im Claude-Projekt
 // "ChessLynx". Der Verwandlungsmoment ist jetzt NICHT mehr eine Überblendung zwischen zwei
@@ -35,7 +47,7 @@
 //   5. Ausklang — der Lichtschein verblasst, danach `onDone()`.
 
 import { useEffect, useRef, useState } from "react";
-import { Animated, Easing, Pressable, StyleSheet, View } from "react-native";
+import { Animated, Easing, StyleSheet, View } from "react-native";
 import type { ReactNode } from "react";
 import { Funkeln } from "../components/Funkeln";
 
@@ -67,12 +79,11 @@ export function Verwandlung({
   const ringOpacity = useRef(new Animated.Value(0)).current;
   const ringSkalierung = useRef(new Animated.Value(0.6)).current;
   const [zeigeFunkeln, setZeigeFunkeln] = useState(false);
-  // Opus-Review, 2026-09-07, Abschnitt 3.3, siehe claude/review_logik_grafik_
-  // audiofuehrung.md: "Wiederholbarkeit statt Zeitdruck: Verwandlung.tsx sollte antippbar
-  // überspringbar sein." `laufendeSequenz` hält die aktive Animation für ueberspringen()
-  // unten; `fertig` verhindert einen doppelten onDone()-Aufruf (einmal durch den
-  // manuellen Tap, einmal durch das reguläre Sequenz-Ende).
-  const laufendeSequenz = useRef<Animated.CompositeAnimation | null>(null);
+  // Update (2026-09-10, siehe Datei-Kommentar oben): die frühere antippbare
+  // "ueberspringen()"-Funktion (Opus-Review 2026-09-07, Abschnitt 3.3) ist entfallen —
+  // `fertig` bleibt trotzdem als einfache Absicherung gegen einen doppelten
+  // `onDone()`-Aufruf bestehen (z. B. falls die Sequenz-Callback-Logik künftig erweitert
+  // wird).
   const fertig = useRef(false);
 
   useEffect(() => {
@@ -133,10 +144,7 @@ export function Verwandlung({
       Animated.timing(glowOpacity, { toValue: 0, duration: 300, useNativeDriver: true }),
     ]);
 
-    laufendeSequenz.current = sequenz;
     sequenz.start(({ finished }) => {
-      // finished ist false, wenn die Sequenz durch ueberspringen() (sequenz.stop())
-      // abgebrochen wurde — onDone() wurde dann bereits dort aufgerufen.
       if (finished && !fertig.current) {
         fertig.current = true;
         onDone();
@@ -149,51 +157,45 @@ export function Verwandlung({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function ueberspringen() {
-    if (fertig.current) return;
-    fertig.current = true;
-    laufendeSequenz.current?.stop();
-    onDone();
-  }
-
   const drehung = wackeln.interpolate({ inputRange: [-1, 1], outputRange: ["-6deg", "6deg"] });
   const wrapGroesse = grossGroesse + 80;
   const glowGroesse = grossGroesse + 40;
   const ringGroesse = grossGroesse + 20;
 
   return (
-    <Pressable onPress={ueberspringen} accessibilityRole="button" accessibilityLabel="Weiter">
-      <View style={[styles.wrap, { width: wrapGroesse, height: wrapGroesse }]}>
-        <Animated.View
-          pointerEvents="none"
-          style={[
-            styles.glow,
-            {
-              width: glowGroesse,
-              height: glowGroesse,
-              borderRadius: glowGroesse / 2,
-              opacity: glowOpacity,
-              transform: [{ scale: glowSkalierung }],
-            },
-          ]}
-        />
-        <Animated.View
-          pointerEvents="none"
-          style={[
-            styles.ring,
-            {
-              width: ringGroesse,
-              height: ringGroesse,
-              borderRadius: ringGroesse / 2,
-              opacity: ringOpacity,
-              transform: [{ scale: ringSkalierung }],
-            },
-          ]}
-        />
-        <Animated.View style={{ transform: [{ scale: figurSkalierung }, { rotate: drehung }] }}>{figur}</Animated.View>
-        {zeigeFunkeln && <Funkeln size={grossGroesse * 1.1} />}
-      </View>
-    </Pressable>
+    // Siehe Datei-Kommentar oben (Update 2026-09-10): kein Pressable/onPress mehr — die
+    // Animation läuft immer vollständig durch, statt durch einen (auch unabsichtlichen)
+    // Kind-Tipp abgeschnitten werden zu können.
+    <View style={[styles.wrap, { width: wrapGroesse, height: wrapGroesse }]}>
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          styles.glow,
+          {
+            width: glowGroesse,
+            height: glowGroesse,
+            borderRadius: glowGroesse / 2,
+            opacity: glowOpacity,
+            transform: [{ scale: glowSkalierung }],
+          },
+        ]}
+      />
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          styles.ring,
+          {
+            width: ringGroesse,
+            height: ringGroesse,
+            borderRadius: ringGroesse / 2,
+            opacity: ringOpacity,
+            transform: [{ scale: ringSkalierung }],
+          },
+        ]}
+      />
+      <Animated.View style={{ transform: [{ scale: figurSkalierung }, { rotate: drehung }] }}>{figur}</Animated.View>
+      {zeigeFunkeln && <Funkeln size={grossGroesse * 1.1} />}
+    </View>
   );
 }
 
