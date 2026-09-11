@@ -150,6 +150,17 @@ function bewerteZug(zug: Move, botFarbe: "w" | "b", mitGegenantwort: boolean): n
   return bewertung;
 }
 
+/** Paket 3 (F1): ab dieser Stufe spielt der Bot ein vorhandenes Matt in 1 immer. */
+export const MATT_IMMER_AB_ELO = 400;
+
+function istMattZug(zug: Move): boolean {
+  return new Chess(zug.after).isCheckmate();
+}
+
+function istPattZug(zug: Move): boolean {
+  return new Chess(zug.after).isStalemate();
+}
+
 /**
  * Wählt den nächsten Zug des Bots für die gegebene Elo-Stufe.
  *
@@ -168,11 +179,23 @@ export function waehleBotZug(spiel: Chess, elo: number): Move | null {
   const stufe = holeStufe(elo);
   const botFarbe = spiel.turn();
 
+  // Paket 3 (2026-09-11, Freispiel-Abfederung F1, bonuskapitel_ganze_partie_umsetzung_
+  // 2026-09-10.md Abschnitt 7c): Die Bots werden dadurch nicht stärker, nur zielstrebiger —
+  // Partien enden, statt endlos zu mäandern.
+  // (1) Matt in 1: ab Stufe Fuchs (400) immer spielen, bei den Eichhörnchen-Stufen mit 50 %.
+  const mattZuege = alleZuege.filter(istMattZug);
+  if (mattZuege.length > 0 && (stufe.elo >= MATT_IMMER_AB_ELO || Math.random() < 0.5)) {
+    return mattZuege[Math.floor(Math.random() * mattZuege.length)];
+  }
+  // (2) Das Kind nie "aus Versehen" patt setzen: Pattzüge fallen weg, solange es andere gibt.
+  const ohnePatt = alleZuege.filter((zug) => !istPattZug(zug));
+  const kandidaten = ohnePatt.length > 0 ? ohnePatt : alleZuege;
+
   if (Math.random() < stufe.zufallsanteil) {
-    return alleZuege[Math.floor(Math.random() * alleZuege.length)];
+    return kandidaten[Math.floor(Math.random() * kandidaten.length)];
   }
 
-  const bewertet = alleZuege
+  const bewertet = kandidaten
     .map((zug) => ({ zug, bewertung: bewerteZug(zug, botFarbe, stufe.suchtiefe === 1) }))
     .sort((a, b) => b.bewertung - a.bewertung);
 

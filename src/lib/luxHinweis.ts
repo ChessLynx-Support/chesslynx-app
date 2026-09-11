@@ -25,7 +25,11 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 const SCHLUESSEL = "chesslynx:hinweiseAktiv";
 const EINFUEHRUNG_GEZEIGT_SCHLUESSEL = "chesslynx:hinweisEinfuehrungGezeigt";
 
-export const HINWEISE_STANDARD = false;
+// Paket 3 (2026-09-11, Entscheidungslog): Standardwert AN — widerruft die Entscheidung vom
+// 2026-09-09. Ein Fünfjähriger in der ersten freien Partie soll Hilfe bekommen können;
+// Eltern schalten bewusst ab. Bereits gespeicherte Elternwahl (leseHinweiseAktiv) bleibt
+// unangetastet — der Standard greift nur, solange nie etwas gespeichert wurde.
+export const HINWEISE_STANDARD = true;
 
 /** Die feste Angebots-Zeile, exakt in der vom Nutzer vorgeschlagenen Formulierung. */
 export const HINWEIS_ANGEBOT_ZEILE = "Möchtest du einen Hinweis von mir? Tipp mich nochmal!";

@@ -131,6 +131,9 @@ export type KindProfil = {
     // unterschied für die bereits vorhandenen vier Felder.
     figurenwert: boolean;
     schlossFinale: boolean;
+    // Paket 3 (2026-09-11): Kapitel „Die ganze Partie" an der Steinbrücke — optional, weil
+    // bestehende Kinderprofile das Feld noch nicht haben (fehlt = noch nicht gespielt).
+    ganzePartie?: boolean;
   };
   screenTimeHeute: { minutenGenutzt: number; datum: string };
   erstelltAm: number;

@@ -108,5 +108,104 @@ function check(label, condition) {
   check("Screen5: Zug ist ein echtes Schlagen (isCapture: true)", result.ok === true && result.isCapture === true);
 }
 
+// =====================================================================================
+// Paket 2 (2026-09-11): Quest-6-Erweiterung — Schach-Brücke, Mini-Spiel, Matt-Moment.
+// Spezifikation: quest6_matt_bruecke_umsetzung_2026-09-10.md, Abschnitt 6. Die FENs sind
+// hier bewusst noch einmal abgeschrieben (wie QUEST6_POSITIONS oben), damit der Test
+// ohne TypeScript-Build läuft; sie müssen exakt denen in src/lib/chessEngine.ts entsprechen.
+// =====================================================================================
+const NEU = {
+  schachBruecke: "4r2k/8/8/8/B7/2N5/8/4K3 w - - 0 1",
+  miniSpiel: [
+    "7k/8/8/2n5/4K3/8/8/8 w - - 0 1",
+    "rr5k/8/8/8/8/2N5/8/K7 w - - 0 1",
+    "7k/8/8/8/8/8/5nPP/4B1RK w - - 0 1",
+    "k2r4/8/8/8/7B/5N2/8/3K4 w - - 0 1",
+  ],
+  mattMoment: "6k1/5ppp/8/8/8/8/8/R5K1 w - - 0 1",
+};
+function zuege(fen) {
+  return new Chess(fen).moves({ verbose: true });
+}
+function zaehleNachFigur(liste) {
+  const z = {};
+  for (const m of liste) z[m.piece] = (z[m.piece] || 0) + 1;
+  return Object.fromEntries(Object.entries(z).sort(([a], [b]) => a.localeCompare(b)));
+}
+function sanListe(liste) {
+  return liste.map((m) => m.san.replace(/[+#]/g, "")).sort().join(" ");
+}
+// Gleicher Klassifikator wie SchachAufgabe.tsx (onCorrectMove): König → wegziehen,
+// Schlagzug → schlagen, sonst dazwischen.
+function weg(m) {
+  return m.piece === "k" ? "wegziehen" : m.captured ? "schlagen" : "dazwischen";
+}
+
+// --- P0 Schach-Brücke ---
+{
+  const game = new Chess(NEU.schachBruecke);
+  const liste = zuege(NEU.schachBruecke);
+  check("P0: Stellung gültig, Weiß steht im Schach", game.inCheck() === true);
+  check("P0: genau 7 legale Züge", liste.length === 7);
+  check("P0: Züge = Bxe8 Kd1 Kd2 Kf1 Kf2 Ne2 Ne4", sanListe(liste) === "Bxe8 Kd1 Kd2 Kf1 Kf2 Ne2 Ne4");
+  for (const san of ["Kd1", "Ne2", "Bxe8"]) {
+    const g = new Chess(NEU.schachBruecke);
+    const m = g.move(san);
+    check(`P0: ${san} (Vorführ-Zug) hebt das Schach auf`, Boolean(m) && g.isCheck() === false);
+  }
+  const wege = new Set(liste.map(weg));
+  check("P0: alle drei Wege kommen vor (wegziehen/dazwischen/schlagen)", wege.size === 3);
+  let stoppIllegal = false;
+  try {
+    new Chess(NEU.schachBruecke).move("Bb3");
+  } catch {
+    stoppIllegal = true;
+  }
+  check("P0: Stopp!-Zug Bb3 ist illegal (Schach bliebe bestehen)", stoppIllegal);
+  const angreifer = game.attackers("e1", "b");
+  check("P0: Angreifer des Königs ist der Turm e8 (Schach-Linie)", angreifer.length === 1 && angreifer[0] === "e8");
+  check("P0: board()-Koordinaten stimmen (row 7, col 4 = weißer König e1)", (() => {
+    const f = game.board()[7][4];
+    return f && f.type === "k" && f.color === "w";
+  })());
+}
+
+// --- Mini-Spiel P1–P4 ---
+const MINI_ERWARTUNG = [
+  { name: "P1 (nur wegziehen)", anzahl: 7, figuren: { k: 7 }, weg: ["wegziehen"], koenig: "e4" },
+  { name: "P2 (nur dazwischen)", anzahl: 2, figuren: { n: 2 }, weg: ["dazwischen"], koenig: "a1" },
+  { name: "P3 (nur schlagen)", anzahl: 1, figuren: { b: 1 }, weg: ["schlagen"], koenig: "h1" },
+  { name: "P4 (alle drei Wege)", anzahl: 7, figuren: { b: 1, k: 4, n: 2 }, weg: ["dazwischen", "schlagen", "wegziehen"], koenig: "d1" },
+];
+NEU.miniSpiel.forEach((fen, i) => {
+  const e = MINI_ERWARTUNG[i];
+  const game = new Chess(fen);
+  const liste = zuege(fen);
+  check(`${e.name}: Weiß steht im Schach`, game.inCheck() === true);
+  check(`${e.name}: genau ${e.anzahl} legale Züge`, liste.length === e.anzahl);
+  check(`${e.name}: Verteilung nach Figur ${JSON.stringify(e.figuren)}`, JSON.stringify(zaehleNachFigur(liste)) === JSON.stringify(e.figuren));
+  check(`${e.name}: Wege = ${e.weg.join("/")}`, [...new Set(liste.map(weg))].sort().join(",") === e.weg.join(","));
+  const k = game.board().flat().find((f) => f && f.type === "k" && f.color === "w");
+  check(`${e.name}: eigener König (Startauswahl in Quest6.tsx) steht auf ${e.koenig}`, k && k.square === e.koenig);
+});
+check("P2: Züge sind genau Na2 und Na4", sanListe(zuege(NEU.miniSpiel[1])) === "Na2 Na4");
+check("P3: einziger Zug ist Bxf2", sanListe(zuege(NEU.miniSpiel[2])) === "Bxf2");
+
+// --- Matt-Moment ---
+{
+  const game = new Chess(NEU.mattMoment);
+  check("M: Weiß steht NICHT im Schach", game.inCheck() === false);
+  const matt = zuege(NEU.mattMoment).filter((m) => {
+    const g = new Chess(NEU.mattMoment);
+    g.move(m.san);
+    return g.isCheckmate();
+  });
+  check("M: genau ein Mattzug, und zwar Ra8", matt.length === 1 && matt[0].san === "Ra8#");
+  const g = new Chess(NEU.mattMoment);
+  g.move("Ra8");
+  const angreifer = g.attackers("g8", "w");
+  check("M: nach Ra8 greift genau der Turm a8 den König g8 an (Schach-Linie)", angreifer.length === 1 && angreifer[0] === "a8");
+}
+
 console.log("\n" + (failures === 0 ? "Alle Prüfungen bestanden (echtes chess.js)." : `${failures} Prüfung(en) fehlgeschlagen.`));
 process.exit(failures === 0 ? 0 : 1);

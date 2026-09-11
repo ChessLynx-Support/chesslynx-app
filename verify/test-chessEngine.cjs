@@ -278,9 +278,13 @@ test("Quest6 Screen5Capture: kein Schach, normales Schlagen möglich", () => {
   assert.equal(result.isCapture, true);
 });
 
-// --- Genereller Sanity-Check über alle 17 kuratierten Stellungen -------------------------
+// --- Genereller Sanity-Check über alle 23 kuratierten Stellungen -------------------------
 
-test("Alle 17 Quest-Stellungen sind gültige, ladbare FENs", () => {
+test("Alle 23 Quest-Stellungen sind gültige, ladbare FENs", () => {
+  // Update (2026-09-11, Paket 2 Quest-6-Erweiterung): QUEST6_POSITIONS enthält zusätzlich
+  // schachBruecke, mattMoment und miniSpiel (Liste mit 4 Stellungen) — 17 + 6 = 23. Die
+  // Werte werden deshalb flach ausgerollt (.flat()), damit auch die vier Mini-Spiel-FENs
+  // einzeln geprüft werden statt als Array.
   // Korrigiert (Nutzer-Testlauf 2026-09-07, npm test): war bis dahin noch auf "18 (6 × 3)"
   // ausgelegt. Quest 4 (Springer) hat seit der Zusammenlegung von Screen 4 (Blockade) und
   // Screen 5 (Schlagen) zu einem einzigen kombinierten Screen (siehe QUEST4_POSITIONS-
@@ -294,8 +298,12 @@ test("Alle 17 Quest-Stellungen sind gültige, ladbare FENs", () => {
     ...Object.values(QUEST4_POSITIONS),
     ...Object.values(QUEST5_POSITIONS),
     ...Object.values(QUEST6_POSITIONS),
-  ];
-  assert.equal(alle.length, 17, "5 Quests × 3 Screens + Quest 4 × 2 Screens = 17 Stellungen erwartet");
+  ].flat();
+  assert.equal(
+    alle.length,
+    23,
+    "5 Quests × 3 Screens + Quest 4 × 2 Screens = 17, plus Quest-6-Erweiterung 1 + 4 + 1 = 23 Stellungen erwartet"
+  );
   for (const fen of alle) {
     assert.doesNotThrow(() => createPosition(fen), `FEN sollte gültig sein: ${fen}`);
   }

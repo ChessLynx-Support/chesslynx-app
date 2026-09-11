@@ -36,6 +36,7 @@ import { LuxEckIcon } from "../lib/luxAssets";
 import { useLuxSprechzeile } from "../lib/useLuxSprechzeile";
 import { useUntertitelAktiv } from "../lib/untertitelEinstellung";
 import { WaldHintergrund } from "../components/WaldHintergrund";
+import { SchildkroeteIcon } from "../lib/schildkroete";
 
 const KAPITEL_ANZEIGE: Record<
   keyof typeof BONUSKAPITEL_ROUTEN,
@@ -98,7 +99,12 @@ export default function Schlossvorplatz() {
             // Platzhalter ("Was dahinter wartet, zeigen wir euch schon bald.") durch die
             // finale, konkrete Vorschau auf die Gefährten-Kampagne.
             "Du hast es geschafft! Das Schlosstor öffnet sich!",
-            "Dahinter wartet der Wald mit fünf neuen Freunden, die schon auf uns warten!",
+            // Paket 3 (2026-09-11): Übergangszeile Launch 1.0 (gefaehrten_wisent_lichess_
+            // sprechtexte_final.md, Abschnitt 13) — die Gefährten kommen erst mit Update 1,
+            // erreichbar ist ab jetzt die Schildkröte an der Steinbrücke (Kartenwegpunkt im
+            // Oberland über der Wisentfeste). Mit Update 1 zurück auf „Dahinter liegt der
+            // Wald – und fünf neue Freunde warten schon auf uns!".
+            "Dahinter liegt der Wald – und an der Steinbrücke wartet die Schildkröte schon auf uns!",
             "Und du hast das alles ganz allein geschafft, du mutiger Entdecker!",
           ]
         : statusSchluessel === "weiter"
@@ -180,9 +186,23 @@ export default function Schlossvorplatz() {
         <View style={styles.mitte}>
           <Text style={styles.ueberschrift}>Das Schlosstor öffnet sich!</Text>
           <Text style={styles.hinweis}>
-            Du hast alle Waldabenteuer und alle vier Lernkapitel gemeistert. Dahinter wartet der Wald mit fünf
-            neuen Freunden!
+            Du hast alle Waldabenteuer und alle vier Lernkapitel gemeistert. Dahinter liegt der Wald – und an der
+            Steinbrücke wartet die Schildkröte!
           </Text>
+          {/* Paket 3: direkter Weg zur Schildkröte (derselbe Screen wie der Kartenwegpunkt). */}
+          <ChessLynxButton
+            variante="primary"
+            onPress={() => navigation.navigate("Steinbruecke")}
+            icon={
+              <BadgeRahmen size={44}>
+                <SchildkroeteIcon size={34} />
+              </BadgeRahmen>
+            }
+            accessibilityLabel="Zur Steinbrücke"
+            style={styles.kapitelAbstand}
+          >
+            Zur Steinbrücke
+          </ChessLynxButton>
           <ChessLynxButton
             variante="secondary"
             onPress={() => navigation.navigate("KidHome")}

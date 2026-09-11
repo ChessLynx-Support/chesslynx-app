@@ -86,10 +86,29 @@ import {
   type LayoutChangeEvent,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
-import Svg, { Circle, Defs, Image as SvgBild, Mask, Path, RadialGradient, Rect, Stop } from "react-native-svg";
-import { loadQuestFortschrittLocal } from "../lib/storage";
+import Svg, { Circle, Defs, G, Image as SvgBild, Mask, Path, RadialGradient, Rect, Stop } from "react-native-svg";
+import { loadBonusFortschrittLocal, loadQuestFortschrittLocal } from "../lib/storage";
+import { pruefeSchlosstorStatus } from "../lib/gate";
+import { SCHILDKROETE_ASPEKT, SCHILDKROETE_BILD } from "../lib/schildkroete";
 
 const hintergrund = require("../../assets/hintergrund/luchsrevier_wisentfeste.webp");
+// Paket 3 (2026-09-11): Oberland-Kartenstück mit der Steinbrücke, siehe Datei-Kopfkommentar.
+const oberland = require("../../assets/hintergrund/luchsrevier_oberland.webp");
+// Seitenverhältnis Höhe/Breite des Oberland-Stücks (1658×519px) — gleiche Breite wie die
+// bisherige Karte, deshalb schließen beide bei jeder Bildschirmbreite nahtlos aneinander an.
+export const OBERLAND_ASPECT = 519 / 1658;
+
+// Die obersten ~15 der 1318 Zeilen des Nebel-Höhenbands sind ein fast deckend weißer
+// Randstreifen (Artefakt beim Bauen des Bands). Solange die Karte am oberen Bildschirmrand
+// endete, fiel er nicht auf; mit dem Oberland darüber stünde er als weißer Balken genau auf
+// der Naht. Deshalb wird das Band auf beiden Seiten der Naht um diesen Streifen verschoben
+// (Karte: nach oben, Oberland: gespiegelt nach unten) — die Karte verliert dadurch nur die
+// unterste Nebelzeile, die ohnehin Dichte 0 hat (Lichtungs-Eingang).
+const NEBEL_RANDSTREIFEN_FRAC = 16 / 1318;
+
+// Schildkröten-Wegpunkt im Oberland: Fußpunkt als Anteil von Breite/Höhe des Oberland-
+// Stücks (Wiese rechts der Steinbrücke), Bildbreite als Anteil der Kartenbreite.
+const SCHILDKROETE_WEGPUNKT = { fx: 0.434, fy: 0.559, breiteFrac: 36 / 390 };
 
 // Nebel-/Wolken-Höhenband — siehe Datei-Kopfkommentar. Herkunft: vom Nutzer bereitgestellte
 // 5-stufige Nebel-/Wolken-Bildreihe (`Grafiken/d1c399e6-….png`, "Nebel 1 Leicht" … "Wolken 5
@@ -293,11 +312,30 @@ function baueNebelKlarungen(
 type Props = {
   onSelectQuest: (quest: QuestId) => void;
   onSelectSchlossvorplatz: () => void;
+  // Paket 3 (2026-09-11): Schildkröten-Wegpunkt an der Steinbrücke.
+  onSelectSteinbruecke?: () => void;
+  // Meldet die gemessenen Höhen (Oberland-Stück, bisherige Karte), damit KidHome die
+  // Scroll-Startposition so setzen kann, dass die bisherige Karte unverändert dort steht,
+  // wo sie vor der Erweiterung stand (siehe RootNavigator.tsx, KidHome).
+  onHoehen?: (hoehen: { oberland: number; karte: number }) => void;
+  // Wird aufgerufen, wenn die Schildkröte gerade "als nächstes dran" ist (Schlosstor offen,
+  // Kapitel noch nicht gespielt) — KidHome scrollt dann sanft nach oben, damit das Kind den
+  // neuen Wegpunkt überhaupt entdeckt (Fünfjährige wischen nicht von selbst nach oben).
+  onSteinbrueckeWartet?: () => void;
 };
 
-export function LuchsRevierKarte({ onSelectQuest, onSelectSchlossvorplatz }: Props) {
+export function LuchsRevierKarte({
+  onSelectQuest,
+  onSelectSchlossvorplatz,
+  onSelectSteinbruecke,
+  onHoehen,
+  onSteinbrueckeWartet,
+}: Props) {
   const [breite, setBreite] = useState(0);
   const [status, setStatus] = useState<Record<QuestId, WegmarkeStatus> | null>(null);
+  const [steinbruecke, setSteinbruecke] = useState<WegmarkeStatus>("gesperrt");
+  const onSteinbrueckeWartetRef = useRef(onSteinbrueckeWartet);
+  onSteinbrueckeWartetRef.current = onSteinbrueckeWartet;
 
   // Fortschritt neu laden, sobald die Karte (wieder) sichtbar wird — z. B. nach Rückkehr aus
   // einer gerade abgeschlossenen Quest. Analog zum bereits etablierten Muster in
@@ -314,6 +352,16 @@ export function LuchsRevierKarte({ onSelectQuest, onSelectSchlossvorplatz }: Pro
           neu[w.quest] = eintraege[i]?.abgeschlossen ? "erledigt" : i === naechsterIndex ? "naechstes" : "gesperrt";
         });
         setStatus(neu);
+
+        // Paket 3: Schildkröten-Wegpunkt.
+        const [tor, ganzePartie] = await Promise.all([
+          pruefeSchlosstorStatus(),
+          loadBonusFortschrittLocal("ganzePartie"),
+        ]);
+        if (abgebrochen) return;
+        const zustand: WegmarkeStatus = !tor.offen ? "gesperrt" : ganzePartie ? "erledigt" : "naechstes";
+        setSteinbruecke(zustand);
+        if (zustand === "naechstes") onSteinbrueckeWartetRef.current?.();
       })();
       return () => {
         abgebrochen = true;
@@ -327,11 +375,108 @@ export function LuchsRevierKarte({ onSelectQuest, onSelectSchlossvorplatz }: Pro
   };
 
   const hoehe = breite * MAP_ASPECT;
+  const oberlandHoehe = breite * OBERLAND_ASPECT;
   const burgtorDurchmesser = BURGTOR.durchmesserFrac * breite;
+  const torOffen = steinbruecke !== "gesperrt";
   const nebelKlarungen = breite > 0 ? baueNebelKlarungen(status, breite, hoehe) : [];
+  // Paket 3: bei offenem Schlosstor lichtet sich der Weg vom Burgtor bis zur Oberkante der
+  // Karte (dort geht er im Oberland-Stück weiter, siehe oberlandKlarungen).
+  const turtleX = SCHILDKROETE_WEGPUNKT.fx * breite;
+  if (breite > 0 && torOffen) {
+    const vonX = BURGTOR.fx * breite;
+    const vonY = BURGTOR.fy * hoehe;
+    for (let s = 1; s <= 3; s++) {
+      const t = s / 3;
+      nebelKlarungen.push({
+        cx: vonX + (turtleX - vonX) * t,
+        cy: vonY * (1 - t),
+        r: 0.1 * breite,
+        zentrum: NEBEL_KLARUNG_VOLL,
+      });
+    }
+  }
+  const oberlandKlarungen: Klarung[] = [];
+  if (breite > 0) {
+    const turtleY = SCHILDKROETE_WEGPUNKT.fy * oberlandHoehe;
+    if (torOffen) {
+      oberlandKlarungen.push({ cx: turtleX, cy: oberlandHoehe, r: 0.1 * breite, zentrum: NEBEL_KLARUNG_VOLL });
+      oberlandKlarungen.push({
+        cx: turtleX,
+        cy: (turtleY + oberlandHoehe) / 2,
+        r: 0.1 * breite,
+        zentrum: NEBEL_KLARUNG_VOLL,
+      });
+      oberlandKlarungen.push({
+        cx: turtleX,
+        cy: turtleY - oberlandHoehe * 0.2,
+        r: 0.2 * breite,
+        zentrum: steinbruecke === "erledigt" ? NEBEL_KLARUNG_VOLL : NEBEL_KLARUNG_NAECHSTES,
+      });
+      if (steinbruecke === "erledigt") {
+        // Ganz aufgedeckt: auch Brücke und Wiese drumherum.
+        oberlandKlarungen.push({ cx: 0.3 * breite, cy: 0.55 * oberlandHoehe, r: 0.22 * breite, zentrum: NEBEL_KLARUNG_VOLL });
+        oberlandKlarungen.push({ cx: 0.6 * breite, cy: 0.5 * oberlandHoehe, r: 0.22 * breite, zentrum: NEBEL_KLARUNG_VOLL });
+      }
+    } else {
+      // Schlosstor noch zu: die Schildkröte schimmert nur ganz leicht durch die Wolken —
+      // genau wie das Burgtor (NEBEL_KLARUNG_BURGTOR), neugierig machend statt versperrt.
+      oberlandKlarungen.push({ cx: turtleX, cy: turtleY - oberlandHoehe * 0.2, r: 0.14 * breite, zentrum: NEBEL_KLARUNG_BURGTOR });
+    }
+  }
+  const turtleBreite = SCHILDKROETE_WEGPUNKT.breiteFrac * breite;
+
+  useEffect(() => {
+    if (breite > 0) onHoehen?.({ oberland: oberlandHoehe, karte: hoehe });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [breite]);
 
   return (
     <View style={styles.wrap} onLayout={onLayout} collapsable={false}>
+      {breite > 0 && (
+        <ImageBackground source={oberland} style={{ width: breite, height: oberlandHoehe }} resizeMode="cover">
+          <Wegmarke
+            bild={SCHILDKROETE_BILD}
+            left={turtleX}
+            top={SCHILDKROETE_WEGPUNKT.fy * oberlandHoehe}
+            breite={turtleBreite}
+            hoehe={turtleBreite * SCHILDKROETE_ASPEKT}
+            zustand={steinbruecke}
+            onPress={steinbruecke === "gesperrt" ? undefined : onSelectSteinbruecke}
+          />
+          {/* Nebel wie auf der Karte darunter, aber vertikal gespiegelt: so trifft die
+              Unterkante dieses Stücks genau auf dieselbe Nebelzeile (Oberkante des
+              Höhenbands) wie die Oberkante der Karte — kein sichtbarer Nebel-Sprung an der
+              Naht. Spiegelung auf dem inneren Bild, Maske auf der Gruppe, damit die Maske
+              selbst ungespiegelt in Kartenkoordinaten bleibt. */}
+          <Svg width={breite} height={oberlandHoehe} style={StyleSheet.absoluteFillObject} pointerEvents="none">
+            <Defs>
+              {oberlandKlarungen.map((k, i) => (
+                <RadialGradient key={i} id={`oberlandKlarung-${i}`} cx="50%" cy="50%" r="50%">
+                  <Stop offset="0%" stopColor={k.zentrum} stopOpacity={1} />
+                  <Stop offset="100%" stopColor="#FFFFFF" stopOpacity={1} />
+                </RadialGradient>
+              ))}
+              <Mask id="oberlandMaske" maskUnits="userSpaceOnUse" x={0} y={0} width={breite} height={oberlandHoehe}>
+                <Rect x={0} y={0} width={breite} height={oberlandHoehe} fill="#FFFFFF" />
+                {oberlandKlarungen.map((k, i) => (
+                  <Circle key={i} cx={k.cx} cy={k.cy} r={k.r} fill={`url(#oberlandKlarung-${i})`} />
+                ))}
+              </Mask>
+            </Defs>
+            <G mask="url(#oberlandMaske)">
+              <SvgBild
+                href={nebelBand}
+                x={0}
+                y={0}
+                width={breite}
+                height={hoehe}
+                preserveAspectRatio="xMidYMid slice"
+                transform={`translate(0, ${oberlandHoehe + NEBEL_RANDSTREIFEN_FRAC * hoehe}) scale(1, -1)`}
+              />
+            </G>
+          </Svg>
+        </ImageBackground>
+      )}
       {breite > 0 && (
         <ImageBackground source={hintergrund} style={{ width: breite, height: hoehe }} resizeMode="cover">
           <Pressable
@@ -396,7 +541,7 @@ export function LuchsRevierKarte({ onSelectQuest, onSelectSchlossvorplatz }: Pro
             <SvgBild
               href={nebelBand}
               x={0}
-              y={0}
+              y={-NEBEL_RANDSTREIFEN_FRAC * hoehe}
               width={breite}
               height={hoehe}
               preserveAspectRatio="xMidYMid slice"

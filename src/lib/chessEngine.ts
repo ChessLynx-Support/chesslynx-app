@@ -301,6 +301,25 @@ export const QUEST6_POSITIONS = {
   // Schach (Springer deckt d4 nicht ab, siehe QUEST5_POSITIONS-Kommentar zur selben
   // Prüfung) -> normales Schlagen, wie bei jeder anderen Figur auch.
   screen5Capture: "7k/8/8/4n3/3K4/8/8/8 w - - 0 1",
+  // --- Paket 2 (2026-09-11): Quest-6-Erweiterung, Vorlage quest6_matt_bruecke_umsetzung_
+  // 2026-09-10.md. Alle FENs am 11.09. gegen das in der App installierte chess.js 1.4.0
+  // geprüft (verify/test-quest6-logic.cjs). `screen4Check` oben wird seitdem nicht mehr
+  // verwendet (die Schach-Brücke ersetzt den alten "nur wegziehen"-Screen), bleibt aber
+  // für die bestehenden Tests stehen.
+  //
+  // Schach-Brücke: weißer König e1, Springer c3, Läufer a4; schwarzer Turm e8 gibt Schach.
+  // Genau 7 Legalzüge, alle drei Wege: wegziehen (Kd1/Kf1/Kd2/Kf2), dazwischenstellen
+  // (Ne2/Ne4), Angreifer schlagen (Bxe8). Stopp!-Feld b3 (Läufer zieht, Schach bleibt).
+  schachBruecke: "4r2k/8/8/8/B7/2N5/8/4K3 w - - 0 1",
+  // Mini-Spiel "Schach entkommen": je genau ein Weg, die vierte Stellung wieder alle drei.
+  miniSpiel: [
+    "7k/8/8/2n5/4K3/8/8/8 w - - 0 1", // P1: Springer-Schach -> nur wegziehen (7 Königszüge)
+    "rr5k/8/8/8/8/2N5/8/K7 w - - 0 1", // P2: zwei Türme -> nur dazwischenstellen (Na2/Na4)
+    "7k/8/8/8/8/8/5nPP/4B1RK w - - 0 1", // P3: König eingeklemmt -> nur schlagen (Bxf2)
+    "k2r4/8/8/8/7B/5N2/8/3K4 w - - 0 1", // P4: Schach-Brücke gespiegelt -> alle drei Wege
+  ],
+  // Matt-Moment: Turm a1 -> a8 ist der einzige Mattzug (Grundreihenmatt hinter drei Igeln).
+  mattMoment: "6k1/5ppp/8/8/8/8/8/R5K1 w - - 0 1",
 } as const;
 
 /**

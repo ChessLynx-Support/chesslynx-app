@@ -185,6 +185,7 @@ export async function getOrCreateAktivesKindId(
       mattIn3: false,
       figurenwert: false,
       schlossFinale: false,
+      ganzePartie: false,
     },
     screenTimeHeute: { minutenGenutzt: 0, datum: heute },
     erstelltAm: Date.now(),

@@ -138,6 +138,15 @@ import { luxVariante } from "../lib/luxVarianten";
 // (Elo 1300, praktisch kein Zufallsanteil mehr) für die WEISSE Seite — die Funktion ist
 // unabhängig von der Farbe, sie bewertet einfach, wer gerade am Zug ist.
 import { useHinweiseAktiv, HINWEIS_ANGEBOT_ZEILE, type HinweisPhase } from "../lib/luxHinweis";
+// Paket 3: Gegner-Illustration im Kapitel „Die ganze Partie".
+import { SchildkroeteIcon } from "../lib/schildkroete";
+// Paket 3: Remis-Ursache (reine Logik, eigene Datei für verify/test-ganze-partie-logic.cjs).
+import { REMIS_ZEILEN, remisUrsacheVon, type RemisUrsache } from "../lib/remisUrsache";
+// Paket 3c: Abschied, wenn das Kind die Kapitel-Partie mittendrin verlässt.
+import { useAbschiedBeimVerlassen } from "../lib/useAbschiedBeimVerlassen";
+import { loescheGanzePartieEtappe } from "../lib/ganzePartieStand";
+import { saveBonusFortschrittLocal } from "../lib/storage";
+import { ABSCHIED_ZEILE } from "../bonus/ganzePartieLogik";
 import { Funkeln } from "../components/Funkeln";
 import { EichhoernchenIcon, FuchsIcon, DachsIcon, AdlerinIcon, WolfIcon, WisentIcon } from "../lib/waldgefaehrten";
 import {
@@ -167,6 +176,7 @@ const RAHMEN_BREITE = 6;
 
 type BoardSquare = { row: number; col: number };
 type Ausgang = "spielt" | "kindGewinnt" | "botGewinnt" | "remis";
+
 type VorspielPhase = "laedt" | "animation" | "text1" | "text2" | "reminder" | "fertig";
 
 const DATEIEN = ["a", "b", "c", "d", "e", "f", "g", "h"];
@@ -236,6 +246,12 @@ export default function FreispielPartie() {
   const route = useRoute<any>();
   const elo: number = route.params?.elo;
   const stufe = holeStufe(elo);
+  // Paket 3 (2026-09-11): Kapitel „Die ganze Partie" (bonus/GanzePartie.tsx, Screen 5) nutzt
+  // diese Spielansicht für die erste echte Partie gegen die Schildkröte (Bot-Stufe 250):
+  // eigene Gegner-Illustration, Hinweise immer an, keine Farbeinführung (die kommt jetzt im
+  // Kapitel selbst), kein Freischalten von Bot-Stufen, und nach Partieende geht es zurück
+  // ins Kapitel statt zur Übungslichtung.
+  const istKapitel = route.params?.kapitel === "ganzePartie";
 
   // `game` wird über seine chess.js-Methoden mutiert (wie in waldfreundeBot.ts/
   // chessEngine.ts überall üblich) — `setVersion` erzwingt danach jeweils einen
@@ -246,19 +262,37 @@ export default function FreispielPartie() {
   const [legalZiele, setLegalZiele] = useState<BoardSquare[]>([]);
   const [botDenkt, setBotDenkt] = useState(false);
   const [ausgang, setAusgang] = useState<Ausgang>("spielt");
+  // Paket 3c: Verlässt das Kind die Kapitel-Partie mittendrin, verabschiedet sich Lux kurz.
+  useAbschiedBeimVerlassen(istKapitel && ausgang === "spielt", ABSCHIED_ZEILE);
+  // Paket 3c: Das Kapitel gilt als geschafft, sobald die Partie zu Ende ist (Vorlage, Abschnitt 1)
+  // — schon hier gespeichert, damit es auch zählt, wenn das Kind danach per Zurück statt über
+  // die Ergebnis-Karte geht.
+  useEffect(() => {
+    if (!istKapitel || ausgang === "spielt") return;
+    saveBonusFortschrittLocal("ganzePartie", true);
+    loescheGanzePartieEtappe();
+  }, [istKapitel, ausgang]);
+  // Paket 3 (F1a): warum eine Partie unentschieden endete — steuert die Remis-Zeile.
+  const [remisUrsache, setRemisUrsache] = useState<RemisUrsache>("sonst");
   const [neuFreigeschalteteElo, setNeuFreigeschalteteElo] = useState<number | null>(null);
   const gemeldet = useRef(false); // verhindert doppeltes meldeSiegGegenStufe bei schnellem Doppel-Tipp
   // "Lux fragen" (siehe Import-Kommentar oben): Antipp-Phase plus der zuletzt berechnete
   // Hinweis-Zug (Ring-Markierung auf dem Brett, siehe Brett-Komponente unten).
   const [hinweisPhase, setHinweisPhase] = useState<HinweisPhase>("still");
   const [hinweisZug, setHinweisZug] = useState<{ von: BoardSquare; nach: BoardSquare } | null>(null);
-  const hinweiseAktiv = useHinweiseAktiv();
+  const elternHinweiseAktiv = useHinweiseAktiv();
+  // Paket 3: im Kapitel „Die ganze Partie" sind Lux' Hinweise immer an (Vorlage Abschnitt 6).
+  const hinweiseAktiv = elternHinweiseAktiv || istKapitel;
 
   // Farb-Einführung (siehe Kopfkommentar): läuft VOR dem eigentlichen Spiel ab.
   const [vorspiel, setVorspiel] = useState<VorspielPhase>("laedt");
 
   useEffect(() => {
     let abgebrochen = false;
+    if (istKapitel) {
+      setVorspiel("fertig");
+      return;
+    }
     wurdeFarbeinfuehrungGezeigt().then((gezeigt) => {
       if (!abgebrochen) setVorspiel(gezeigt ? "reminder" : "animation");
     });
@@ -289,6 +323,7 @@ export default function FreispielPartie() {
       return game.turn() === "b" ? "kindGewinnt" : "botGewinnt";
     }
     if (game.isDraw() || game.isStalemate() || game.isThreefoldRepetition() || game.isInsufficientMaterial()) {
+      setRemisUrsache(remisUrsacheVon(game));
       return "remis";
     }
     return "spielt";
@@ -298,7 +333,7 @@ export default function FreispielPartie() {
     const nachKindzug = pruefeSpielende();
     if (nachKindzug !== "spielt") {
       setAusgang(nachKindzug);
-      if (nachKindzug === "kindGewinnt" && !gemeldet.current) {
+      if (nachKindzug === "kindGewinnt" && !gemeldet.current && !istKapitel) {
         gemeldet.current = true;
         // Fortschritt wird unabhängig vom Navigations-Zeitpunkt sofort lokal
         // gespeichert (siehe freispielFortschritt.ts) — der Rückgabewert wird nur für
@@ -364,6 +399,7 @@ export default function FreispielPartie() {
     setAusgewaehlt(null);
     setLegalZiele([]);
     setAusgang("spielt");
+    setRemisUrsache("sonst");
     setNeuFreigeschalteteElo(null);
     setHinweisPhase("still");
     setHinweisZug(null);
@@ -504,6 +540,7 @@ export default function FreispielPartie() {
         </Pressable>
         <View style={[styles.gegnerAbzeichen, botDenkt && styles.gegnerAbzeichenDenkt]}>
           {(() => {
+            if (istKapitel) return <SchildkroeteIcon size={38} />;
             const Icon = TIER_ICONS[stufe.tier];
             return <Icon size={38} />;
           })()}
@@ -541,7 +578,14 @@ export default function FreispielPartie() {
       />
 
       {ausgang !== "spielt" && (
-        <ErgebnisUeberlagerung ausgang={ausgang} tier={stufe.tier} onNochmal={nochmal} onZurueck={zurueckZurListe} />
+        <ErgebnisUeberlagerung
+          ausgang={ausgang}
+          tier={stufe.tier}
+          remisUrsache={remisUrsache}
+          kapitel={istKapitel}
+          onNochmal={nochmal}
+          onZurueck={istKapitel ? () => navigation.replace("GanzePartie", { abschluss: true }) : zurueckZurListe}
+        />
       )}
     </SafeAreaView>
   );
@@ -782,15 +826,19 @@ function Brett({
 function ErgebnisUeberlagerung({
   ausgang,
   tier,
+  remisUrsache,
+  kapitel,
   onNochmal,
   onZurueck,
 }: {
   ausgang: Ausgang;
   tier: WaldgefaehrtenTier;
+  remisUrsache: RemisUrsache;
+  kapitel: boolean;
   onNochmal: () => void;
   onZurueck: () => void;
 }) {
-  const Icon = TIER_ICONS[tier];
+  const Icon = kapitel ? SchildkroeteIcon : TIER_ICONS[tier];
   const farbe = ausgang === "kindGewinnt" ? "#8FA888" : ausgang === "remis" ? "#C9855F" : "#D9A26C";
   const beschriftung =
     ausgang === "kindGewinnt" ? "Gewonnen" : ausgang === "remis" ? "Unentschieden" : "Verloren, kein Problem";
@@ -804,7 +852,7 @@ function ErgebnisUeberlagerung({
       ausgang === "kindGewinnt"
         ? luxVariante(SIEG_VARIANTEN, "freispiel-ergebnis-sieg")
         : ausgang === "remis"
-          ? "Unentschieden! Ihr wart beide richtig gut!"
+          ? REMIS_ZEILEN[remisUrsache]
           : luxVariante(NIEDERLAGE_VARIANTEN, "freispiel-ergebnis-niederlage"),
     undefined,
     { erinnerung: false }
@@ -835,9 +883,13 @@ function ErgebnisUeberlagerung({
           </View>
           {zeigeUntertitel && <Text style={styles.ergebnisText}>{aktuelleZeile}</Text>}
           <View style={styles.ergebnisKnopfReihe}>
-            <Pressable onPress={onNochmal} accessibilityLabel="Nochmal spielen" style={[styles.ergebnisKnopf, { backgroundColor: farbe }]}>
-              <BlattNochmalIcon />
-            </Pressable>
+            {/* Paket 3: im Kapitel gibt es kein "Nochmal" — egal wie die Partie ausgeht, sie
+                zählt (Vorlage: Kapitel gilt als abgeschlossen, sobald die Partie beendet ist). */}
+            {!kapitel && (
+              <Pressable onPress={onNochmal} accessibilityLabel="Nochmal spielen" style={[styles.ergebnisKnopf, { backgroundColor: farbe }]}>
+                <BlattNochmalIcon />
+              </Pressable>
+            )}
             <Pressable
               onPress={onZurueck}
               accessibilityLabel="Zurück zur Übungslichtung"

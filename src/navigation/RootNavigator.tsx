@@ -23,10 +23,10 @@
 // Bis dahin ist `FreispielScreen` nur über `navigation.navigate("FreispielScreen")`
 // aus dem Code heraus erreichbar (z. B. zu Testzwecken), nicht über die UI.
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { NavigationContainer, createNavigationContainerRef, useFocusEffect } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { ActivityIndicator, View, StyleSheet, Platform } from "react-native";
+import { ActivityIndicator, View, StyleSheet, Platform, ScrollView } from "react-native";
 // Nutzer-Feedback 2026-09-09 (Android: Wasserzeichen/Elternbereich-Zugang lag in der
 // Systemtasten-Leiste): `react-native-safe-area-context` war zwar bereits als
 // Abhängigkeit installiert, aber im ganzen Projekt nirgends tatsächlich verdrahtet —
@@ -117,6 +117,12 @@ import WillkommensFlugProbe from "../dev/WillkommensFlugProbe";
 // selbst bleibt unverändert im Repo (siehe Konzept Abschnitt 4: "kann vorerst
 // unreferenziert bleiben"), ist ab jetzt aber an keiner Stelle mehr verlinkt.
 import { WillkommensSequenz } from "../screens/WillkommensSequenz";
+// Paket 3 (2026-09-11, Claude-Projekt "ChessLynx", umsetzungsplan_audit_punkte_2026-09-11.md):
+// Bonuskapitel "Die ganze Partie" und der Schildkröten-Wegpunkt an der Steinbrücke
+// (Übungslichtung). Einstieg ausschließlich über den neuen Kartenwegpunkt im Oberland der
+// LuchsRevierKarte — schließt Freispiel-Schritt #76/#77 ("Navigation zum Freispiel-Screen").
+import GanzePartie from "../bonus/GanzePartie";
+import Steinbruecke from "../screens/Steinbruecke";
 // Ladebildschirm/Intro (Nutzerwunsch, siehe claude/lux_begruessungsvideo_freistellung_
 // konzept.md, Abschnitt "Ladebildschirm") — läuft jetzt VOR der Willkommens-Sequenz, siehe
 // screens/LadeBildschirm.tsx für die volle Begründung (Video 1 unverändert, Überblendung
@@ -183,7 +189,14 @@ export type RootStackParamList = {
   // FreispielPartie beim Zurücknavigieren nach einem Sieg gesetzt (löst die
   // Freischalt-Feier-Animation in FreispielScreen aus, siehe dort).
   FreispielScreen: { neuFreigeschaltetElo?: number } | undefined;
-  FreispielPartie: { elo: number };
+  // Paket 3: `kapitel: "ganzePartie"` = Screen 5 des Kapitels (Partie gegen die Schildkröte,
+  // Hinweise immer an, Rückweg zum Kapitel-Abschluss statt zur Bot-Liste).
+  FreispielPartie: { elo: number; kapitel?: "ganzePartie" };
+  // Paket 3: Bonuskapitel "Die ganze Partie" (`abschluss: true` = Rückkehr aus der Partie).
+  GanzePartie: { abschluss?: boolean } | undefined;
+  // Paket 3: Schildkröten-Wegpunkt (Bots/Puzzles-Wahl). `nachKapitel` = direkt aus dem
+  // Kapitel-Abschluss kommend (erste Begrüßung statt Wiederkehr-Zeile).
+  Steinbruecke: { nachKapitel?: boolean } | undefined;
   // Nur für Schritt 2 (siehe Import-Kommentar oben) — wieder entfernen, sobald der
   // Vorversuch geprüft und abgeschlossen ist.
   RigProbe: undefined;
@@ -246,6 +259,38 @@ function KidHome({ navigation, route }: any) {
   // route.params-Wert bei; ohne diesen Ref würde Lux nach der allerersten
   // WillkommensSequenz NIE MEHR begrüßen, statt nur dieses eine Mal.
   const ersterFokus = useRef(true);
+
+  // Paket 3 (2026-09-11, "Karte nach oben erweitern"): KidHome scrollt jetzt vertikal, weil
+  // über der bisherigen Karte das Oberland mit der Steinbrücke liegt. Damit sich für alle
+  // bisherigen Abläufe (v. a. die Landeanimation der WillkommensSequenz, die exakt auf die
+  // Wegmarken-Koordinaten zielt) nichts verschiebt, steht die bisherige Karte beim Öffnen
+  // pixelgenau dort, wo sie vorher stand:
+  //   Inhalt = [Polster P][Oberland O][Karte K][Polster P], P = max(0, (Sichthöhe − K) / 2)
+  //   Start-Scrollposition = O + max(0, (K − Sichthöhe) / 2)
+  // (vorher: Karte per justifyContent:"center" mittig, bei Überhöhe oben/unten gleich weit
+  // abgeschnitten — genau das ergibt diese Rechnung.)
+  const scrollRef = useRef<ScrollView>(null);
+  const [sichtHoehe, setSichtHoehe] = useState(0);
+  const [kartenHoehen, setKartenHoehen] = useState<{ oberland: number; karte: number } | null>(null);
+  const startPositionGesetzt = useRef(false);
+  const [bereit, setBereit] = useState(false);
+  const polster = kartenHoehen ? Math.max(0, (sichtHoehe - kartenHoehen.karte) / 2) : 0;
+  const startY = kartenHoehen ? kartenHoehen.oberland + Math.max(0, (kartenHoehen.karte - sichtHoehe) / 2) : 0;
+  useEffect(() => {
+    if (startPositionGesetzt.current || !kartenHoehen || sichtHoehe <= 0) return;
+    startPositionGesetzt.current = true;
+    // Einen Frame warten, bis das neue Polster nativ gelayoutet ist — sonst würde Android
+    // die Scrollposition auf die alte (kleinere) Inhaltshöhe begrenzen.
+    requestAnimationFrame(() => {
+      scrollRef.current?.scrollTo({ y: startY, animated: false });
+      requestAnimationFrame(() => setBereit(true));
+    });
+  }, [kartenHoehen, sichtHoehe, startY]);
+  // Wartet die Schildkröte (Schlosstor gerade offen, Kapitel noch nicht gespielt), scrollt
+  // die Karte nach einem Moment sanft nach oben, damit das Kind den neuen Wegpunkt sieht.
+  const zeigeSteinbruecke = useCallback(() => {
+    setTimeout(() => scrollRef.current?.scrollTo({ y: 0, animated: true }), 900);
+  }, []);
   useFocusEffect(
     useCallback(() => {
       const warErsterFokus = ersterFokus.current;
@@ -264,11 +309,25 @@ function KidHome({ navigation, route }: any) {
   // von überall aus erreichbar ist statt nur von einer Stelle, an der er zufällig schon
   // stand.
   return (
-    <View style={styles.kidHomeRoot}>
-      <LuchsRevierKarte
-        onSelectQuest={(quest) => navigation.navigate(QUEST_ROUTEN[quest])}
-        onSelectSchlossvorplatz={() => navigation.navigate("Schlossvorplatz")}
-      />
+    <View style={styles.kidHomeRoot} onLayout={(e) => setSichtHoehe(e.nativeEvent.layout.height)}>
+      <ScrollView
+        ref={scrollRef}
+        // Bis die Start-Position gesetzt ist, unsichtbar — sonst blitzt beim Öffnen kurz das
+        // Oberland (Scrollposition 0) auf, bevor die Karte an ihre gewohnte Stelle springt.
+        style={[styles.kidHomeScroll, { opacity: bereit ? 1 : 0 }]}
+        contentContainerStyle={{ paddingVertical: polster }}
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+        overScrollMode="never"
+      >
+        <LuchsRevierKarte
+          onSelectQuest={(quest) => navigation.navigate(QUEST_ROUTEN[quest])}
+          onSelectSchlossvorplatz={() => navigation.navigate("Schlossvorplatz")}
+          onSelectSteinbruecke={() => navigation.navigate("Steinbruecke")}
+          onHoehen={setKartenHoehen}
+          onSteinbrueckeWartet={zeigeSteinbruecke}
+        />
+      </ScrollView>
     </View>
   );
 }
@@ -441,6 +500,8 @@ export function RootNavigator() {
             <Stack.Screen name="ZeitlimitSperre" component={ZeitlimitSperreScreen} />
             <Stack.Screen name="FreispielScreen" component={FreispielScreen} />
             <Stack.Screen name="FreispielPartie" component={FreispielPartie} />
+            <Stack.Screen name="GanzePartie" component={GanzePartie} />
+            <Stack.Screen name="Steinbruecke" component={Steinbruecke} />
             </Stack.Navigator>
           </NavigationContainer>
           <BrandWatermark
@@ -477,6 +538,9 @@ const styles = StyleSheet.create({
   // Bildschirmformat) nicht die volle Bildschirmhöhe füllt; Grünton als ruhiger
   // Übergang zur Kartenfarbgebung statt des sonstigen Creme-Hintergrunds.
   kidHomeRoot: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#DCE7C8" },
+  // Paket 3: volle Breite, damit LuchsRevierKarte (misst per onLayout) wie bisher die ganze
+  // Bildschirmbreite bekommt.
+  kidHomeScroll: { flex: 1, width: "100%" },
   // Update (2026-09-09): der frühere `parentLink`/`parentLinkText`-Stil (der einzelne "·"
   // auf KidHome) ist ersatzlos entfallen — siehe Kommentar bei KidHome oben und bei
   // BrandWatermark unten. Der eigentliche Kinder-Schutz kommt ohnehin weiterhin vom

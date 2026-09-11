@@ -408,6 +408,13 @@ export function Board({
   // demoTarget je nach Phase, Board.tsx selbst kennt weder "Phasen" noch Sprechzeilen.
   demoTarget,
   onDemoDone,
+  // Neu (2026-09-11, Paket 2 / Quest-6-Erweiterung): wird bei jedem Tipp auf ein Feld
+  // aufgerufen, das weder ein legales Zielfeld noch das Stopp!-Feld ist — zusätzlich zum
+  // bisherigen sanften Puls. Gebraucht, damit eine aufrufende Komponente mit MEHREREN
+  // eigenen Figuren (Quest 6, Schach-Brücke: König, Springer, Läufer) das Antippen einer
+  // anderen eigenen Figur als "diese Figur auswählen" behandeln kann. Optional — alle
+  // bestehenden Aufrufstellen verhalten sich unverändert.
+  onFeldTap,
 }: {
   config: BoardConfig;
   onCorrectMove: (target: BoardSquare) => void;
@@ -415,6 +422,7 @@ export function Board({
   disabled?: boolean;
   demoTarget?: BoardSquare;
   onDemoDone?: () => void;
+  onFeldTap?: (feld: BoardSquare) => void;
 }) {
   const {
     rows,
@@ -505,6 +513,8 @@ export function Board({
       setTimeout(() => setTrappedKey(null), 900);
       return;
     }
+    // Paket 2 (2026-09-11): siehe onFeldTap-Kommentar in der Props-Liste oben.
+    onFeldTap?.({ row: r, col: c });
     // sanftes Feedback bei jedem anderen Tipp (kein Bestrafungs-Ton, siehe Design-Grundsatz)
     Animated.sequence([
       Animated.timing(pulse, { toValue: 1.06, duration: 90, useNativeDriver: true }),

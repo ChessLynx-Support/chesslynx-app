@@ -41,7 +41,19 @@ import {
   updatePassword,
 } from "firebase/auth";
 import { elternAbmelden, useAuthUser } from "../lib/auth";
-import { getOrCreateAktivesKindId } from "../lib/storage";
+import {
+  GANZE_PARTIE_ETAPPE_KEY,
+  ladeGanzePartieEtappe,
+  loescheGanzePartieEtappe,
+  speichereGanzePartieEtappe,
+} from "../lib/ganzePartieStand";
+import {
+  getOrCreateAktivesKindId,
+  loadBonusFortschrittLocal,
+  loadQuestFortschrittLocal,
+  saveBonusFortschrittLocal,
+  saveQuestFortschrittLocal,
+} from "../lib/storage";
 import {
   CONSENT_VERSION,
   db,
@@ -241,6 +253,23 @@ export function ParentDashboard({ navigation }: any) {
   // Funktion unten ist bewusst in drei klar getrennte Blöcke (lokal/Quests+Bonus,
   // lokal/Freispiel, Cloud) gegliedert, damit eine spätere Auswahl-UI (z. B. einzelne
   // Checkboxen je Bereich) sich ohne Umbau der eigentlichen Lösch-Logik ergänzen lässt.
+  // Paket 3c (2026-09-11): Zwischenstand des Kapitels „Die ganze Partie" (nur lokal, siehe
+  // lib/ganzePartieStand.ts) + ob das Kapitel schon ganz geschafft ist (lokales Flag — das
+  // Kind spielt es auf diesem Gerät).
+  const [ganzePartieEtappe, setGanzePartieEtappe] = useState(0);
+  const [ganzePartieGeschafft, setGanzePartieGeschafft] = useState(false);
+  useEffect(() => {
+    let abgebrochen = false;
+    Promise.all([ladeGanzePartieEtappe(), loadBonusFortschrittLocal("ganzePartie")]).then(([etappe, geschafft]) => {
+      if (abgebrochen) return;
+      setGanzePartieEtappe(etappe);
+      setGanzePartieGeschafft(geschafft);
+    });
+    return () => {
+      abgebrochen = true;
+    };
+  }, []);
+
   const [resetSchritt, setResetSchritt] = useState<0 | 1 | 2>(0);
   const [resetLaeuft, setResetLaeuft] = useState(false);
   const [resetFehler, setResetFehler] = useState<string | null>(null);
@@ -456,6 +485,7 @@ export function ParentDashboard({ navigation }: any) {
       const zuLoeschen = alleSchluessel.filter(
         (k) =>
           k === "chesslynx:hatWillkommenGesehen" ||
+          k === GANZE_PARTIE_ETAPPE_KEY ||
           k.startsWith("chesslynx:questFortschritt:") ||
           k.startsWith("chesslynx:bonusFortschritt:") ||
           k.startsWith("chesslynx:freispielFortschritt:") ||
@@ -627,6 +657,34 @@ export function ParentDashboard({ navigation }: any) {
           </>
         )}
       </View>
+
+      {/* --- 2c. Die ganze Partie (Paket 3c) — nur sichtbar, sobald das Kind damit angefangen hat. --- */}
+      {(ganzePartieGeschafft || ganzePartieEtappe > 0) && (
+        <>
+          <Text style={styles.sectionTitle}>Die ganze Partie (Steinbrücke)</Text>
+          <View style={styles.panel}>
+            {ganzePartieGeschafft ? (
+              <Text style={styles.body}>Geschafft ✓ — Ihr Kind kann jetzt frei gegen die Waldfreunde spielen.</Text>
+            ) : (
+              <>
+                <Text style={styles.body}>
+                  {ganzePartieEtappe} von 5 Etappen geschafft. Beim nächsten Besuch der Schildkröte fragt Lux, ob Ihr
+                  Kind dort weitermachen oder von vorn beginnen möchte.
+                </Text>
+                <Pressable
+                  style={styles.sekundaerButton}
+                  onPress={async () => {
+                    await loescheGanzePartieEtappe();
+                    setGanzePartieEtappe(0);
+                  }}
+                >
+                  <Text style={styles.sekundaerButtonText}>Kapitel neu beginnen</Text>
+                </Pressable>
+              </>
+            )}
+          </View>
+        </>
+      )}
 
       {/* --- 3. Zeitlimit --- */}
       <Text style={styles.sectionTitle}>Zeitlimit</Text>
@@ -1198,6 +1256,59 @@ export function ParentDashboard({ navigation }: any) {
               </Pressable>
               <Pressable style={styles.testKnopf} onPress={() => navigation.navigate("Schlossvorplatz")}>
                 <Text style={styles.testKnopfText}>Schlossvorplatz</Text>
+              </Pressable>
+            </View>
+            {/* Paket 3 (2026-09-11): Steinbrücke + Kapitel „Die ganze Partie". Der
+                Schildkröten-Wegpunkt auf der Karte ist erst bei offenem Schlosstor antippbar —
+                "Schlosstor-Test" markiert dafür alle sechs Quests (bereits geschaffte behalten
+                ihre Sterne) und die vier Pflicht-Lernkapitel lokal als geschafft. */}
+            <Text style={styles.testGruppenTitel}>Steinbrücke (Schildkröte)</Text>
+            <View style={styles.testKnopfReihe}>
+              <Pressable style={styles.testKnopf} onPress={() => navigation.navigate("GanzePartie")}>
+                <Text style={styles.testKnopfText}>Die ganze Partie</Text>
+              </Pressable>
+              <Pressable style={styles.testKnopf} onPress={() => navigation.navigate("Steinbruecke")}>
+                <Text style={styles.testKnopfText}>Steinbrücke</Text>
+              </Pressable>
+              <Pressable
+                style={styles.testKnopf}
+                onPress={async () => {
+                  await saveBonusFortschrittLocal("ganzePartie", false);
+                  await loescheGanzePartieEtappe();
+                  setGanzePartieGeschafft(false);
+                  setGanzePartieEtappe(0);
+                }}
+              >
+                <Text style={styles.testKnopfText}>Kapitel-Flag zurücksetzen</Text>
+              </Pressable>
+              {/* Paket 3c: Rückkehr-Screen testen — so tun, als wären drei Etappen geschafft. */}
+              <Pressable
+                style={styles.testKnopf}
+                onPress={async () => {
+                  await saveBonusFortschrittLocal("ganzePartie", false);
+                  await loescheGanzePartieEtappe();
+                  await speichereGanzePartieEtappe(3);
+                  setGanzePartieGeschafft(false);
+                  setGanzePartieEtappe(3);
+                }}
+              >
+                <Text style={styles.testKnopfText}>Zwischenstand: 3 Etappen</Text>
+              </Pressable>
+              <Pressable
+                style={styles.testKnopf}
+                onPress={async () => {
+                  for (const id of ["quest1", "quest2", "quest3", "quest4", "quest5", "quest6"]) {
+                    const alt = await loadQuestFortschrittLocal(id);
+                    if (!alt?.abgeschlossen) {
+                      await saveQuestFortschrittLocal(id, { sterne: 3, abgeschlossen: true, letzterSchritt: "test" });
+                    }
+                  }
+                  for (const id of ["fesselung", "rochade", "figurenwert", "mattIn2"] as const) {
+                    await saveBonusFortschrittLocal(id, true);
+                  }
+                }}
+              >
+                <Text style={styles.testKnopfText}>Schlosstor-Test (alles geschafft)</Text>
               </Pressable>
             </View>
             <Text style={styles.testGruppenTitel}>Freispiel / Endlosspiel</Text>
