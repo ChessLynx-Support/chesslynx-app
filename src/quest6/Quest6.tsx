@@ -65,6 +65,7 @@
 
 import { useRef, useState } from "react";
 import { View, Pressable, StyleSheet, SafeAreaView } from "react-native";
+import { Einschweben } from "../components/Einschweben";
 import { useNavigation } from "@react-navigation/native";
 import { QUEST6_POSITIONS, type BoardSquare } from "../lib/chessEngine";
 import { saveQuestFortschrittLocal } from "../lib/storage";
@@ -136,7 +137,10 @@ const SCREEN_SCRIPTS: Record<Exclude<ScreenId, 2 | 5>, string[]> = {
   0: [
     "Weiter geht's durch den Wald von ChessLynx!",
     "Hier lebt der Wichtigste von allen.",
-    "Tipp weiter, um ihn kennenzulernen.",
+    // Gerätetest 2026-09-11 (Nutzerwunsch): die Vorstellung läuft bis zur Verwandlung von
+    // selbst — getippt wird nur noch auf das Tier, nach Lux' Aufforderung. Deshalb keine
+    // "Tipp weiter"-Aufforderung mehr.
+    "Komm, wir lernen ihn kennen!",
   ],
   // Update (2026-09-10, siehe Quest2.tsx-Kommentar zur selben Änderung): "Hallo! Ich
   // bin's wieder, Lux." ersatzlos gestrichen.
@@ -220,9 +224,18 @@ const MINI_SPIEL: { vor: string; nach?: string }[] = [
     nach: "Der Springer schützt ihn. Schach vorbei!",
   },
   { vor: "Der König steckt fest, und das Pferd hüpft. Bleibt nur eins …", nach: "Der Läufer holt ihn weg. Richtig!" },
-  // Letzte Stellung: Rückmeldung je nach Weg wie in der Schach-Brücke (WEG_ZEILE).
-  { vor: "Und hier? Such dir einen Weg aus – jeder ist richtig." },
+  // Letzte Stellung: alle drei Wege sind möglich. Gerätetest 2026-09-11 (Nutzer: "hier ist
+  // der klar beste Weg das Schlagen des Turms, der Text sollte das aufgreifen"): Lux fragt
+  // nach dem BESTEN Weg; Rückmeldung siehe MINI_BESTER_WEG unten.
+  { vor: "Und hier? Such dir einen Weg aus. Welcher ist wohl der beste?" },
 ];
+// Rückmeldung zur letzten Mini-Stellung: Schlagen wird als bester Weg gelobt (der Angreifer
+// ist dann ganz weg und kann nicht gleich wieder Schach geben); die beiden anderen Wege
+// bleiben richtig, bekommen aber den Hinweis auf den noch besseren.
+const MINI_BESTER_WEG = {
+  schlagen: "Genau! Den Turm schlagen ist hier am besten. Dann ist er ganz weg und kann nicht wieder zielen.",
+  sonst: "Richtig, Schach vorbei! Noch besser wäre es gewesen, den Turm zu schlagen. Dann ist er ganz weg.",
+};
 const MINI_EINSTIEG = "Vier Mal ist Schach. Findest du jedes Mal einen Weg?";
 const MINI_ABSCHLUSS = "Vier Mal Schach – vier Mal geholfen. Du weißt jetzt, wie man einem König hilft.";
 
@@ -300,7 +313,10 @@ export default function Quest6() {
   // Opus-Review, 2026-09-07, Abschnitt 3.1 (siehe claude/review_logik_grafik_
   // audiofuehrung.md): siehe ausführlicher Kommentar in Quest1.tsx. Screen 0 bleibt
   // bewusst ausgenommen (ganzflächig tap-gesteuert, wie bei Quest 2-5).
-  const autoWeiter = screen !== 0 && screen !== "verwandlung";
+  // Gerätetest 2026-09-11 (Nutzerwunsch "die Vorstellung bis zur Verwandlung sollte
+  // automatisch laufen"): Screen 0 ist nicht mehr ausgenommen — er blättert von selbst durch
+  // und geht nach seiner letzten Zeile ohne Antippen zu Screen 1 (siehe screen0Weiter).
+  const autoWeiter = screen !== "verwandlung";
   // Paket 2: interaktive letzte Zeilen der Schach-Screens — erster Durchlauf sagt die
   // eigentliche Zeile, jede 8-Sekunden-Erinnerung danach eine Variante aus dem Pool.
   const erinnerungsStand = useRef<{ schluessel: string; n: number }>({ schluessel: "", n: 0 });
@@ -347,7 +363,9 @@ export default function Quest6() {
         }
       : autoWeiter && !isLastLine
         ? () => setLineIndex((i) => i + 1)
-        : undefined;
+        : screen === 0 && isLastLine
+          ? () => setTimeout(() => geheZu(1), 700)
+          : undefined;
 
   // Sterne-Logik "Eigenständigkeit zählt" (Nutzerentscheidung 2026-09-09): zählt über die
   // gesamte Quest hinweg, wie oft Lux' 8-Sekunden-Erinnerung einspringen musste. Paket 2:
@@ -389,7 +407,14 @@ export default function Quest6() {
         <LuxSprechblase text={aktuelleZeile} zeilenSchluessel={zeilenSchluessel} style={styles.sprechblase} />
       )}
 
-      {screen === 0 && <Pressable style={styles.tapArea} onPress={() => advanceOrGo(1)} />}
+      {/* Screen 0 läuft seit dem Gerätetest 2026-09-11 von selbst weiter (kein Tipp-Bereich mehr). */}
+      {screen === 0 && (
+        <View style={styles.tapArea}>
+          <Einschweben sichtbar={lineIndex >= 1}>
+            <KoenigMasterGrossIcon size={150} />
+          </Einschweben>
+        </View>
+      )}
       {screen === 1 && (
         // Update (2026-09-08, Task #110, siehe Quest1.tsx-Kommentar zum identischen
         // Muster): Pressable direkt am Hirsch-Icon, LuxAtem lässt ihn pulsieren,
@@ -473,7 +498,13 @@ export default function Quest6() {
           zeigeSchach
           interaktiv={brettAktiv}
           onZug={(zug) => {
-            const rueckmeldung = MINI_SPIEL[miniIndex].nach ?? WEG_ZEILE[zug.weg];
+            const rueckmeldung =
+              MINI_SPIEL[miniIndex].nach ??
+              (miniIndex === MINI_SPIEL.length - 1
+                ? zug.weg === "schlagen"
+                  ? MINI_BESTER_WEG.schlagen
+                  : MINI_BESTER_WEG.sonst
+                : WEG_ZEILE[zug.weg]);
             schiebeEin(rueckmeldung, () => {
               if (miniIndex < MINI_SPIEL.length - 1) {
                 setMiniIndex(miniIndex + 1);

@@ -26,7 +26,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { NavigationContainer, createNavigationContainerRef, useFocusEffect } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { ActivityIndicator, View, StyleSheet, Platform, ScrollView } from "react-native";
+import { ActivityIndicator, View, StyleSheet, Platform, ScrollView, BackHandler } from "react-native";
 // Nutzer-Feedback 2026-09-09 (Android: Wasserzeichen/Elternbereich-Zugang lag in der
 // Systemtasten-Leiste): `react-native-safe-area-context` war zwar bereits als
 // Abhängigkeit installiert, aber im ganzen Projekt nirgends tatsächlich verdrahtet —
@@ -271,6 +271,9 @@ function KidHome({ navigation, route }: any) {
   // abgeschnitten — genau das ergibt diese Rechnung.)
   const scrollRef = useRef<ScrollView>(null);
   const [sichtHoehe, setSichtHoehe] = useState(0);
+  // Gerätetest 2026-09-11 (Bugfix): Kartenbreite = Breite dieses bildschirmfüllenden Rahmens,
+  // an LuchsRevierKarte durchgereicht (siehe dortiger Kommentar bei `breiteVorgabe`).
+  const [sichtBreite, setSichtBreite] = useState(0);
   const [kartenHoehen, setKartenHoehen] = useState<{ oberland: number; karte: number } | null>(null);
   const startPositionGesetzt = useRef(false);
   const [bereit, setBereit] = useState(false);
@@ -309,7 +312,13 @@ function KidHome({ navigation, route }: any) {
   // von überall aus erreichbar ist statt nur von einer Stelle, an der er zufällig schon
   // stand.
   return (
-    <View style={styles.kidHomeRoot} onLayout={(e) => setSichtHoehe(e.nativeEvent.layout.height)}>
+    <View
+      style={styles.kidHomeRoot}
+      onLayout={(e) => {
+        setSichtHoehe(e.nativeEvent.layout.height);
+        setSichtBreite(e.nativeEvent.layout.width);
+      }}
+    >
       <ScrollView
         ref={scrollRef}
         // Bis die Start-Position gesetzt ist, unsichtbar — sonst blitzt beim Öffnen kurz das
@@ -326,6 +335,7 @@ function KidHome({ navigation, route }: any) {
           onSelectSteinbruecke={() => navigation.navigate("Steinbruecke")}
           onHoehen={setKartenHoehen}
           onSteinbrueckeWartet={zeigeSteinbruecke}
+          breiteVorgabe={sichtBreite}
         />
       </ScrollView>
     </View>
@@ -429,7 +439,92 @@ const HANDY_MAX_BREITE = 430;
 // `navigate("ParentGate")` unten typsicher bleibt.
 const navigationRef = createNavigationContainerRef<RootStackParamList>();
 
+// Gerätetest 2026-09-11 (Nutzerwunsch "Maus zurück geht zurück zur Saga-Karte … oder
+// Zurück-Button am Handy"): aus allen Kinder-Screens (Quests, Bonuskapitel, Schlossvorplatz,
+// Steinbrücke, Kapitel „Die ganze Partie", Übungslichtung) führt „Zurück" direkt zur Karte —
+// auch wenn der Screen aus dem Eltern-Testmodus geöffnet wurde. Android: Hardware-Zurück.
+// Web-Vorschau: Browser-/Maus-Zurück (über einen eigenen Verlaufseintrag, damit die Seite
+// dabei nicht verlassen wird). Überall sonst (Eltern-Bereich, Freispiel-Partie → Liste)
+// bleibt das normale Zurück.
+const ZURUECK_ZUR_KARTE = new Set<string>([
+  "Quest1",
+  "Quest2",
+  "Quest3",
+  "Quest4",
+  "Quest5",
+  "Quest6",
+  "Fesselung",
+  "Rochade",
+  "Figurenwert",
+  "MattIn2",
+  "MattIn3",
+  "Schlossvorplatz",
+  "Steinbruecke",
+  "GanzePartie",
+  "FreispielScreen",
+]);
+
+function zurueckZurKarte(): boolean {
+  if (!navigationRef.isReady()) return false;
+  const aktuell = navigationRef.getCurrentRoute()?.name;
+  if (!aktuell || !ZURUECK_ZUR_KARTE.has(aktuell)) return false;
+  navigationRef.navigate("KidHome");
+  return true;
+}
+
 export function RootNavigator() {
+  useEffect(() => {
+    if (Platform.OS === "android") {
+      const abo = BackHandler.addEventListener("hardwareBackPress", zurueckZurKarte);
+      return () => abo.remove();
+    }
+    // `globalThis.window` statt `window`, damit die Datei auch ohne DOM-Typen übersetzt.
+    const w: any = Platform.OS === "web" ? (globalThis as any).window : undefined;
+    if (w?.history && w.addEventListener) {
+      // Gerätetest 2026-09-11 ("Maus zurück funktioniert nicht"): Chrome überspringt beim
+      // Zurück Verlaufseinträge, die ohne Nutzerinteraktion angelegt wurden — der Eintrag beim
+      // Start war deshalb wirkungslos. Jetzt: (1) die Maus-Zurück-Taste (button 3) wird direkt
+      // abgefangen und die Browser-Navigation verhindert; (2) der eigene Verlaufseintrag wird
+      // erst beim ersten Antippen/Klicken angelegt, damit auch die Browser-Zurück-Schaltfläche
+      // in der App bleibt.
+      let zuletztPerMaus = 0;
+      const zurueck = () => {
+        if (!zurueckZurKarte() && navigationRef.isReady() && navigationRef.canGoBack()) navigationRef.goBack();
+      };
+      const beiMaus = (e: any) => {
+        if (e.button !== 3) return;
+        e.preventDefault?.();
+        zuletztPerMaus = Date.now();
+        zurueck();
+      };
+      const blockiereMausZurueck = (e: any) => {
+        if (e.button === 3 || e.button === 4) e.preventDefault?.();
+      };
+      let eintragAngelegt = false;
+      const ersteInteraktion = () => {
+        if (eintragAngelegt) return;
+        eintragAngelegt = true;
+        w.history.pushState({ chesslynx: true }, "");
+      };
+      const beiZurueck = () => {
+        w.history.pushState({ chesslynx: true }, "");
+        if (Date.now() - zuletztPerMaus < 800) return; // schon über die Maustaste erledigt
+        zurueck();
+      };
+      w.addEventListener("mouseup", beiMaus);
+      w.addEventListener("mousedown", blockiereMausZurueck);
+      w.addEventListener("pointerdown", ersteInteraktion);
+      w.addEventListener("popstate", beiZurueck);
+      return () => {
+        w.removeEventListener("mouseup", beiMaus);
+        w.removeEventListener("mousedown", blockiereMausZurueck);
+        w.removeEventListener("pointerdown", ersteInteraktion);
+        w.removeEventListener("popstate", beiZurueck);
+      };
+    }
+    return undefined;
+  }, []);
+
   return (
     // `webHintergrund`/`appRoot` sind auf nativen Plattformen wirkungslose Aliase von
     // `{flex:1}` (siehe Kommentar oben) — `styles.appRoot` gibt BrandWatermark weiterhin

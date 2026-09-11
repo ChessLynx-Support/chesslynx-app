@@ -42,11 +42,21 @@ import {
   type StyleProp,
   type ViewStyle,
 } from "react-native";
-import Svg, { Circle, Defs, Ellipse, LinearGradient, Path, RadialGradient, Rect, Stop } from "react-native-svg";
+import Svg, { Defs, LinearGradient, Path, Pattern, Rect, Stop, Image as SvgImage } from "react-native-svg";
 import { Funkeln } from "./Funkeln";
 
 // Marken-Gold, wie in Funkeln.tsx/ZielfeldMarker verwendet — nicht frei gewählt.
 const GOLD = "#D7A52D";
+
+// Update (2026-09-11, siehe claude/status_content_produktion.md, Gruppe A): die drei
+// gemalten Button-Texturen (Stein/Holz/Aquarell) sind seit 2026-09-10 fertig produziert,
+// QA-geprüft und freigegeben (512×512, nahtlos kachelbar) — ersetzen ab hier die bisherigen
+// Vektor-Näherungen (SteinHintergrund/HolzHintergrund/AquarellHintergrund unten) durch
+// SVG-`<Pattern>`-Füllungen mit den echten, gemalten Kacheln. `textur="vektor"` bleibt
+// unverändert die versagenssichere Grundeinstellung/Fallback (siehe Datei-Kommentar oben).
+const steinTexturBild = require("../../assets/ui/buttons/button_stein_export.png");
+const holzTexturBild = require("../../assets/ui/buttons/button_holz_export.png");
+const aquarellTexturBild = require("../../assets/ui/buttons/button_aquarell_export.png");
 
 type Variante = "primary" | "secondary" | "icon";
 type Textur = "vektor" | "stein" | "holz" | "aquarell";
@@ -219,38 +229,23 @@ export function ChessLynxButton({
   );
 }
 
-/** Richtung C aus dem Mockup ("Runder Waldstein", Nutzer-Favorit): heller, glatt
- * geschliffener Flussstein — Farbverlauf, feine dunkle Sprenkel, zwei Moosflecken unten. */
+/** Richtung C aus dem Mockup ("Runder Waldstein", Nutzer-Favorit): jetzt die echte,
+ * gemalte 512×512-Steintextur (`button_stein_export.png`) als `<Pattern>`-Füllung statt
+ * der bisherigen Vektor-Näherung — Sprenkel/Moosflecken sind bereits Teil der produzierten
+ * Textur (siehe claude/produktionsliste_buttons_farbcodes_v1.md §2.2, Auftrag 1), deshalb
+ * hier nicht mehr zusätzlich als Vektor-Overlay gezeichnet. Kachelgröße = Button-Höhe, damit
+ * die Maserung unabhängig von der Textlänge in konsistenter Materialgröße erscheint. */
 function SteinHintergrund({ w, h }: { w: number; h: number }) {
   const radius = h / 2;
-  // Sprenkel als feste, aber proportional zur tatsächlichen Breite/Höhe skalierte
-  // Punkte — dieselbe Streuung unabhängig davon, wie lang das Label den Button macht.
-  const sprenkel: Array<[number, number, number]> = [
-    [0.14, 0.32, 1.6],
-    [0.27, 0.66, 1.3],
-    [0.45, 0.28, 1.5],
-    [0.6, 0.62, 1.2],
-    [0.74, 0.34, 1.6],
-    [0.87, 0.58, 1.2],
-  ];
   return (
     <Svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={StyleSheet.absoluteFill}>
       <Defs>
-        <RadialGradient id="steinGrad" cx="32%" cy="24%" r="85%">
-          <Stop offset="0" stopColor="#E7DEC9" stopOpacity={1} />
-          <Stop offset="0.45" stopColor="#D8CBB0" stopOpacity={1} />
-          <Stop offset="1" stopColor="#BBAE94" stopOpacity={1} />
-        </RadialGradient>
+        <Pattern id="steinMuster" patternUnits="userSpaceOnUse" width={h} height={h}>
+          <SvgImage href={steinTexturBild} x={0} y={0} width={h} height={h} preserveAspectRatio="xMidYMid slice" />
+        </Pattern>
       </Defs>
-      <Rect x={0} y={0} width={w} height={h} rx={radius} ry={radius} fill="url(#steinGrad)" />
-      {sprenkel.map(([fx, fy, r], i) => (
-        <Circle key={i} cx={w * fx} cy={h * fy} r={r} fill="#4A4038" opacity={0.18} />
-      ))}
-      {/* Moosflecken an den unteren Ecken — Waldbezug statt eines nackten Kieselsteins. */}
-      <Ellipse cx={w * 0.05} cy={h * 0.92} rx={Math.min(16, w * 0.09)} ry={Math.min(9, h * 0.3)} fill="#7C9B6F" opacity={0.42} />
-      <Ellipse cx={w * 0.95} cy={h * 0.9} rx={Math.min(13, w * 0.07)} ry={Math.min(7, h * 0.26)} fill="#7C9B6F" opacity={0.38} />
-      {/* Sanfter Glanz oben, wie bei der Vektor-Pille — macht aus dem Stein keinen
-          Flatcolor-Kreis. */}
+      <Rect x={0} y={0} width={w} height={h} rx={radius} ry={radius} fill="url(#steinMuster)" />
+      {/* Sanfter Glanz oben bleibt als Vektor-Veredelung erhalten, wie bei der Vektor-Pille. */}
       <Rect
         x={1.5}
         y={1.5}
@@ -259,52 +254,28 @@ function SteinHintergrund({ w, h }: { w: number; h: number }) {
         rx={Math.max(radius - 1.5, 0)}
         ry={Math.max(radius - 1.5, 0)}
         fill="#FFFFFF"
-        opacity={0.22}
+        opacity={0.18}
       />
     </Svg>
   );
 }
 
-/** Richtung A aus dem Mockup ("Holzschild mit Blattranke"): gebänderter Holzton statt
- * Flatcolor, Gold-Rand wie die Vektor-Pille, Blattranke am unteren Rand. */
+/** Richtung A aus dem Mockup ("Holzschild mit Blattranke"): jetzt die echte, gemalte
+ * 512×512-Holztextur (`button_holz_export.png`, V2) als `<Pattern>`-Füllung — Maserung und
+ * Blattranke sind bereits Teil der produzierten Textur (siehe claude/produktionsliste_
+ * buttons_farbcodes_v1.md §2.2, Auftrag 2), deshalb hier nicht mehr zusätzlich als
+ * Vektor-Overlay gezeichnet. Gold-Rand bleibt Vektor-Overlay (Design-Entscheidung, gilt
+ * unabhängig von der Textur). */
 function HolzHintergrund({ w, h }: { w: number; h: number }) {
   const radius = Math.min(18, h * 0.3);
-  // Rankenpunkte als Bruchteile der Breite, damit die Ranke bei jeder Textlänge passt.
-  const rankenPunkte = [0.09, 0.22, 0.35, 0.48, 0.61, 0.74, 0.87];
-  const rankenY = h - 6;
   return (
     <Svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={StyleSheet.absoluteFill}>
       <Defs>
-        {/* Viele eng benachbarte Farbstopps simulieren die gebänderte Holzmaserung aus dem
-            CSS-Mockup (dort `repeating-linear-gradient`) — react-native-svg kennt keine
-            wiederholenden Verläufe, ein manuell gebänderter LinearGradient kommt aber
-            optisch sehr nah heran. */}
-        <LinearGradient id="holzGrad" x1="0" y1="0" x2="1" y2="0.22">
-          <Stop offset="0" stopColor="#C9855F" />
-          <Stop offset="0.12" stopColor="#C9855F" />
-          <Stop offset="0.13" stopColor="#BE7C57" />
-          <Stop offset="0.24" stopColor="#BE7C57" />
-          <Stop offset="0.25" stopColor="#A66A4A" />
-          <Stop offset="0.34" stopColor="#A66A4A" />
-          <Stop offset="0.35" stopColor="#C9855F" />
-          <Stop offset="0.47" stopColor="#C9855F" />
-          <Stop offset="0.48" stopColor="#BE7C57" />
-          <Stop offset="0.59" stopColor="#BE7C57" />
-          <Stop offset="0.6" stopColor="#A66A4A" />
-          <Stop offset="0.69" stopColor="#A66A4A" />
-          <Stop offset="0.7" stopColor="#C9855F" />
-          <Stop offset="0.82" stopColor="#C9855F" />
-          <Stop offset="0.83" stopColor="#BE7C57" />
-          <Stop offset="0.94" stopColor="#BE7C57" />
-          <Stop offset="0.95" stopColor="#A66A4A" />
-          <Stop offset="1" stopColor="#A66A4A" />
-        </LinearGradient>
+        <Pattern id="holzMuster" patternUnits="userSpaceOnUse" width={h} height={h}>
+          <SvgImage href={holzTexturBild} x={0} y={0} width={h} height={h} preserveAspectRatio="xMidYMid slice" />
+        </Pattern>
       </Defs>
-      <Rect x={0} y={0} width={w} height={h} rx={radius} ry={radius} fill="url(#holzGrad)" />
-      {/* Feine Sprenkel als angedeutete Holzporen, gleiche Technik wie beim Stein. */}
-      <Circle cx={w * 0.2} cy={h * 0.3} r={0.9} fill="#5A3B26" opacity={0.2} />
-      <Circle cx={w * 0.52} cy={h * 0.68} r={0.9} fill="#5A3B26" opacity={0.18} />
-      <Circle cx={w * 0.78} cy={h * 0.35} r={0.9} fill="#5A3B26" opacity={0.2} />
+      <Rect x={0} y={0} width={w} height={h} rx={radius} ry={radius} fill="url(#holzMuster)" />
       <Rect
         x={1.2}
         y={1.2}
@@ -317,62 +288,29 @@ function HolzHintergrund({ w, h }: { w: number; h: number }) {
         strokeWidth={1.4}
         strokeOpacity={0.6}
       />
-      {/* Blattranke am unteren Rand statt des Glanzstreifens der Vektor-Pille. */}
-      <Path
-        d={`M${w * 0.03} ${rankenY - 4} Q${w * 0.15} ${rankenY - 9} ${w * 0.27} ${rankenY - 4} T${w * 0.5} ${rankenY - 4} T${w * 0.73} ${rankenY - 4} T${w * 0.97} ${rankenY - 4}`}
-        fill="none"
-        stroke="#6F8A6C"
-        strokeWidth={1.2}
-        opacity={0.5}
-      />
-      {rankenPunkte.map((fx, i) => (
-        <Ellipse
-          key={i}
-          cx={w * fx}
-          cy={rankenY - (i % 2 === 0 ? 6 : 2)}
-          rx={Math.max(4, w * 0.02)}
-          ry={2.1}
-          fill="#8FA888"
-          opacity={0.85}
-          rotation={i % 2 === 0 ? -25 : 20}
-          originX={w * fx}
-          originY={rankenY - (i % 2 === 0 ? 6 : 2)}
-        />
-      ))}
     </Svg>
   );
 }
 
-/** Richtung B aus dem Mockup ("Aquarell-Blatt-Form"): organische Blatt-Silhouette statt
- * Pillenform, mit weich auslaufendem Rand und angedeuteter Blattader. Fest gezeichnete
- * Blob-Kontur in einem 220×70-Koordinatenraum, per `preserveAspectRatio="none"` auf die
- * tatsächliche Button-Größe gestreckt — bei sehr kurzen/langen Labels dadurch bewusst nur
- * eine grobe Annäherung (siehe Datei-Kommentar oben, "werden ggf. später verfeinert"). */
+/** Richtung B aus dem Mockup ("Aquarell-Blatt-Form"): organische Blatt-Silhouette (fest
+ * gezeichnete Blob-Kontur in einem 220×70-Koordinatenraum, per `preserveAspectRatio="none"`
+ * auf die tatsächliche Button-Größe gestreckt) bleibt bestehen — sie ist die bewusste
+ * Formabgrenzung von der Pillenform der beiden anderen Texturen. Gefüllt wird sie jetzt mit
+ * der echten, gemalten 512×512-Aquarell-Textur (`button_aquarell_export.png`) als
+ * `<Pattern>`-Füllung statt des bisherigen Radialverlaufs — Bleed-Rand und Blattader sind
+ * bereits Teil der produzierten Textur (siehe claude/produktionsliste_buttons_farbcodes_
+ * v1.md §2.2, Auftrag 3), deshalb hier nicht mehr zusätzlich als Vektor-Overlay gezeichnet. */
 function AquarellHintergrund({ w, h }: { w: number; h: number }) {
   return (
     <Svg width={w} height={h} viewBox="0 0 220 70" preserveAspectRatio="none" style={StyleSheet.absoluteFill}>
       <Defs>
-        <RadialGradient id="aquarellGrad" cx="34%" cy="30%" r="90%">
-          <Stop offset="0" stopColor="#C3D8BD" stopOpacity={1} />
-          <Stop offset="0.5" stopColor="#9CB89A" stopOpacity={1} />
-          <Stop offset="1" stopColor="#7C9B78" stopOpacity={1} />
-        </RadialGradient>
+        <Pattern id="aquarellMuster" patternUnits="userSpaceOnUse" width={70} height={70}>
+          <SvgImage href={aquarellTexturBild} x={0} y={0} width={70} height={70} preserveAspectRatio="xMidYMid slice" />
+        </Pattern>
       </Defs>
-      {/* Weich auslaufender "Aquarell-Bleed"-Rand — eine größere, blassere Ellipse hinter
-          der eigentlichen Blattform. */}
-      <Ellipse cx={110} cy={35} rx={112} ry={38} fill="#8CA888" opacity={0.28} />
       <Path
         d="M18 35 C18 15 46 4 92 6 C142 8 172 1 197 17 C216 28 211 51 187 59 C158 69 118 67 78 64 C39 61 18 55 18 35 Z"
-        fill="url(#aquarellGrad)"
-      />
-      {/* Angedeutete Blattader in der Mitte. */}
-      <Path d="M22 34 Q110 20 198 33" fill="none" stroke="#3E4A3A" strokeWidth={1.1} opacity={0.28} />
-      <Path
-        d="M55 32 L64 24 M85 33 L94 41 M115 31 L124 23 M145 33 L154 41 M170 31 L178 24"
-        fill="none"
-        stroke="#3E4A3A"
-        strokeWidth={0.9}
-        opacity={0.24}
+        fill="url(#aquarellMuster)"
       />
     </Svg>
   );

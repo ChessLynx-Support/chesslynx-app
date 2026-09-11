@@ -107,8 +107,10 @@ export const OBERLAND_ASPECT = 519 / 1658;
 const NEBEL_RANDSTREIFEN_FRAC = 16 / 1318;
 
 // Schildkröten-Wegpunkt im Oberland: Fußpunkt als Anteil von Breite/Höhe des Oberland-
-// Stücks (Wiese rechts der Steinbrücke), Bildbreite als Anteil der Kartenbreite.
-const SCHILDKROETE_WEGPUNKT = { fx: 0.434, fy: 0.559, breiteFrac: 36 / 390 };
+// Stücks (Lichtung links der Steinbrücke), Bildbreite als Anteil der Kartenbreite.
+// Gerätetest 2026-09-11 (Nutzerwunsch, Screenshot mit Pfeil): nicht auf/neben der Brücke,
+// sondern links auf der Lichtung unter den Tannen (vorher fx 0.434).
+const SCHILDKROETE_WEGPUNKT = { fx: 0.1, fy: 0.56, breiteFrac: 36 / 390 };
 
 // Nebel-/Wolken-Höhenband — siehe Datei-Kopfkommentar. Herkunft: vom Nutzer bereitgestellte
 // 5-stufige Nebel-/Wolken-Bildreihe (`Grafiken/d1c399e6-….png`, "Nebel 1 Leicht" … "Wolken 5
@@ -322,6 +324,13 @@ type Props = {
   // Kapitel noch nicht gespielt) — KidHome scrollt dann sanft nach oben, damit das Kind den
   // neuen Wegpunkt überhaupt entdeckt (Fünfjährige wischen nicht von selbst nach oben).
   onSteinbrueckeWartet?: () => void;
+  // Gerätetest 2026-09-11 (Bugfix): Breite von außen vorgeben. Innerhalb der KidHome-ScrollView
+  // lieferte die eigene onLayout-Messung auf dem Testgerät (nach dem Besuch der Steinbrücke) eine
+  // um ein Vielfaches zu große Breite — die Karte war stark vergrößert, nur ein Streifen am
+  // linken Rand sichtbar, keine Wegmarke erreichbar. KidHome misst jetzt seinen eigenen,
+  // bildschirmfüllenden Rahmen und reicht die Breite hier herein; die eigene Messung bleibt nur
+  // als Rückfall für Aufrufer ohne Vorgabe.
+  breiteVorgabe?: number;
 };
 
 export function LuchsRevierKarte({
@@ -330,8 +339,10 @@ export function LuchsRevierKarte({
   onSelectSteinbruecke,
   onHoehen,
   onSteinbrueckeWartet,
+  breiteVorgabe,
 }: Props) {
-  const [breite, setBreite] = useState(0);
+  const [gemesseneBreite, setBreite] = useState(0);
+  const breite = breiteVorgabe && breiteVorgabe > 0 ? breiteVorgabe : gemesseneBreite;
   const [status, setStatus] = useState<Record<QuestId, WegmarkeStatus> | null>(null);
   const [steinbruecke, setSteinbruecke] = useState<WegmarkeStatus>("gesperrt");
   const onSteinbrueckeWartetRef = useRef(onSteinbrueckeWartet);
@@ -370,8 +381,9 @@ export function LuchsRevierKarte({
   );
 
   const onLayout = (e: LayoutChangeEvent) => {
+    if (breiteVorgabe && breiteVorgabe > 0) return;
     const w = e.nativeEvent.layout.width;
-    if (Math.abs(w - breite) > 0.5) setBreite(w);
+    if (Math.abs(w - gemesseneBreite) > 0.5) setBreite(w);
   };
 
   const hoehe = breite * MAP_ASPECT;
@@ -431,7 +443,7 @@ export function LuchsRevierKarte({
   }, [breite]);
 
   return (
-    <View style={styles.wrap} onLayout={onLayout} collapsable={false}>
+    <View style={[styles.wrap, breite > 0 && { width: breite }]} onLayout={onLayout} collapsable={false}>
       {breite > 0 && (
         <ImageBackground source={oberland} style={{ width: breite, height: oberlandHoehe }} resizeMode="cover">
           <Wegmarke
@@ -442,6 +454,8 @@ export function LuchsRevierKarte({
             hoehe={turtleBreite * SCHILDKROETE_ASPEKT}
             zustand={steinbruecke}
             onPress={steinbruecke === "gesperrt" ? undefined : onSelectSteinbruecke}
+            ringMitteY={0.62}
+            ringFaktor={2.1}
           />
           {/* Nebel wie auf der Karte darunter, aber vertikal gespiegelt: so trifft die
               Unterkante dieses Stücks genau auf dieselbe Nebelzeile (Oberkante des
@@ -562,6 +576,8 @@ function Wegmarke({
   hoehe,
   zustand,
   onPress,
+  ringMitteY,
+  ringFaktor = 1.55,
 }: {
   bild: ReturnType<typeof require>;
   left: number;
@@ -570,9 +586,16 @@ function Wegmarke({
   hoehe: number;
   zustand: WegmarkeStatus;
   onPress?: () => void;
+  // Gerätetest 2026-09-11 ("goldener Ring wirkt etwas verschoben" bei der Schildkröte):
+  // Mittelpunkt des Puls-Rings als Anteil der Bildhöhe (Standard 1 = am Fußpunkt, wie bei den
+  // Quest-Tieren). Die hohe, schmale Schildkröte bekommt den Ring um den Körper statt um die
+  // Füße, sonst sitzt er optisch zu tief.
+  ringMitteY?: number;
+  ringFaktor?: number;
 }) {
   const puls = usePulsAnimation(zustand === "naechstes");
-  const ringGroesse = breite * 1.55;
+  const ringGroesse = breite * ringFaktor;
+  const ringY = hoehe * (ringMitteY ?? 1);
 
   return (
     <Pressable
@@ -591,7 +614,7 @@ function Wegmarke({
               height: ringGroesse,
               borderRadius: ringGroesse / 2,
               left: breite / 2 - ringGroesse / 2,
-              top: hoehe - ringGroesse / 2,
+              top: ringY - ringGroesse / 2,
               opacity: puls.opacity,
               transform: [{ scale: puls.scale }],
             },

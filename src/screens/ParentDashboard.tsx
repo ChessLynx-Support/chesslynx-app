@@ -258,6 +258,8 @@ export function ParentDashboard({ navigation }: any) {
   // Kind spielt es auf diesem Gerät).
   const [ganzePartieEtappe, setGanzePartieEtappe] = useState(0);
   const [ganzePartieGeschafft, setGanzePartieGeschafft] = useState(false);
+  // Gerätetest 2026-09-11: Rückmeldung für die Testmodus-Knöpfe (vorher passierte sichtbar nichts).
+  const [testMeldung, setTestMeldung] = useState<string | null>(null);
   useEffect(() => {
     let abgebrochen = false;
     Promise.all([ladeGanzePartieEtappe(), loadBonusFortschrittLocal("ganzePartie")]).then(([etappe, geschafft]) => {
@@ -1277,6 +1279,7 @@ export function ParentDashboard({ navigation }: any) {
                   await loescheGanzePartieEtappe();
                   setGanzePartieGeschafft(false);
                   setGanzePartieEtappe(0);
+                  setTestMeldung("✓ Kapitel zurückgesetzt — beim nächsten Besuch der Schildkröte startet es neu.");
                 }}
               >
                 <Text style={styles.testKnopfText}>Kapitel-Flag zurücksetzen</Text>
@@ -1290,6 +1293,7 @@ export function ParentDashboard({ navigation }: any) {
                   await speichereGanzePartieEtappe(3);
                   setGanzePartieGeschafft(false);
                   setGanzePartieEtappe(3);
+                  setTestMeldung("✓ Zwischenstand 3 von 5 gesetzt — jetzt die Schildkröte auf der Karte antippen.");
                 }}
               >
                 <Text style={styles.testKnopfText}>Zwischenstand: 3 Etappen</Text>
@@ -1306,11 +1310,13 @@ export function ParentDashboard({ navigation }: any) {
                   for (const id of ["fesselung", "rochade", "figurenwert", "mattIn2"] as const) {
                     await saveBonusFortschrittLocal(id, true);
                   }
+                  setTestMeldung("✓ Schlosstor ist offen — zurück zur Karte, die Schildkröte pulsiert.");
                 }}
               >
                 <Text style={styles.testKnopfText}>Schlosstor-Test (alles geschafft)</Text>
               </Pressable>
             </View>
+            {testMeldung && <Text style={styles.body}>{testMeldung}</Text>}
             <Text style={styles.testGruppenTitel}>Freispiel / Endlosspiel</Text>
             <View style={styles.testKnopfReihe}>
               <Pressable style={styles.testKnopf} onPress={() => navigation.navigate("FreispielScreen")}>

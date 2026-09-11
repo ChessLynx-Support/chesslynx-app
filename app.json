@@ -5,6 +5,7 @@
     "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
+    "icon": "./assets/brand/chesslynx_app_icon_1024.png",
     "assetBundlePatterns": [
       "**/*"
     ],

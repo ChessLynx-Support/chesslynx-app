@@ -274,7 +274,7 @@ export default function MattIn3() {
   // eine eigens als tap-vorgeführte Bildfolge umgesetzte Ersatz-Animation (siehe
   // Kopfkommentar bei TREIB_ENTDECKEN_FRAMES): jedes Antippen zeigt ein neues Stellungsbild,
   // das Tempo hier dem Kind zu überlassen ist deshalb weiterhin die richtige Wahl.
-  const autoWeiter = screen !== 1;
+  const autoWeiter = true;
   const zugaufgabeAktiv = istZugaufgabe(screen);
   // Nutzerfeedback 2026-09-09 ("die vorgeschlagenen Züge bei den Übungen entfernen, sonst
   // sind die Hinweise sinnlos") — siehe ausführlicher Kommentar in Fesselung.tsx.
@@ -299,7 +299,21 @@ export default function MattIn3() {
           ? () => {
               uebergangsTimer.current = setTimeout(() => gehZu(1), UEBERGANGS_PAUSE_MS);
             }
-          : undefined
+          : screen === 1
+            ? // Gerätetest 2026-09-11 (Nutzerwunsch: Erklär-Teile laufen von selbst, getippt wird
+              // nur, wo das Kind etwas tut): die Treib-Bildfolge blättert nach jeder gesprochenen
+              // Zeile selbst weiter; Antippen beschleunigt weiterhin, ist aber nicht mehr nötig.
+              () => {
+                uebergangsTimer.current = setTimeout(() => {
+                  if (treibFrame < TREIB_ENTDECKEN_FRAMES - 1) {
+                    setTreibFrame((f) => f + 1);
+                    setLineIndex(0);
+                  } else {
+                    gehZu(2);
+                  }
+                }, UEBERGANGS_PAUSE_MS);
+              }
+            : undefined
       : undefined
   );
   const zeigeUntertitel = useUntertitelAktiv();

@@ -43,6 +43,8 @@ import { useEffect, useRef, useState } from "react";
 import { sprich, stoppen } from "./luxStimme";
 
 const ERINNERUNG_MS = 8000;
+// Pause zwischen dem Ende einer Zeile und dem automatischen Weiterschalten (siehe unten).
+const ZEILEN_PAUSE_MS = 600;
 
 // Sprach-Harmonie-Review (Nutzerauftrag 2026-09-09, siehe lib/luxVarianten.ts für die
 // volle Begründung): `zeile` akzeptiert jetzt zusätzlich eine Funktion statt nur eines
@@ -62,6 +64,7 @@ export function useLuxSprechzeile(
   const erinnerungAktiv = optionen?.erinnerung ?? true;
 
   const erinnerungTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const sicherheitsnetz = useRef<ReturnType<typeof setTimeout> | null>(null);
   const zeileRef = useRef(zeile);
   const onFertigRef = useRef(onFertig);
   const erinnerungAktivRef = useRef(erinnerungAktiv);
@@ -109,20 +112,47 @@ export function useLuxSprechzeile(
     if (!text) return;
     setAktuelleZeile(text);
     const eigeneGeneration = ++generation.current;
-    sprich(text, {
-      onFertig: () => {
-        if (eigeneGeneration !== generation.current) return;
-        if (onFertigRef.current) {
-          onFertigRef.current();
-          return;
-        }
-        if (!erinnerungAktivRef.current) return;
+    // Gerätetest 2026-09-11 (Web-Vorschau: "nach Vorstellung des Hirsch lässt sich nicht
+    // weiterklicken"): meldet die Sprachausgabe ihr Ende nicht (im Browser verschluckt die
+    // Web-Speech-API gelegentlich einzelne Äußerungen samt onDone, v. a. direkt nach einem
+    // Abbruch), blieb eine Auto-Weiter-Kette stehen — und mit ihr jedes Antippen, das erst
+    // auf der letzten Zeile freigegeben wird. Sicherheitsnetz: nach einer großzügig
+    // geschätzten Sprechdauer (≈130 ms pro Zeichen + 3 s — großzügig, weil der Browser die
+    // erste Äußerung einer Stimme oft verzögert startet; Sprechtempo 0,95) gilt die
+    // Zeile als fertig. Kommt das echte Ende früher, verfällt das Netz; kommt es später,
+    // wird es über `gemeldet` ignoriert (kein doppeltes Weiter).
+    let gemeldet = false;
+    const erledigt = () => {
+      if (eigeneGeneration !== generation.current) return;
+      if (onFertigRef.current) {
+        // Gerätetest 2026-09-11 (Nutzer: "Übergang wirkt an Stellen abgehackt, längere
+        // Pausen einplanen"): kurze Atempause zwischen dem Ende einer Zeile und dem, was
+        // danach kommt (nächste Zeile, Screenwechsel). Zum Zeitpunkt des Weiterschaltens
+        // wird nochmals geprüft, dass inzwischen nichts anderes gesprochen wurde.
         erinnerungTimer.current = setTimeout(() => {
-          onErinnerungRef.current?.();
-          zeileSprechenRef.current();
-        }, ERINNERUNG_MS);
-      },
-    });
+          if (eigeneGeneration !== generation.current) return;
+          onFertigRef.current?.();
+        }, ZEILEN_PAUSE_MS);
+        return;
+      }
+      if (!erinnerungAktivRef.current) return;
+      erinnerungTimer.current = setTimeout(() => {
+        onErinnerungRef.current?.();
+        zeileSprechenRef.current();
+      }, ERINNERUNG_MS);
+    };
+    if (sicherheitsnetz.current) clearTimeout(sicherheitsnetz.current);
+    // Eigener Griff je Zeile: ein verspätetes Ende einer ÄLTEREN Zeile darf nur deren eigenes
+    // Netz löschen, nie das der aktuellen.
+    const eigenesNetz = setTimeout(() => zeileFertig(), text.length * 130 + 3000);
+    sicherheitsnetz.current = eigenesNetz;
+    const zeileFertig = () => {
+      if (gemeldet) return;
+      gemeldet = true;
+      clearTimeout(eigenesNetz);
+      erledigt();
+    };
+    sprich(text, { onFertig: zeileFertig });
   };
 
   useEffect(() => {
@@ -134,6 +164,7 @@ export function useLuxSprechzeile(
       generation.current++;
       stoppen();
       if (erinnerungTimer.current) clearTimeout(erinnerungTimer.current);
+      if (sicherheitsnetz.current) clearTimeout(sicherheitsnetz.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [schluessel]);

@@ -114,7 +114,19 @@ export function sprich(zeile: string, optionen?: { onFertig?: () => void }) {
   stelleStimmeBereit();
   Speech.stop();
   const stimme = bevorzugteStimmeIdSynchron() ?? automatischeStimme;
-  Speech.speak(zeile, { ...STIMME_OPTIONEN, voice: stimme, onDone: optionen?.onFertig });
+  Speech.speak(fuerSprachausgabe(zeile), { ...STIMME_OPTIONEN, voice: stimme, onDone: optionen?.onFertig });
+}
+
+/**
+ * Gerätetest 2026-09-11 (Nutzer: "Es sind wieder Bindestriche enthalten, die den Sprachfluss
+ * mit der Computerstimme unnatürlich wirken lassen"): Gedankenstriche werden von der Geräte-
+ * Stimme überlesen oder seltsam betont. Nur für die Sprachausgabe (die Untertitel behalten
+ * den Strich) wird ein freistehender Gedankenstrich zu einem Komma — das gibt eine kurze,
+ * natürliche Pause. Dieselbe Regel gehört später ins TTS-Exportskript (Paket 4), damit die
+ * vorgerenderten Dateien genauso klingen.
+ */
+export function fuerSprachausgabe(zeile: string): string {
+  return zeile.replace(/\s+[–—-]\s+/g, ", ").replace(/,\s*,/g, ",");
 }
 
 export function stoppen() {

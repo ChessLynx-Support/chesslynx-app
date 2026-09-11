@@ -8,6 +8,7 @@
 
 import { useRef, useState } from "react";
 import { View, Pressable, StyleSheet, SafeAreaView } from "react-native";
+import { Einschweben } from "../components/Einschweben";
 import { useNavigation } from "@react-navigation/native";
 import { QUEST5_POSITIONS, type BoardSquare } from "../lib/chessEngine";
 import { saveQuestFortschrittLocal } from "../lib/storage";
@@ -59,7 +60,10 @@ const SCREEN_SCRIPTS: Record<Exclude<ScreenId, 2>, string[]> = {
   0: [
     "Weiter geht's durch den Wald von ChessLynx!",
     "Hier lebt eine neue Freundin.",
-    "Tipp weiter, um sie kennenzulernen.",
+    // Gerätetest 2026-09-11 (Nutzerwunsch): die Vorstellung läuft bis zur Verwandlung von
+    // selbst — getippt wird nur noch auf das Tier, nach Lux' Aufforderung. Deshalb keine
+    // "Tipp weiter"-Aufforderung mehr.
+    "Komm, wir lernen sie kennen!",
   ],
   // Update (2026-09-10, siehe Quest2.tsx-Kommentar zur selben Änderung): "Hallo! Ich
   // bin's wieder, Lux." ersatzlos gestrichen.
@@ -129,7 +133,10 @@ export default function Quest5() {
   // Update (2026-09-08, Task #109, siehe claude/vorgemerkt_quest_tempo_und_
   // automatikvorfuehrung.md Punkt 3): Screen 1 ist hier nicht mehr ausgenommen, siehe
   // Quest1.tsx-Kommentar zum identischen Muster. Screen 0 bleibt bewusst ausgenommen.
-  const autoWeiter = screen !== 0 && screen !== "verwandlung";
+  // Gerätetest 2026-09-11 (Nutzerwunsch "die Vorstellung bis zur Verwandlung sollte
+  // automatisch laufen"): Screen 0 ist nicht mehr ausgenommen — er blättert von selbst durch
+  // und geht nach seiner letzten Zeile ohne Antippen zu Screen 1 (siehe screen0Weiter).
+  const autoWeiter = screen !== "verwandlung";
   // Sprach-Harmonie-Review (2026-09-09, siehe lib/luxVarianten.ts): genau die drei
   // Stellen, an denen Screen 2 sonst wortidentisch zu den anderen fünf Abenteuern wäre
   // UND die bei einer 8-Sekunden-Erinnerung (kein onFertig, da jeweils letzte Zeile
@@ -157,7 +164,11 @@ export default function Quest5() {
   const { wiederholen, aktuelleZeile } = useLuxSprechzeile(
     zeilenSchluessel,
     zeileZuSprechen,
-    autoWeiter && !isLastLine ? () => setLineIndex((i) => i + 1) : undefined,
+    autoWeiter && !isLastLine
+      ? () => setLineIndex((i) => i + 1)
+      : screen === 0 && isLastLine
+        ? () => setTimeout(() => advanceOrGo(1), 700)
+        : undefined,
     { onErinnerung: () => { erinnerungenRef.current += 1; } }
   );
   // Echter Eltern-Dashboard-Schalter statt der früheren ZEIGE_UNTERTITEL-Konstante,
@@ -190,7 +201,14 @@ export default function Quest5() {
         <LuxSprechblase text={aktuelleZeile} zeilenSchluessel={zeilenSchluessel} style={styles.sprechblase} />
       )}
 
-      {screen === 0 && <Pressable style={styles.tapArea} onPress={() => advanceOrGo(1)} />}
+      {/* Screen 0 läuft seit dem Gerätetest 2026-09-11 von selbst weiter (kein Tipp-Bereich mehr). */}
+      {screen === 0 && (
+        <View style={styles.tapArea}>
+          <Einschweben sichtbar={lineIndex >= 1}>
+            <DameMasterGrossIcon size={150} />
+          </Einschweben>
+        </View>
+      )}
       {screen === 1 && (
         // Update (2026-09-08, Task #109, siehe Quest1.tsx-Kommentar zum identischen
         // Muster): Pressable jetzt direkt am Schwan-Icon (großzügiger hitSlop), LuxAtem

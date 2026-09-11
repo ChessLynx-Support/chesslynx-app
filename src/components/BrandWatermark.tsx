@@ -1,8 +1,8 @@
-// ARBEITSENTWURF (Stand 2026-09-07): Das aktuelle Logo-Bild ist aus dem echten
-// Lux- und Springer-Master zusammengesetzt, aber vom Nutzer ausdrücklich noch
-// als vorläufig markiert — er möchte die Komposition ggf. noch nacharbeiten
-// (Größe/Überlappung/Pose). Vor Store-Release hier noch einmal die aktuelle
-// Bilddatei prüfen bzw. mit dem Nutzer abstimmen, ob sie final ist. Siehe
+// Update (2026-09-11): der bisherige Arbeitsentwurf (Nebeneinander-Komposition,
+// Stand 2026-09-07) ist abgelöst durch den neuen Logo-Master "Lux & Springer –
+// Umarmung" (freundschaftliche Umarmungspose statt Nebeneinander). Status
+// APPROVED FOR PRODUCTION, siehe claude/logo_umarmung_lux_springer_prompt_2026-09-10.md
+// und Grafiken/Logo/rights.md (Asset-ID BRAND-LOGO-001). Frühere Historie siehe
 // wasserzeichen_und_bewegungsanimationen.md.
 //
 // Update (2026-09-09, Nutzerfeedback): oben rechts saß das Wasserzeichen direkt neben/über
@@ -92,11 +92,18 @@ const styles = StyleSheet.create({
   // eines festen 0 — deshalb hier nicht mehr gesetzt.
   safeOverlay: { position: "absolute", left: 0, right: 0, elevation: 999, zIndex: 999 },
   corner: { alignItems: "flex-end", paddingBottom: 8, paddingRight: 12 },
+  // Update (2026-09-11): neuer Logo-Master "Lux & Springer – Umarmung" (siehe
+  // claude/logo_umarmung_lux_springer_prompt_2026-09-10.md, APPROVED FOR PRODUCTION)
+  // ersetzt die bisherige Nebeneinander-Komposition. Der neue Wasserzeichen-Export
+  // (assets/brand/chesslynx_watermark_icon.png) ist 330x412px ≈ 0,80 statt zuvor
+  // 1774x2059 ≈ 0,86 — Höhe entsprechend von 40 auf 42 angepasst, damit die Anzeige
+  // wieder dem tatsächlichen Bildseitenverhältnis entspricht (resizeMode="contain"
+  // hätte auch bei einer Abweichung nicht verzerrt, aber unnötigen Leerraum erzeugt).
   // Seitenverhältnis an das neue, aus Lux- und Springer-Master zusammengesetzte
-  // Logo angepasst (1774x2059 ≈ 0,86), ersetzt das alte, separat KI-generierte
-  // Logo (420x407 ≈ 1,03) — siehe wasserzeichen_und_bewegungsanimationen.md.
+  // Logo angepasst, ersetzt das alte, separat KI-generierte Logo (420x407 ≈ 1,03) —
+  // siehe wasserzeichen_und_bewegungsanimationen.md.
   // Nutzer-Feedback 2026-09-09 ("Logo minimal sichtbarer werden"): Deckkraft von 0,55
   // auf 0,7 angehoben — bewusst nur ein kleiner Schritt, das Wasserzeichen soll weiterhin
   // dezent bleiben (siehe Datei-Kopfkommentar), nur eben zuverlässig erkennbar/antippbar.
-  logo: { width: 34, height: 40, opacity: 0.7 },
+  logo: { width: 34, height: 42, opacity: 0.7 },
 });

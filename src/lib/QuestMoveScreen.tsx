@@ -161,25 +161,28 @@ function waehleVorschlagZiel(
     if (!richtungen.includes(schluessel)) richtungen.push(schluessel);
   }
 
-  const anzahlRichtungen = richtungen.length;
-  const richtungIndex = rundenIndex % anzahlRichtungen;
-  // Wie oft diese Richtung (bzw. jede Richtung, da reihum durchlaufen) bereits an der Reihe
-  // war — bestimmt, wie weit wir diesmal innerhalb der Richtung nach außen gehen.
-  const tiefe = Math.floor(rundenIndex / anzahlRichtungen);
-  const gewaehlteRichtung = richtungen[richtungIndex];
-  const kandidaten = legalTargets.filter((ziel) => richtungsSchluessel(ziel) === gewaehlteRichtung);
+  // Gerätetest 2026-09-11 (Nutzer: "Die Haselnuss liegt meist direkt an Läufer, Turm, Dame
+  // dran. Sie sollte häufig weit oder ganz weit weg sein."): bisher wuchs der Abstand erst
+  // nach einem vollen Durchlauf aller Richtungen — bei 5 Übungsrunden und bis zu 8 Richtungen
+  // blieb die Nuss deshalb praktisch immer auf dem Nachbarfeld. Jetzt:
+  //  - bevorzugt werden Richtungen mit langem freien Weg (mind. 3 Felder), reihum,
+  //  - der Abstand folgt einem festen Muster mit Schwerpunkt auf weit/ganz weit.
+  // Für Figuren mit nur einem Schritt je Richtung (König, Bauer, Springer) ändert sich nichts.
+  const feldAbstand = (ziel: BoardSquare) => Math.max(Math.abs(ziel.row - von.row), Math.abs(ziel.col - von.col));
+  const laengeJeRichtung = (r: string) =>
+    Math.max(...legalTargets.filter((z) => richtungsSchluessel(z) === r).map(feldAbstand));
+  const langeRichtungen = richtungen.filter((r) => laengeJeRichtung(r) >= 3);
+  const auswahlRichtungen = langeRichtungen.length ? langeRichtungen : richtungen;
+  const gewaehlteRichtung = auswahlRichtungen[rundenIndex % auswahlRichtungen.length];
+  const kandidaten = legalTargets
+    .filter((ziel) => richtungsSchluessel(ziel) === gewaehlteRichtung)
+    .sort((a, b) => feldAbstand(a) - feldAbstand(b));
 
-  // Innerhalb der gewählten Richtung nach Abstand sortiert (nächstes zuerst), dann per
-  // `tiefe` ausgewählt und dabei auf das am weitesten verfügbare Feld gedeckelt — so bleibt
-  // die Eichel immer ein tatsächlich vorhandenes Feld dieser Richtung, auch wenn `tiefe`
-  // die Anzahl der Felder irgendwann übersteigt.
-  kandidaten.sort((a, b) => {
-    const distA = Math.max(Math.abs(a.row - von.row), Math.abs(a.col - von.col));
-    const distB = Math.max(Math.abs(b.row - von.row), Math.abs(b.col - von.col));
-    return distA - distB;
-  });
-
-  const index = Math.min(tiefe, kandidaten.length - 1);
+  // Abstands-Muster je Runde: ganz weit, weit, mittel, ganz weit, weit … (als Anteil des
+  // längsten Feldes dieser Richtung; 1 = ganz außen).
+  const ABSTANDS_MUSTER = [1, 0.67, 0.5, 1, 0.67];
+  const anteil = ABSTANDS_MUSTER[rundenIndex % ABSTANDS_MUSTER.length];
+  const index = Math.max(0, Math.min(kandidaten.length - 1, Math.round(anteil * (kandidaten.length - 1))));
   return kandidaten[index];
 }
 

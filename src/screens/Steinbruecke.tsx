@@ -36,13 +36,15 @@ const hintergrund = require("../../assets/hintergrund/luchsrevier_uebungslichtun
 const iconBots = require("../../assets/ui/lichess_bereich/icon_bots_schildkroete.png");
 const iconPuzzles = require("../../assets/ui/lichess_bereich/icon_puzzles_brett.png");
 
-// Pixelmaße des Hintergrunds (1517×2331) und Fußpunkt der Schildkröte auf dem Brückenbogen,
+// Pixelmaße des Hintergrunds (1517×2331) und Fußpunkt der Schildkröte — seit dem Gerätetest
+// 2026-09-11 (Nutzerwunsch "nicht auf der Brücke, weiter links auf der Lichtung") auf der Wiese
+// links der Brücke, vor der großen Tanne; vorher auf dem Brückenbogen (1100/1912),
 // als Anteil der Bildmaße. Der Hintergrund füllt den Bildschirm per "cover" — die Position
 // wird unten mit derselben Cover-Rechnung auf Bildschirmkoordinaten umgerechnet, damit die
 // Schildkröte auf jedem Seitenverhältnis auf der Brücke steht.
 const BILD_B = 1517;
 const BILD_H = 2331;
-const SCHILDKROETE_FUSS = { fx: 1100 / BILD_B, fy: 1912 / BILD_H };
+const SCHILDKROETE_FUSS = { fx: 380 / BILD_B, fy: 1905 / BILD_H };
 // Höhe der Schildkröte als Anteil der (skalierten) Bildhöhe.
 const SCHILDKROETE_HOEHE_FRAC = 0.13;
 

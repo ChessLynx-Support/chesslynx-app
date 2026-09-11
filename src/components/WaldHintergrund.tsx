@@ -78,26 +78,49 @@ const untenStandard = require("../../assets/hintergrund/waldkulisse_unten.png");
 // Statische require()-Tabelle statt dynamischem Pfad — Metro/Expo muss jeden
 // Bild-Import zur Bundle-Zeit auflösen können, ein zusammengesetzter Pfad
 // (`` `...q${variante}.png` ``) funktioniert dafür nicht.
-const OBEN_JE_QUEST: Record<number, ReturnType<typeof require>> = {
-  1: require("../../assets/hintergrund/waldkulisse_oben_q1.webp"),
-  2: require("../../assets/hintergrund/waldkulisse_oben_q2.webp"),
-  3: require("../../assets/hintergrund/waldkulisse_oben_q3.webp"),
-  4: require("../../assets/hintergrund/waldkulisse_oben_q4.webp"),
-  5: require("../../assets/hintergrund/waldkulisse_oben_q5.webp"),
-  6: require("../../assets/hintergrund/waldkulisse_oben_q6.webp"),
-};
-const UNTEN_JE_QUEST: Record<number, ReturnType<typeof require>> = {
-  1: require("../../assets/hintergrund/waldkulisse_unten_q1.webp"),
-  2: require("../../assets/hintergrund/waldkulisse_unten_q2.webp"),
-  3: require("../../assets/hintergrund/waldkulisse_unten_q3.webp"),
-  4: require("../../assets/hintergrund/waldkulisse_unten_q4.webp"),
-  5: require("../../assets/hintergrund/waldkulisse_unten_q5.webp"),
-  6: require("../../assets/hintergrund/waldkulisse_unten_q6.webp"),
+// (Die früheren Band-Paare OBEN_JE_QUEST/UNTEN_JE_QUEST — `waldkulisse_oben/unten_q1–q6.webp` —
+// sind seit dem Gerätetest 2026-09-11 durch KULISSE_JE_QUEST unten ersetzt und nicht mehr
+// eingebunden, damit sie nicht mehr ins App-Bundle wandern.)
+
+// Gerätetest 2026-09-11 (Nutzer-Feedback: "verschobener Bildschirmausschnitt … kaputte Datei,
+// kein echter Ausschnitt des Masters", betrifft fast jede Quest): die zwei überlappenden
+// Bänder oben/unten mit Alpha-Verlauf ergaben in der Mitte eine Überblendung zweier
+// verschiedener Kartenstellen (z. B. Quest 6: das Burgtor schimmert halbtransparent über den
+// Weg). Die Quests zeigen jetzt je EINEN durchgehenden, echten Ausschnitt aus dem HQ-Saga-
+// Master `davinci_enhancer_image_1788860236858.jpg` (1400×2940 HQ-px, auf 1024 px Breite
+// gebracht), horizontal auf die Wegmarke der Quest zentriert (siehe WEGMARKEN in
+// LuchsRevierKarte.tsx), die Wegmarke bei ca. 55 % der Höhe (Quest 1/2 am unteren Kartenrand
+// entsprechend tiefer). Kein Verlauf, keine Überblendung. Die alten Band-Dateien
+// `waldkulisse_oben/unten_q1–q6.webp` bleiben unbenutzt im Repo; ohne `variante` (Onboarding,
+// Schlossvorplatz, Bonuskapitel …) bleibt die bisherige Standardkulisse unverändert.
+const KULISSE_JE_QUEST: Record<number, ReturnType<typeof require>> = {
+  1: require("../../assets/hintergrund/questkulisse_q1.webp"),
+  2: require("../../assets/hintergrund/questkulisse_q2.webp"),
+  3: require("../../assets/hintergrund/questkulisse_q3.webp"),
+  4: require("../../assets/hintergrund/questkulisse_q4.webp"),
+  5: require("../../assets/hintergrund/questkulisse_q5.webp"),
+  6: require("../../assets/hintergrund/questkulisse_q6.webp"),
 };
 
-export function WaldHintergrund({ variante }: { variante?: 1 | 2 | 3 | 4 | 5 | 6 } = {}) {
-  const oben = variante ? OBEN_JE_QUEST[variante] : obenStandard;
-  const unten = variante ? UNTEN_JE_QUEST[variante] : untenStandard;
+// Die Willkommens-Sequenz behält ihre vom Nutzer abgenommene Wald-Szene mit den beiden
+// Quest-1-Bändern (die Tiere fliegen dort gezielt in die Waldränder oben/unten) — daher
+// `baender`. Nur dafür bleiben die zwei Quest-1-Band-Dateien eingebunden.
+const OBEN_Q1 = require("../../assets/hintergrund/waldkulisse_oben_q1.webp");
+const UNTEN_Q1 = require("../../assets/hintergrund/waldkulisse_unten_q1.webp");
+
+export function WaldHintergrund({
+  variante,
+  baender = false,
+}: { variante?: 1 | 2 | 3 | 4 | 5 | 6; baender?: boolean } = {}) {
+  if (variante && !baender) {
+    return (
+      <View style={styles.wrap} collapsable={false} pointerEvents="none">
+        <Image source={KULISSE_JE_QUEST[variante]} style={styles.ganz} resizeMode="cover" />
+      </View>
+    );
+  }
+  const oben = baender && variante === 1 ? OBEN_Q1 : obenStandard;
+  const unten = baender && variante === 1 ? UNTEN_Q1 : untenStandard;
   return (
     // Bugfix, fünfte Iteration (Nutzer-Feedback 2026-09-08, nach der vierten Iteration:
     // "jetzt heller Bereich unten, kein vollständiger Hintergrund" — die vierte Iteration
@@ -128,6 +151,7 @@ export function WaldHintergrund({ variante }: { variante?: 1 | 2 | 3 | 4 | 5 | 6
 
 const styles = StyleSheet.create({
   wrap: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0 },
+  ganz: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, width: "100%", height: "100%" },
   // Bugfix, dritte Iteration (Nutzer-Feedback 2026-09-08, "Ich will diesen weißen Bereich
   // in der Mitte nicht haben!!!"): 50%/50% (vorige Fassung) reichte NICHT aus, weil sich
   // beide Bänder dabei exakt an der Bildschirmmitte trafen — dort, wo der eingebaute

@@ -295,7 +295,8 @@ export function WillkommensSequenz({ navigation }: any) {
     setCaption("");
     await timing(szenenUeberblendung, 1, 700, 250, Easing.inOut(Easing.ease));
     setPhase("kartenLeer");
-    setTimeout(() => starteLanden(), 550);
+    // Gerätetest 2026-09-11 ("längere Pausen einplanen"): 550 → 900 ms Ruhe vor dem Landen.
+    setTimeout(() => starteLanden(), 900);
   }
 
   // Beat 6 "Landen" — 1:1 die vom Nutzer bestätigte Choreografie aus
@@ -314,8 +315,19 @@ export function WillkommensSequenz({ navigation }: any) {
     // NICHT über sprecheUndWarte() (das würde den nachfolgenden `await Promise.all(...)` der
     // Lande-Animation verzögern) — beide spreche()-Aufrufe bleiben wie bisher nebenläufig
     // dazu, nur mit einer kurzen Verzögerung zwischen den beiden Sätzen.
-    spreche("Da seid ihr ja wieder!");
-    setTimeout(() => spreche("Willkommen in eurem Revier!"), 400);
+    // Gerätetest 2026-09-11 (Nutzer-Feedback: "Luchs sagt die ersten 2 Textzeilen nach dem
+    // Verstecken im Wald nicht"): die zweite Zeile wurde bisher nach festen 400 ms
+    // gesprochen — sprich() stoppt vorher jede laufende Ausgabe, damit schnitt sie die erste
+    // Zeile ab; im Browser (Web-Speech) gehen zwei so schnell aufeinanderfolgende
+    // Abbruch-/Start-Aufrufe zudem oft ganz verloren. Jetzt als Kette, die jeweils das echte
+    // Sprechende abwartet; die Lande-Animation läuft unverändert parallel, und die
+    // Schlusszeilen unten warten auf das Ende dieser Kette.
+    const begruessungFertig = (async () => {
+      await new Promise<void>((resolve) => setTimeout(resolve, 150));
+      await sprecheUndWarte("Da seid ihr ja wieder!", 5000);
+      await new Promise<void>((resolve) => setTimeout(resolve, 600));
+      await sprecheUndWarte("Willkommen in eurem Revier!", 5000);
+    })();
     const breite = buehneBreite;
     const hoehe = kartenHoehe;
     const STAGGER = 380;
@@ -343,7 +355,9 @@ export function WillkommensSequenz({ navigation }: any) {
     // bewusste Atempause (450ms, dasselbe Prinzip wie der 950ms-Abstand vor onSolved() in
     // QuestMoveScreen.tsx/beendeAufgabe) gibt beiden Zeilen Raum, statt direkt ineinander
     // überzugehen.
-    await new Promise<void>((resolve) => setTimeout(resolve, 450));
+    await begruessungFertig;
+    // Gerätetest 2026-09-11 ("längere Pausen einplanen"): 450 → 800 ms.
+    await new Promise<void>((resolve) => setTimeout(resolve, 800));
     // Folge-Feedback 2026-09-09 ("abruptes Sprechende nach 'der Igel wartet schon...'"):
     // diese letzte Zeile wurde bisher NICHT abgewartet — direkt danach lief die
     // Nebel-Animation (900ms+300ms) und eine feste 1500ms-Pause, macht zusammen ~2,7s, was
@@ -358,7 +372,7 @@ export function WillkommensSequenz({ navigation }: any) {
     // Gedankenstriche oft einfach hinweg. Jetzt als zwei eigene Sprechzeilen mit einer
     // echten, bewussten Pause dazwischen (gleiches Prinzip wie die 450ms oben).
     await sprecheUndWarte("Der Igel wartet schon auf dem Weg.");
-    await new Promise<void>((resolve) => setTimeout(resolve, 400));
+    await new Promise<void>((resolve) => setTimeout(resolve, 700));
     await sprecheUndWarte("Auf geht's!");
     // Erst NACHDEM alle sechs gelandet sind, hüllt sich die GANZE Karte in Nebel (siehe
     // Datei-Kopfkommentar/dev/WillkommensFlugProbe.tsx-Korrekturrunde) — nicht während des
@@ -439,7 +453,7 @@ export function WillkommensSequenz({ navigation }: any) {
                   eigenen, bereits `collapsable={false}` gesicherten Vollflächen-Wrapper
                   mit (siehe dortige Datei), die zusätzliche Hülle hier war überflüssig und
                   ist ersatzlos entfernt. */}
-              <WaldHintergrund variante={1} />
+              <WaldHintergrund variante={1} baender />
 
               {phase === "begruessung" && (
                 <View style={styles.begruessungWrap} collapsable={false}>

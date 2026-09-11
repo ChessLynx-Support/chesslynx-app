@@ -6,9 +6,13 @@
 // mit vorhandenen Master-Illustrationen, keine neuen Assets.
 
 import { useEffect, useRef } from "react";
-import { Animated, Easing, StyleSheet, View } from "react-native";
+import { Animated, Easing, Image, StyleSheet, View } from "react-native";
 import { BauerMasterDunkelIcon, KoenigMasterGrossDunkelIcon } from "../lib/pieceMasters";
-import { KroneSternIcon } from "../lib/puzzleIcons";
+// Gerätetest 2026-09-11 (Nutzer: "Krone mit Stern etwas abgeschnitten und passt nicht zur
+// plastischen Figur, da nur reines 2D"): statt des flachen SVG-Icons (KroneSternIcon) das
+// gemalte Puzzle-Ziel-Icon aus Sheet 1 — gleiche Bedeutung ("Matt"), gleiche Malweise wie
+// die Figuren; mit genug Luft nach oben, damit nichts abgeschnitten wird.
+const KRONE_STERN_BILD = require("../../assets/ui/puzzle_ziele/icon_krone_stern_matt.png");
 import { Funkeln } from "../components/Funkeln";
 
 export function MattMomentFeier() {
@@ -53,7 +57,7 @@ export function MattMomentFeier() {
           { opacity: krone, transform: [{ scale: krone.interpolate({ inputRange: [0, 1], outputRange: [0.4, 1] }) }] },
         ]}
       >
-        <KroneSternIcon size={72} />
+        <Image source={KRONE_STERN_BILD} style={styles.kroneBild} resizeMode="contain" />
         <Funkeln />
       </Animated.View>
       <Animated.View
@@ -87,6 +91,7 @@ export function MattMomentFeier() {
 
 const styles = StyleSheet.create({
   buehne: { flex: 1, width: "100%", alignItems: "center", justifyContent: "center" },
-  krone: { marginBottom: 12, alignItems: "center", justifyContent: "center" },
+  krone: { marginTop: 24, marginBottom: 8, alignItems: "center", justifyContent: "center", overflow: "visible" },
+  kroneBild: { width: 110, height: 110 },
   igelReihe: { flexDirection: "row", marginTop: -18, gap: 4 },
 });

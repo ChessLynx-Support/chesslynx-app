@@ -52,7 +52,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { View, Pressable, Image, StyleSheet, Animated, AccessibilityInfo, Dimensions } from "react-native";
-import Svg, { Circle, Line, Defs, RadialGradient, LinearGradient, Stop, Ellipse, Path } from "react-native-svg";
+import Svg, { Defs, Pattern, Rect, Image as SvgImage } from "react-native-svg";
 import type { BoardSquare } from "../lib/chessEngine";
 // Opus-Review, 2026-09-07, Abschnitt 3.1, Schritt 7 (siehe claude/review_logik_grafik_
 // audiofuehrung.md): sofortiges haptisches + akustisches Feedback bei Zug/Stopp-Tap,
@@ -63,19 +63,35 @@ import { spieleZugKlang, spieleStoppKlang } from "../lib/luxKlang";
 const feldHell = require("../../assets/brett/tile_hell.png");
 const feldDunkel = require("../../assets/brett/tile_dunkel.png");
 
-// Zielfeld-Marker (löst styles.legalRing ab): Kreisform statt abgerundetem Rechteck
-// (liest sich eindeutiger als "Landeplatz"), weicher Grün-Schimmer als Füllung statt
-// reiner Kontur, kleiner Mittelpunkt-Punkt (verbreitetes, gut lesbares Schach-App-Muster
-// für "hier ist ein Zug möglich"), plus ein sehr sanftes, endloses Atem-Pulsieren
-// (Skalierung 1,0↔1,08), das den Blick des Kindes aufs Zielfeld lenkt, ohne aufdringlich
-// zu wirken (Design-Grundsatz "kein Zeitdruck/keine hektische Animation").
-// Update (Opus-Review, 2026-09-07, Befund 2.5, siehe claude/review_logik_grafik_
-// audiofuehrung.md): neue `variante`-Prop. "punkt" (Standard, unverändert) für leere
-// Zielfelder. "ring" für Zielfelder, die ZUGLEICH ein Schlagfeld sind (hasOpponent/
-// hasBlocker) — dort saß der Mittelpunkt-Punkt bisher unsichtbar HINTER der Figur; die
-// Ring-Variante hat bewusst keine Füllung und keinen Mittelpunkt, wird deshalb (siehe
-// Aufrufstelle unten) NACH der Figur gerendert und bleibt so als Kontur sichtbar —
-// etabliertes Schach-App-Muster: Punkt = leeres Zielfeld, Ring = Schlagfeld.
+// Sheet 6 (Board-Chrome-Marker) und Sheet 7 (Linien-Texturen) — produziert, QA-geprüft
+// (Kantenweichzeichnung Zielfeld-Punkt/-Ring, Farbkorrektur Warnlinie) und committet
+// 2026-09-11 (siehe claude/status_content_produktion.md, claude/produktionsliste_
+// buttons_farbcodes_v1.md §8/§9). Ersetzen ab hier die bisherigen, live gezeichneten
+// react-native-svg-Formen der Board-Chrome-Marker/Linien durch Bild-Assets.
+const zielfeldPunktBild = require("../../assets/ui/board_chrome/icon_board_zielfeld_punkt.png");
+const zielfeldRingBild = require("../../assets/ui/board_chrome/icon_board_zielfeld_ring.png");
+const warnringBild = require("../../assets/ui/board_chrome/icon_board_warnring.png");
+const bedrohungGluehenBild = require("../../assets/ui/board_chrome/icon_board_bedrohung_gluehen.png");
+const eichelSammelBild = require("../../assets/ui/board_chrome/icon_board_eichel_sammelobjekt.png");
+const kettenTexturBild = require("../../assets/ui/linien_texturen/textur_kettenglied.png");
+const warnlinieTexturBild = require("../../assets/ui/linien_texturen/textur_warnlinie.png");
+
+// Zielfeld-Marker (löst styles.legalRing ab): weicher grüner Licht-/Ringschein, plus ein
+// sehr sanftes, endloses Atem-Pulsieren (Skalierung 1,0↔1,08), das den Blick des Kindes
+// aufs Zielfeld lenkt, ohne aufdringlich zu wirken (Design-Grundsatz "kein Zeitdruck/keine
+// hektische Animation").
+// `variante`-Prop (Opus-Review, 2026-09-07, Befund 2.5, siehe claude/review_logik_grafik_
+// audiofuehrung.md): "punkt" (Standard) für leere Zielfelder. "ring" für Zielfelder, die
+// ZUGLEICH ein Schlagfeld sind (hasOpponent/hasBlocker) — dort saß der Mittelpunkt-Punkt
+// bisher unsichtbar HINTER der Figur; die Ring-Variante wird deshalb (siehe Aufrufstelle
+// unten) NACH der Figur gerendert und bleibt so als Kontur sichtbar — etabliertes
+// Schach-App-Muster: Punkt = leeres Zielfeld, Ring = Schlagfeld.
+// Update (2026-09-11, Sheet 6 Board-Chrome-Marker, siehe claude/produktionsliste_buttons_
+// farbcodes_v1.md §8): die Form wird nicht mehr live als SVG-Radialverlauf gezeichnet,
+// sondern als produziertes, QA-geprüftes Bild-Asset gerendert (zielfeldPunktBild/
+// zielfeldRingBild oben) — Animations-Wrapper/-Timing unverändert. Die beiden ursprünglich
+// generierten Kandidaten für Punkt/Ring hatten harte statt der geforderten weichen Kanten
+// und wurden vor dem Export per Alpha-Weichzeichner nachbearbeitet (Details dort).
 function ZielfeldMarker({ size, variante = "punkt" }: { size: number; variante?: "punkt" | "ring" }) {
   const puls = useRef(new Animated.Value(0)).current;
 
@@ -95,41 +111,11 @@ function ZielfeldMarker({ size, variante = "punkt" }: { size: number; variante?:
 
   return (
     <Animated.View pointerEvents="none" style={[styles.markerWrap, { transform: [{ scale }], opacity }]}>
-      <Svg width={size} height={size} viewBox="0 0 40 40">
-        <Defs>
-          {/* Visuelle-Politur-Runde (2026-09-09, Rückfrage "hochwertige Designs" für die
-              Brett-Animationen): radialer Verlauf statt Flatcolor — heller Kern → dunklerer
-              Rand gibt dem Punkt spürbares Volumen (wirkt wie eine kleine Kuppel statt eines
-              platten Aufklebers), ohne die Grundform/Farbfamilie (Salbeigrün) zu ändern. */}
-          <RadialGradient id="zielfeldFuellung" cx="42%" cy="38%" r="65%">
-            <Stop offset="0%" stopColor="#C7DCC5" stopOpacity={0.95} />
-            <Stop offset="55%" stopColor="#9CB89A" stopOpacity={0.5} />
-            <Stop offset="100%" stopColor="#7FA07D" stopOpacity={0.22} />
-          </RadialGradient>
-          <RadialGradient id="zielfeldPunktKern" cx="38%" cy="32%" r="70%">
-            <Stop offset="0%" stopColor="#C7DCC5" />
-            <Stop offset="60%" stopColor="#9CB89A" />
-            <Stop offset="100%" stopColor="#7FA07D" />
-          </RadialGradient>
-        </Defs>
-        {variante === "punkt" ? (
-          <>
-            <Circle cx={20} cy={20} r={15} fill="url(#zielfeldFuellung)" />
-            <Circle cx={20} cy={20} r={15} stroke="#9CB89A" strokeWidth={2.5} fill="none" />
-            <Circle cx={20} cy={20} r={4.5} fill="url(#zielfeldPunktKern)" />
-            {/* Kleiner Glanzpunkt oben links auf dem Mittelpunkt — derselbe "veredelte
-                Fläche"-Trick wie bei den Buttons (siehe ChessLynxButton.tsx). */}
-            <Circle cx={18.5} cy={18.3} r={1.1} fill="#FFFFFF" opacity={0.6} />
-          </>
-        ) : (
-          <>
-            {/* Doppelte Kontur statt einer einzelnen Linie: weicher, breiter Außenring gibt
-                dem Schlagfeld-Ring mehr Tiefe, ohne die Außenmaße zu verändern. */}
-            <Circle cx={20} cy={20} r={18} stroke="#7FA07D" strokeWidth={4} fill="none" opacity={0.35} />
-            <Circle cx={20} cy={20} r={18} stroke="#9CB89A" strokeWidth={2.5} fill="none" />
-          </>
-        )}
-      </Svg>
+      <Image
+        source={variante === "punkt" ? zielfeldPunktBild : zielfeldRingBild}
+        style={{ width: size, height: size }}
+        resizeMode="contain"
+      />
     </Animated.View>
   );
 }
@@ -161,42 +147,13 @@ function SammelMarker({ size }: { size: number }) {
 
   const scale = puls.interpolate({ inputRange: [0, 1], outputRange: [0.92, 1.1] });
 
+  // Update (2026-09-11, Sheet 6 Board-Chrome-Marker, siehe claude/produktionsliste_buttons_
+  // farbcodes_v1.md §8): nicht mehr live als SVG-Eichel-Silhouette gezeichnet, sondern als
+  // produziertes, QA-geprüftes Bild-Asset gerendert (eichelSammelBild oben) — Animations-
+  // Wrapper/-Timing (puls, scale) unverändert.
   return (
     <Animated.View pointerEvents="none" style={[styles.markerWrap, { transform: [{ scale }], zIndex: 1 }]}>
-      <Svg width={size} height={size} viewBox="0 0 40 40">
-        {/* Visuelle-Politur-Runde (2026-09-09): echtes Eichel-Silhouette statt zweier flacher,
-            überlappender Kreise — Körper mit sanfter Verjüngung nach unten, Hut mit
-            gewellter Unterkante + angedeuteten Waffel-Linien, Stiel, Glanzpunkt. Bleibt in der
-            bestehenden warmen Marken-Gold/-Braun-Palette. */}
-        <Defs>
-          <RadialGradient id="eichelKoerper" cx="36%" cy="28%" r="75%">
-            <Stop offset="0%" stopColor="#F0C463" />
-            <Stop offset="55%" stopColor="#D7A52D" />
-            <Stop offset="100%" stopColor="#A87A1E" />
-          </RadialGradient>
-          <LinearGradient id="eichelHut" x1="0%" y1="0%" x2="0%" y2="100%">
-            <Stop offset="0%" stopColor="#C2924E" />
-            <Stop offset="100%" stopColor="#8C5F2A" />
-          </LinearGradient>
-        </Defs>
-        {/* Nuss-Körper: rundlich mit sanfter Verjüngung nach unten statt eines platten Kreises. */}
-        <Path
-          d="M11.5 23 C11.5 18 15.2 14.5 20 14.5 C24.8 14.5 28.5 18 28.5 23 C28.5 28.5 24.8 34 20 34 C15.2 34 11.5 28.5 11.5 23 Z"
-          fill="url(#eichelKoerper)"
-        />
-        {/* Hut: Kuppel mit gewellter Unterkante (angedeutete Schuppenstruktur). */}
-        <Path
-          d="M9.5 16 C9.5 9.5 14 6 20 6 C26 6 30.5 9.5 30.5 16 C28.7 17.3 27 15.5 25.2 16.6 C23.4 17.7 21.8 16 20 16 C18.2 16 16.6 17.7 14.8 16.6 C13 15.5 11.3 17.3 9.5 16 Z"
-          fill="url(#eichelHut)"
-        />
-        {/* Kleine Waffel-Linien auf dem Hut statt Flatcolor — angedeutete Schalenstruktur. */}
-        <Path d="M14 11 Q20 8.5 26 11" fill="none" stroke="#6E4A1F" strokeWidth={0.8} opacity={0.55} />
-        <Path d="M12.5 14 Q20 11 27.5 14" fill="none" stroke="#6E4A1F" strokeWidth={0.8} opacity={0.55} />
-        {/* Stiel oben. */}
-        <Path d="M19.3 6 C19.3 4.3 20.7 4.3 20.7 6 L20.5 7.5 H19.5 Z" fill="#6E4A1F" />
-        {/* Glanzpunkt auf dem Körper. */}
-        <Ellipse cx={16.5} cy={20} rx={2.2} ry={3} fill="#FFFFFF" opacity={0.45} />
-      </Svg>
+      <Image source={eichelSammelBild} style={{ width: size, height: size }} resizeMode="contain" />
     </Animated.View>
   );
 }
@@ -221,15 +178,13 @@ function StoppMarker({ size }: { size: number }) {
 
   const scale = eintritt.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] });
 
+  // Update (2026-09-11, Sheet 6 Board-Chrome-Marker, siehe claude/produktionsliste_buttons_
+  // farbcodes_v1.md §8): nicht mehr live als SVG-Doppelring gezeichnet, sondern als
+  // produziertes, QA-geprüftes Bild-Asset gerendert (warnringBild oben) — Eintritts-Animation
+  // (scale/opacity) unverändert.
   return (
     <Animated.View pointerEvents="none" style={[styles.markerWrap, { transform: [{ scale }], opacity: eintritt }]}>
-      <Svg width={size} height={size} viewBox="0 0 40 40">
-        {/* Visuelle-Politur-Runde (2026-09-09): doppelte Kontur statt einer einzelnen Linie —
-            äußerer dünner, heller Ring gibt der gestrichelten Hauptlinie mehr Tiefe, ohne das
-            etablierte "gestrichelt = gerade nicht verfügbar"-Muster zu verändern. */}
-        <Circle cx={20} cy={20} r={17} stroke="#F0BBA0" strokeWidth={1.2} fill="none" opacity={0.6} />
-        <Circle cx={20} cy={20} r={15} stroke="#D98E72" strokeWidth={2.5} strokeDasharray="5,4" fill="none" />
-      </Svg>
+      <Image source={warnringBild} style={{ width: size, height: size }} resizeMode="contain" />
     </Animated.View>
   );
 }
@@ -258,6 +213,10 @@ function BedrohungsPuls({ size }: { size: number }) {
   const scale = puls.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1.04] });
   const kreisGroesse = size * 0.92;
 
+  // Update (2026-09-11, Sheet 6 Board-Chrome-Marker, siehe claude/produktionsliste_buttons_
+  // farbcodes_v1.md §8): nicht mehr live als SVG-Radialverlauf gezeichnet, sondern als
+  // produziertes, QA-geprüftes Bild-Asset gerendert (bedrohungGluehenBild oben) —
+  // Animations-Timing/-Wrapper (opacity/scale-Puls) unverändert.
   return (
     <Animated.View
       pointerEvents="none"
@@ -269,20 +228,7 @@ function BedrohungsPuls({ size }: { size: number }) {
         transform: [{ scale }],
       }}
     >
-      {/* Visuelle-Politur-Runde (2026-09-09): radialer Verlauf statt einer flachen, hart
-          begrenzten Farbfläche — wirkt wie ein echtes warmes Glühen, das nach außen
-          ausklingt, statt eines eingefärbten Kreis-Aufklebers. Animations-Timing/-Wrapper
-          unverändert. */}
-      <Svg width={kreisGroesse} height={kreisGroesse} viewBox="0 0 100 100">
-        <Defs>
-          <RadialGradient id="bedrohungGlut" cx="50%" cy="50%" r="50%">
-            <Stop offset="0%" stopColor="#EFAF8D" stopOpacity={1} />
-            <Stop offset="60%" stopColor="#D98E72" stopOpacity={0.85} />
-            <Stop offset="100%" stopColor="#D98E72" stopOpacity={0} />
-          </RadialGradient>
-        </Defs>
-        <Circle cx={50} cy={50} r={50} fill="url(#bedrohungGlut)" />
-      </Svg>
+      <Image source={bedrohungGluehenBild} style={{ width: kreisGroesse, height: kreisGroesse }} resizeMode="contain" />
     </Animated.View>
   );
 }
@@ -750,19 +696,43 @@ export function Board({
             const p1 = mitte(effektivAngreiferAt);
             const pe = mitte(elbow);
             const p2 = mitte(effektivBedrohtAt);
+            // Update (2026-09-11, Sheet 7 Linien-Texturen, siehe claude/produktionsliste_
+            // buttons_farbcodes_v1.md §9): die gestrichelte Linie wird nicht mehr live
+            // gezeichnet, sondern mit der produzierten, QA-geprüften Warnlinien-Textur
+            // (warnlinieTexturBild oben) gefüllt — als SVG-<Pattern> auf einem lokal
+            // unrotierten <Rect> je Elbow-Segment, das per translate+rotate-Transform-String
+            // auf die jeweilige Strecke gedreht wird (die Pattern-Füllung dreht sich dabei mit
+            // dem Element mit — Standard-SVG-Verhalten, dasselbe Prinzip wie bei der
+            // Kettenlinien-Textur weiter unten). Native Texturmaße 2172×101px
+            // (Seitenverhältnis 21,5) bestimmen die Kachel-Breite, damit die Textur unverzerrt
+            // wiederholt wird.
+            const dicke = Math.max(5, cellSize * 0.11);
+            const kachelBreite = dicke * (2172 / 101);
+            const segment = (a: { x: number; y: number }, b: { x: number; y: number }, k: string) => {
+              const laenge = Math.hypot(b.x - a.x, b.y - a.y);
+              if (laenge < 1) return null;
+              const winkel = (Math.atan2(b.y - a.y, b.x - a.x) * 180) / Math.PI;
+              return (
+                <Rect
+                  key={k}
+                  x={0}
+                  y={-dicke / 2}
+                  width={laenge}
+                  height={dicke}
+                  fill="url(#warnlinieMuster)"
+                  transform={`translate(${a.x} ${a.y}) rotate(${winkel})`}
+                />
+              );
+            };
             return (
               <>
-                {/* Visuelle-Politur-Runde (2026-09-09): dezenter Verlauf entlang der
-                    Gesamtstrecke (userSpaceOnUse, damit beide Linien-Segmente denselben
-                    Verlauf konsistent fortsetzen) statt einer einfarbigen Linie. */}
                 <Defs>
-                  <LinearGradient id="bedrohungslinie" x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y} gradientUnits="userSpaceOnUse">
-                    <Stop offset="0%" stopColor="#E8A583" />
-                    <Stop offset="100%" stopColor="#D98E72" />
-                  </LinearGradient>
+                  <Pattern id="warnlinieMuster" patternUnits="userSpaceOnUse" width={kachelBreite} height={dicke}>
+                    <SvgImage href={warnlinieTexturBild} x={0} y={0} width={kachelBreite} height={dicke} preserveAspectRatio="none" />
+                  </Pattern>
                 </Defs>
-                <Line x1={p1.x} y1={p1.y} x2={pe.x} y2={pe.y} stroke="url(#bedrohungslinie)" strokeWidth={2.5} strokeDasharray="6,5" />
-                <Line x1={pe.x} y1={pe.y} x2={p2.x} y2={p2.y} stroke="url(#bedrohungslinie)" strokeWidth={2.5} strokeDasharray="6,5" />
+                {segment(p1, pe, "bedrohung-seg1")}
+                {segment(pe, p2, "bedrohung-seg2")}
               </>
             );
           })()}
@@ -783,43 +753,34 @@ export function Board({
             const mitte = (s: BoardSquare) => ({ x: s.col * cellSize + cellSize / 2, y: s.row * cellSize + cellSize / 2 });
             const p1 = mitte(kettenlinie.von);
             const p2 = mitte(kettenlinie.bis);
-            const ANZAHL_GLIEDER = 7;
+            const laenge = Math.hypot(p2.x - p1.x, p2.y - p1.y);
             const winkelGrad = (Math.atan2(p2.y - p1.y, p2.x - p1.x) * 180) / Math.PI;
-            const gliedBreite = Math.max(9, cellSize * 0.16);
-            const gliedHoehe = gliedBreite * 0.55;
-            const glieder = Array.from({ length: ANZAHL_GLIEDER }, (_, i) => {
-              const t = (i + 1) / (ANZAHL_GLIEDER + 1);
-              return { x: p1.x + (p2.x - p1.x) * t, y: p1.y + (p2.y - p1.y) * t };
-            });
+            // Update (2026-09-11, Sheet 7 Linien-Texturen, siehe claude/produktionsliste_
+            // buttons_farbcodes_v1.md §9): die Kettenlinie wird nicht mehr live aus Ellipse-
+            // "Kettengliedern" gezeichnet, sondern mit der produzierten, QA-geprüften
+            // Ketten-Textur (kettenTexturBild oben) gefüllt — als SVG-<Pattern> auf einem
+            // einzigen <Rect> (die Kettenlinie ist immer geometrisch gerade, kein Elbow
+            // nötig), per translate+rotate-Transform-String auf die Verbindungsstrecke
+            // gedreht. Native Texturmaße 2172×200px (Seitenverhältnis 10,86) bestimmen die
+            // Kachel-Breite, damit die Textur unverzerrt wiederholt wird.
+            const dicke = Math.max(8, cellSize * 0.16);
+            const kachelBreite = dicke * (2172 / 200);
+            if (laenge < 1) return null;
             return (
               <>
-                {/* Visuelle-Politur-Runde (2026-09-09): echte, ineinandergreifende
-                    Kettenglieder (abwechselnd längs/quer zur Verbindungslinie gedreht, wie bei
-                    einer echten Kette) statt schlichter, flach gefüllter Punkte — Verlaufs-
-                    Stroke für einen leicht metallischen Eindruck, weiterhin Marken-Gold. */}
                 <Defs>
-                  <LinearGradient id="kettenglied" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <Stop offset="0%" stopColor="#F0D27A" />
-                    <Stop offset="50%" stopColor="#D7A52D" />
-                    <Stop offset="100%" stopColor="#A87A1E" />
-                  </LinearGradient>
+                  <Pattern id="kettenlinieMuster" patternUnits="userSpaceOnUse" width={kachelBreite} height={dicke}>
+                    <SvgImage href={kettenTexturBild} x={0} y={0} width={kachelBreite} height={dicke} preserveAspectRatio="none" />
+                  </Pattern>
                 </Defs>
-                <Line x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y} stroke="#D7A52D" strokeWidth={1.5} strokeOpacity={0.35} />
-                {glieder.map((g, i) => (
-                  <Ellipse
-                    key={i}
-                    cx={g.x}
-                    cy={g.y}
-                    rx={gliedBreite / 2}
-                    ry={gliedHoehe / 2}
-                    fill="none"
-                    stroke="url(#kettenglied)"
-                    strokeWidth={gliedHoehe * 0.45}
-                    rotation={i % 2 === 0 ? winkelGrad : winkelGrad + 90}
-                    originX={g.x}
-                    originY={g.y}
-                  />
-                ))}
+                <Rect
+                  x={0}
+                  y={-dicke / 2}
+                  width={laenge}
+                  height={dicke}
+                  fill="url(#kettenlinieMuster)"
+                  transform={`translate(${p1.x} ${p1.y}) rotate(${winkelGrad})`}
+                />
               </>
             );
           })()}
