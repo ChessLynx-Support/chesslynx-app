@@ -83,8 +83,9 @@ const SCREEN_SCRIPTS: Record<Exclude<ScreenId, 2>, string[]> = {
     "Hier lebt ein neuer Freund.",
     "Tipp weiter, um ihn kennenzulernen.",
   ],
+  // Update (2026-09-10, siehe Quest2.tsx-Kommentar zur selben Änderung): "Hallo! Ich
+  // bin's wieder, Lux." ersatzlos gestrichen.
   1: [
-    "Hallo! Ich bin's wieder, Lux.",
     "Das ist ein Pferd.",
     // Update (2026-09-08, Task #109, siehe claude/vorgemerkt_quest_tempo_und_
     // automatikvorfuehrung.md Punkt 3): löst "Tipp irgendwo hin, um weiterzumachen" ab —
@@ -96,7 +97,9 @@ const SCREEN_SCRIPTS: Record<Exclude<ScreenId, 2>, string[]> = {
   4: [
     "Schau, hinter dem Springer steht eine kleine Bauernkette.",
     "Die stören ihn überhaupt nicht. Er hüpft einfach über alle hinweg.",
-    "Ganz hinten wartet sogar Besuch. Kannst du ihn schlagen?",
+    // Update (2026-09-10, siehe Quest1.tsx-Kommentar zur selben Formulierungsänderung):
+    // "wartet sogar Besuch. Kannst du ihn schlagen?" ersetzt durch "einfangen"-Framing.
+    "Ganz hinten ist eine gegnerische Figur aufgetaucht. Fang sie ein!",
   ],
   // Update (2026-09-08, siehe Kommentar an der screen===7-Stelle unten): zweite Zeile nennt
   // jetzt explizit das Antippen und wohin es führt (Karte statt nächste Quest).

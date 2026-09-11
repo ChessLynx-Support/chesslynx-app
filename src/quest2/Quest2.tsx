@@ -72,8 +72,11 @@ const SCREEN_SCRIPTS: Record<Exclude<ScreenId, 2>, string[]> = {
     "Hier lebt ein neuer Freund.",
     "Tipp weiter, um ihn kennenzulernen.",
   ],
+  // Update (2026-09-10, Kurztest-Feedback: die Wiederholungszeile "Hallo! Ich bin's
+  // wieder, Lux." wirkte deplatziert, da Lux sich bereits in der WillkommensSequenz
+  // vorgestellt hat und seitdem durchgehend spricht — ersatzlos gestrichen, siehe
+  // claude/entscheidungslog.md.
   1: [
-    "Hallo! Ich bin's wieder, Lux.",
     "Das ist ein Bär.",
     // Update (2026-09-08, Task #109, siehe claude/vorgemerkt_quest_tempo_und_
     // automatikvorfuehrung.md Punkt 3, "auch für die restlichen Figuren vormerken"): löst
@@ -89,7 +92,9 @@ const SCREEN_SCRIPTS: Record<Exclude<ScreenId, 2>, string[]> = {
     "Der Turm kann nicht darüber hinwegziehen.",
     "Er darf aber trotzdem zur Seite ziehen.",
   ],
-  5: ["Am Ende des Weges wartet eine Figur.", "Der Turm kann sie freundlich begrüßen."],
+  // Update (2026-09-10, Kurztest-Feedback, siehe Quest1.tsx-Kommentar zur selben
+  // Formulierungsänderung): "freundlich begrüßen" ersetzt durch "einfangen".
+  5: ["Am Ende des Weges ist eine gegnerische Figur aufgetaucht.", "Fang sie ein – zieh einfach dorthin!"],
   // Update (2026-09-08, siehe Kommentar an der screen===7-Stelle unten): zweite Zeile nennt
   // jetzt explizit das Antippen und wohin es führt (Karte statt nächste Quest).
   7: ["Lux hat ein neues Gebiet entdeckt!", "Wunderbar gemacht! Tippe, um zurück zur Karte zu gehen."],

@@ -136,7 +136,14 @@ const SCREEN_SCRIPTS: Record<Exclude<ScreenId, 2>, string[]> = {
     "Der Bauer kann nicht geradeaus über eine andere Figur springen.",
     "Versuch es ruhig einmal aus.",
   ],
-  5: ["Eine Figur ist zu Besuch!", "Der Bauer kann sie schräg vorne freundlich begrüßen."],
+  // Update (2026-09-10, Kurztest-Feedback: "sollte wirklich davon gesprochen werden, dass
+  // eine gegnerische Figur auftaucht, die wir fangen wollen — nicht von begrüßen, das
+  // wirkt albern"): löst die bisherige "ist zu Besuch"/"freundlich begrüßen"-Formulierung
+  // ab, siehe claude/entscheidungslog.md. Bleibt bewusst nicht-gewalttätig (Design-
+  // Grundsatz 2: kein Besiegen/keine Kill-Effekte), sagt aber klar, dass es sich um eine
+  // gegnerische Figur handelt, die gefangen statt begrüßt wird — "schräg nach vorne"
+  // bleibt als bauernspezifischer Hinweis erhalten (einzige erlaubte Schlagrichtung).
+  5: ["Da drüben ist eine gegnerische Figur aufgetaucht.", "Fang sie ein – zieh schräg nach vorne dorthin!"],
   // Sprach-Harmonie-Review (2026-09-09): zweite Zeile war hier bisher die einzige der
   // sechs Abenteuer-Abschluss-Zeilen ohne den Rückkehr-Hinweis ("Tippe, um zurück zur
   // Karte zu gehen.") UND navigierte direkt zu Quest2 statt zur Karte (siehe

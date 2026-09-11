@@ -115,8 +115,9 @@ const SCREEN_SCRIPTS: Record<Exclude<ScreenId, 2>, string[]> = {
     "Hier lebt der Wichtigste von allen.",
     "Tipp weiter, um ihn kennenzulernen.",
   ],
+  // Update (2026-09-10, siehe Quest2.tsx-Kommentar zur selben Änderung): "Hallo! Ich
+  // bin's wieder, Lux." ersatzlos gestrichen.
   1: [
-    "Hallo! Ich bin's wieder, Lux.",
     "Das ist ein Hirsch.",
     // Update (2026-09-08, Task #110, siehe claude/vorgemerkt_quest_tempo_und_
     // automatikvorfuehrung.md Punkt 3): löst "Tipp irgendwo hin, um weiterzumachen" ab —
@@ -126,7 +127,9 @@ const SCREEN_SCRIPTS: Record<Exclude<ScreenId, 2>, string[]> = {
   ],
   verwandlung: ["Und jetzt die Verwandlung: Aus dem Hirsch wird ein König!"],
   4: ["Achtung, Schach! Der König ist in Gefahr.", "Tipp auf ein sicheres Feld, um ihm zu helfen."],
-  5: ["Steht eine Figur direkt daneben, kann der König sie freundlich begrüßen.", "Tipp hin."],
+  // Update (2026-09-10, siehe Quest1.tsx-Kommentar zur selben Formulierungsänderung):
+  // "freundlich begrüßen" ersetzt durch "einfangen".
+  5: ["Steht eine gegnerische Figur direkt daneben, kannst du sie einfangen.", "Tipp hin."],
   // Update (2026-09-08, siehe RootNavigator/Quest1–5-Kommentare zum selben Datum): zweite
   // Zeile jetzt konsistent mit Quest1–5 — nennt explizit das Antippen und wohin es führt
   // (zurück zur Karte). Die Navigation selbst war hier schon immer "KidHome" (siehe unten).
