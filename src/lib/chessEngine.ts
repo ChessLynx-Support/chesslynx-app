@@ -173,9 +173,21 @@ export const QUEST1_POSITIONS = {
  * in Quest 1.
  */
 export const QUEST2_POSITIONS = {
-  // Screen 2: offene Bahn -> Turm darf beliebig weit senkrecht (a-Linie) und waagerecht
-  // (1. Reihe, bis zum eigenen König auf e1) ziehen.
-  screen2: "4k3/8/8/8/8/8/8/R3K3 w - - 0 1",
+  // Screen 2: offene Bahn -> Turm darf beliebig weit senkrecht (a-Linie) UND waagerecht
+  // (die komplette 1. Reihe) ziehen.
+  //
+  // Bugfix (Kurztest-Feedback 2026-09-10: "Turm ist ab e-h nicht als Zug auswählbar und
+  // die Auswahl abgeschnitten"): genau derselbe Fehler wie bei screen4Blocked unten (siehe
+  // dortiger, bereits 2026-09-08 behobener Bugfix-Kommentar) steckte hier ebenfalls noch —
+  // der eigene König stand auf e1, mitten auf der angeblich offenen 1. Reihe.
+  // legalTargetsFor lieferte für den Turm dadurch nur b1/c1/d1 (plus die volle a-Linie),
+  // e1-h1 waren durch den eigenen König blockiert; exakt das vom Kind beobachtete
+  // "ab e-h nicht auswählbar, abgeschnitten". Beim damaligen Fix von screen4Blocked wurde
+  // dieselbe Ursache hier übersehen, weil screen2 und screen5Capture (siehe dort) absichtlich
+  // ungeprüft "as-is" beibehalten wurden. König jetzt ebenfalls auf h4 (dasselbe etablierte
+  // Muster "König auf einem Feld außerhalb des Übungswegs") — die 1. Reihe ist dadurch jetzt
+  // tatsächlich komplett frei bis h1.
+  screen2: "4k3/8/8/8/7K/8/8/R7 w - - 0 1",
   // Screen 4: eigener Bauer auf a3 blockiert die Linie nach zwei freien Feldern (a2) ->
   // chess.js liefert a2 + die freie 1. Reihe als Legalzüge, a3 (und alles dahinter) bleibt
   // nicht erreichbar. a3 selbst ist das Stopp!-Zielfeld (dort steht ja schon eine Figur,
@@ -193,7 +205,13 @@ export const QUEST2_POSITIONS = {
   screen4Blocked: "4k3/8/8/8/7K/P7/8/R7 w - - 0 1",
   // Screen 5: gegnerischer Springer auf a4, Weg dorthin frei -> a4 ist ein echter,
   // legaler Schlagzug.
-  screen5Capture: "4k3/8/8/8/n7/8/8/R3K3 w - - 0 1",
+  //
+  // Bugfix (Kurztest-Feedback 2026-09-10, siehe screen2-Kommentar oben): derselbe
+  // e1-blockiert-die-1.-Reihe-Fehler. König jetzt auf h4, in derselben Reihe wie der
+  // Springer auf a4 untergebracht ("n6K") — geprüft, dass der Springer von a4 aus h4 NICHT
+  // angreift (Sprungmuster von a4: b6/b2/c5/c3), der weiße König steht dort also nicht im
+  // Schach.
+  screen5Capture: "4k3/8/8/8/n6K/8/8/R7 w - - 0 1",
 } as const;
 
 /**

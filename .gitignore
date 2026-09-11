@@ -3,3 +3,19 @@ node_modules/
 dist/
 *.log
 .DS_Store
+
+# Lokale Secrets / Schlüssel — nie ins Repository
+.env
+.env.*
+!.env.example
+*.p8
+*.p12
+*.jks
+*.keystore
+*.mobileprovision
+google-services.json
+GoogleService-Info.plist
+*service-account*.json
+
+# Lokale Lichess-Rohdaten (groß, jederzeit neu ladbar)
+*.csv.zst

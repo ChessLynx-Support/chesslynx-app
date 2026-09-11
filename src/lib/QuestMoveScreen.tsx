@@ -133,6 +133,18 @@ function alsArray(at: BoardSquare | BoardSquare[] | undefined): BoardSquare[] {
 // abgeschwächter Form auch den Springer (mehrere Sprünge können sich einen Vorzeichen-
 // "Oktanten" teilen, was hier keinen Schaden anrichtet, da ohnehin nur EIN Zielfeld pro
 // Runde vorgeschlagen wird).
+//
+// Zweiter Bugfix (2026-09-10, Kurztest-Feedback nach dem ersten Fix: "Auch hier ist die
+// Eichel immer direkt ein Feld weiter"): Die erste Fassung wählte innerhalb der gewählten
+// Richtung IMMER das nächstgelegene Feld. Für Turm/Läufer/Dame ist das nächstgelegene Feld
+// einer freien Linie aber rein geometrisch IMMER genau ein Feld entfernt (jedes Feld davor
+// wäre sonst selbst schon blockiert und käme als Legalzug gar nicht erst vor) — die Eichel
+// zeigte dadurch ausnahmslos jede Runde einen Ein-Feld-Schritt, nie einen weiteren Zug über
+// mehrere Felder. Jetzt wandert der Abstand INNERHALB einer Richtung mit jedem vollen
+// Durchlauf aller Richtungen eine Stufe weiter (`tiefe` unten) — Runde 0..n-1 zeigt jede
+// Richtung einmal ganz nah, danach (Runde n..2n-1) jede Richtung einen Schritt weiter usw.,
+// gedeckelt auf das jeweils am weitesten entfernte tatsächlich vorhandene Feld dieser
+// Richtung.
 function waehleVorschlagZiel(
   legalTargets: BoardSquare[],
   von: BoardSquare,
@@ -149,19 +161,26 @@ function waehleVorschlagZiel(
     if (!richtungen.includes(schluessel)) richtungen.push(schluessel);
   }
 
-  const gewaehlteRichtung = richtungen[rundenIndex % richtungen.length];
+  const anzahlRichtungen = richtungen.length;
+  const richtungIndex = rundenIndex % anzahlRichtungen;
+  // Wie oft diese Richtung (bzw. jede Richtung, da reihum durchlaufen) bereits an der Reihe
+  // war — bestimmt, wie weit wir diesmal innerhalb der Richtung nach außen gehen.
+  const tiefe = Math.floor(rundenIndex / anzahlRichtungen);
+  const gewaehlteRichtung = richtungen[richtungIndex];
   const kandidaten = legalTargets.filter((ziel) => richtungsSchluessel(ziel) === gewaehlteRichtung);
 
-  // Innerhalb der gewählten Richtung das NÄCHSTGELEGENE Feld (kleinster Abstand), nicht das
-  // am weitesten entfernte — fühlt sich für ein Kind als natürlicherer, kleiner Schritt an
-  // (genau der Läufer-Punkt aus dem Kurztest-Feedback).
+  // Innerhalb der gewählten Richtung nach Abstand sortiert (nächstes zuerst), dann per
+  // `tiefe` ausgewählt und dabei auf das am weitesten verfügbare Feld gedeckelt — so bleibt
+  // die Eichel immer ein tatsächlich vorhandenes Feld dieser Richtung, auch wenn `tiefe`
+  // die Anzahl der Felder irgendwann übersteigt.
   kandidaten.sort((a, b) => {
     const distA = Math.max(Math.abs(a.row - von.row), Math.abs(a.col - von.col));
     const distB = Math.max(Math.abs(b.row - von.row), Math.abs(b.col - von.col));
     return distA - distB;
   });
 
-  return kandidaten[0];
+  const index = Math.min(tiefe, kandidaten.length - 1);
+  return kandidaten[index];
 }
 
 /**
