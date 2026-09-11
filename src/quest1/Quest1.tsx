@@ -143,7 +143,14 @@ const SCREEN_SCRIPTS: Record<Exclude<ScreenId, 2>, string[]> = {
   // Grundsatz 2: kein Besiegen/keine Kill-Effekte), sagt aber klar, dass es sich um eine
   // gegnerische Figur handelt, die gefangen statt begrüßt wird — "schräg nach vorne"
   // bleibt als bauernspezifischer Hinweis erhalten (einzige erlaubte Schlagrichtung).
-  5: ["Da drüben ist eine gegnerische Figur aufgetaucht.", "Fang sie ein – zieh schräg nach vorne dorthin!"],
+  // Paket 1 (2026-09-11, Entscheidungslog): Begriffsbrücke "einfangen → schlagen" — Quest 1
+  // führt den Fachbegriff ein, Quest 2–6 verwenden danach nur noch "schlagen". Die
+  // Zugaufforderung steht bewusst als letzte Zeile (das Brett ist sofort antippbar).
+  5: [
+    "Da drüben ist eine gegnerische Figur aufgetaucht.",
+    "Wir fangen sie ein – in der Schachwelt sagt man dazu: schlagen.",
+    "Schlag sie – zieh schräg nach vorne dorthin!",
+  ],
   // Sprach-Harmonie-Review (2026-09-09): zweite Zeile war hier bisher die einzige der
   // sechs Abenteuer-Abschluss-Zeilen ohne den Rückkehr-Hinweis ("Tippe, um zurück zur
   // Karte zu gehen.") UND navigierte direkt zu Quest2 statt zur Karte (siehe
@@ -152,7 +159,8 @@ const SCREEN_SCRIPTS: Record<Exclude<ScreenId, 2>, string[]> = {
   // angeglichen: Lux' Abschluss-Führung soll sich für ein Kind, das mehrere Abenteuer
   // hintereinander spielt, überall gleich anfühlen (nicht: "beim ersten Mal geht's von
   // allein weiter, danach nicht mehr" — das wäre eher verwirrend als hilfreich).
-  7: ["Lux hat ein neues Gebiet entdeckt!", "Wunderbar gemacht! Tippe, um zurück zur Karte zu gehen."],
+  // Paket 1 (2026-09-11, Audit C.2): Ich-/Wir-Perspektive statt Lux in der dritten Person.
+  7: ["Wir haben ein neues Gebiet entdeckt!", "Wunderbar gemacht! Tippe, um zurück zur Karte zu gehen."],
 };
 
 // Neu (2026-09-08, siehe Kommentar bei SCREEN_SCRIPTS oben und claude/quest_review_

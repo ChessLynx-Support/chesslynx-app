@@ -214,7 +214,7 @@ export default function MattIn3() {
     if (screen === 0 || screen === 5) return SCREEN_SCRIPTS[screen];
     if (screen === 1) {
       const frames = [
-        "Schau, wie er immer kleiner wird. Wir schieben ihn Stück für Stück an den Rand.",
+        "Schau, wie sein Platz immer kleiner wird. Wir schieben ihn Stück für Stück an den Rand.",
         "Ein Turm schneidet ihm eine Reihe ab...",
         "...der andere Turm die nächste...",
         "...bis er ganz am Rand gefangen ist. Matt!",

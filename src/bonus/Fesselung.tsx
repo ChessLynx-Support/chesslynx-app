@@ -89,7 +89,8 @@ type ScreenId = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
 const SCREEN_SCRIPTS: Record<ScreenId, string[]> = {
   0: [
-    "Hallo, ich bin's wieder, Lux! Heute zeige ich dir ein spannendes Geheimnis.",
+    // Paket 1 (2026-09-11): "Heute" gestrichen — setzt eine Sitzungsgrenze voraus, die es nicht gibt.
+    "Hallo, ich bin's wieder, Lux! Ich zeige dir ein spannendes Geheimnis.",
     "Schau dir diesen Wächter an.",
     "Er steht genau zwischen seinem König und einer gegnerischen Figur.",
     "Er ist an seinen König gekettet.",

@@ -99,11 +99,13 @@ const SCREEN_SCRIPTS: Record<Exclude<ScreenId, 2>, string[]> = {
     "Die stören ihn überhaupt nicht. Er hüpft einfach über alle hinweg.",
     // Update (2026-09-10, siehe Quest1.tsx-Kommentar zur selben Formulierungsänderung):
     // "wartet sogar Besuch. Kannst du ihn schlagen?" ersetzt durch "einfangen"-Framing.
-    "Ganz hinten ist eine gegnerische Figur aufgetaucht. Fang sie ein!",
+    // Paket 1 (2026-09-11): "schlagen" statt "einfangen", siehe Quest1.tsx Screen 5.
+    "Ganz hinten ist eine gegnerische Figur aufgetaucht. Kannst du sie schlagen?",
   ],
   // Update (2026-09-08, siehe Kommentar an der screen===7-Stelle unten): zweite Zeile nennt
   // jetzt explizit das Antippen und wohin es führt (Karte statt nächste Quest).
-  7: ["Lux hat ein neues Gebiet entdeckt!", "Wunderbar gemacht! Tippe, um zurück zur Karte zu gehen."],
+  // Paket 1 (2026-09-11, Audit C.2): Ich-/Wir-Perspektive statt Lux in der dritten Person.
+  7: ["Wir haben ein neues Gebiet entdeckt!", "Wunderbar gemacht! Tippe, um zurück zur Karte zu gehen."],
 };
 
 // Neu (2026-09-08, Task #109, siehe Kommentar bei SCREEN_SCRIPTS oben und Quest1.tsx):

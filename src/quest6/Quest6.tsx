@@ -129,7 +129,9 @@ const SCREEN_SCRIPTS: Record<Exclude<ScreenId, 2>, string[]> = {
   4: ["Achtung, Schach! Der König ist in Gefahr.", "Tipp auf ein sicheres Feld, um ihm zu helfen."],
   // Update (2026-09-10, siehe Quest1.tsx-Kommentar zur selben Formulierungsänderung):
   // "freundlich begrüßen" ersetzt durch "einfangen".
-  5: ["Steht eine gegnerische Figur direkt daneben, kannst du sie einfangen.", "Tipp hin."],
+  // Paket 1 (2026-09-11, Entscheidungslog): "schlagen" wird in Quest 1 per Brückenzeile
+  // eingeführt und ab hier durchgängig verwendet — kein "begrüßen", kein "einfangen" mehr.
+  5: ["Steht eine gegnerische Figur direkt daneben, kann auch der König sie schlagen.", "Tipp hin."],
   // Update (2026-09-08, siehe RootNavigator/Quest1–5-Kommentare zum selben Datum): zweite
   // Zeile jetzt konsistent mit Quest1–5 — nennt explizit das Antippen und wohin es führt
   // (zurück zur Karte). Die Navigation selbst war hier schon immer "KidHome" (siehe unten).

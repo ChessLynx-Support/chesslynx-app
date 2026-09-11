@@ -40,3 +40,17 @@ welcher Datei gehört) zurückgibst, kann ich anhand der `id`-Spalte jede Datei 
 der richtigen Sprechzeile im jeweiligen Screen zuordnen — ohne erneuten Textabgleich,
 selbst wenn zwei Zeilen inhaltlich ähnlich klingen (z. B. die vier
 Wiederholungshinweis-Varianten `wisent.kuer.wiederholungshinweis_a`–`_d`).
+
+## Änderungen 2026-09-11 (Paket 1, Sprachkorrekturen)
+
+- 33 Zeilen an die Korrekturliste (`sprachkorrekturen_alt_neu_2026-09-10.md`, Abschnitt D) und an
+  `gefaehrten_wisent_lichess_sprechtexte_final.md` v2 angeglichen: „Umwandlung" statt
+  „Bauern-Verwandlung", Beugung „zum Wisent", Boss-Puzzle als Einladung, Gefährten-Anliegen,
+  „Bergtor" statt „Wisentfeste" in der gesprochenen Übergangssequenz, „gewonnen" statt
+  „geschlagen" beim Freispiel-Wiederholungshinweis. EN-Fassungen entsprechend nachgezogen.
+- `lichess.themenuebung.erstbesuch` in `…_1` / `…_2` geteilt (zwei Tipp-weiter-Zeilen).
+- Neu: `schlossvorplatz.uebergang_2_launch10`, `wisentfeste.uebergang_4_launch10`
+  (Übergangszeilen nur für Launch 1.0, bis Update 1), `motto.2a_figuren`, `motto.2b_figuren`,
+  `motto.3b_motto` (Motto-Moment v2). Jetzt 96 Zeilen.
+- Die IDs werden mit der TTS-Pipeline (Paket 4) ins neue Schema `<bereich>_<einheit>_<screen>_<lfd>`
+  überführt; dieses Dokument bekommt dann die Mapping-Tabelle.

@@ -80,10 +80,13 @@ const SCREEN_SCRIPTS: Record<Exclude<ScreenId, 2>, string[]> = {
   ],
   // Update (2026-09-10, siehe Quest1.tsx-Kommentar zur selben Formulierungsänderung):
   // "freundlich begrüßen" ersetzt durch "einfangen".
-  5: ["Am Ende des Weges ist eine gegnerische Figur aufgetaucht.", "Fang sie ein – zieh einfach dorthin!"],
+  // Paket 1 (2026-09-11, Entscheidungslog): "schlagen" wird in Quest 1 per Brückenzeile
+  // eingeführt und ab hier durchgängig verwendet — kein "begrüßen", kein "einfangen" mehr.
+  5: ["Am Ende des Weges ist eine gegnerische Figur aufgetaucht.", "Schlag sie – zieh einfach dorthin!"],
   // Update (2026-09-08, siehe Kommentar an der screen===7-Stelle unten): zweite Zeile nennt
   // jetzt explizit das Antippen und wohin es führt (Karte statt nächste Quest).
-  7: ["Lux hat ein neues Gebiet entdeckt!", "Wunderbar gemacht! Tippe, um zurück zur Karte zu gehen."],
+  // Paket 1 (2026-09-11, Audit C.2): Ich-/Wir-Perspektive statt Lux in der dritten Person.
+  7: ["Wir haben ein neues Gebiet entdeckt!", "Wunderbar gemacht! Tippe, um zurück zur Karte zu gehen."],
 };
 
 // Neu (2026-09-08, Task #109, siehe Kommentar bei SCREEN_SCRIPTS oben und Quest1.tsx):

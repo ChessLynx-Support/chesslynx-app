@@ -91,10 +91,10 @@ type ScreenId = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 const SCREEN_SCRIPTS: Record<ScreenId, string[]> = {
   0: [
     "Hallo, ich bin's wieder!",
-    "Heute zeig ich dir noch einen Schach-Trick!",
+    // Paket 1 (2026-09-11): "Heute" gestrichen (wie Fesselung), zwei Zeilen zu einer zusammengezogen.
+    "Ich zeig dir noch einen Schach-Trick!",
     "Der König und der Turm sind gute Freunde.",
-    "Der König darf sonst immer nur einen einzigen Schritt machen.",
-    "Das weißt du schon.",
+    "Der König darf sonst immer nur einen Schritt machen – das weißt du schon.",
     "Aber jetzt passiert etwas ganz Besonderes!",
     "Nur dieses eine Mal im ganzen Spiel!",
   ],
