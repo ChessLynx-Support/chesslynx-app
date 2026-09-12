@@ -42,13 +42,14 @@ import {
 } from "firebase/auth";
 import { elternAbmelden, useAuthUser } from "../lib/auth";
 import {
-  GANZE_PARTIE_ETAPPE_KEY,
   ladeGanzePartieEtappe,
   loescheGanzePartieEtappe,
   speichereGanzePartieEtappe,
 } from "../lib/ganzePartieStand";
 import {
   getOrCreateAktivesKindId,
+  kontoBezogeneLokaleDatenLoeschen,
+  lokalenSpielstandLoeschen,
   loadBonusFortschrittLocal,
   loadQuestFortschrittLocal,
   saveBonusFortschrittLocal,
@@ -56,7 +57,8 @@ import {
 } from "../lib/storage";
 import {
   CONSENT_VERSION,
-  db,
+  COPPA_HINWEIS_VERSION,
+  holeDb,
   elternEinstellungenPfad,
   kinderCollectionPfad,
   kindProfilPfad,
@@ -105,11 +107,6 @@ import {
   vorhoerenStoppen,
 } from "../lib/stimmeAuswahl";
 
-// Muss mit AKTIVES_KIND_ID_KEY_PREFIX in lib/storage.ts übereinstimmen (dort nicht
-// exportiert) — nur hier gebraucht, um den lokalen Cache bei einer Kontolöschung
-// sauber zu leeren, damit ein neu registriertes Konto auf demselben Gerät nicht
-// versehentlich die alte Kind-ID wiederverwendet.
-const AKTIVES_KIND_ID_KEY_PREFIX = "chesslynx:aktivesKindId:";
 const EINFUEHRUNG_GEZEIGT_KEY = "chesslynx:dashboardEinfuehrungGezeigt";
 
 // Reihenfolge der Grundfiguren-Quests, wie im geprüften Entwurf abgebildet (Bauer →
@@ -284,7 +281,7 @@ export function ParentDashboard({ navigation }: any) {
         const kindId = await getOrCreateAktivesKindId(user.uid);
         const [kindSnap, geladeneEinstellungen, limit, nutzung, einfuehrungGezeigt, untertitel, hinweise] =
           await Promise.all([
-            getDoc(doc(db, kindProfilPfad(user.uid, kindId))),
+            getDoc(doc(holeDb(), kindProfilPfad(user.uid, kindId))),
             ladeElternEinstellungen(user.uid),
             leseTaeglichesZeitlimit(),
             leseHeutigeNutzung(),
@@ -379,6 +376,7 @@ export function ParentDashboard({ navigation }: any) {
       await speichereElternEinstellungen(user.uid, {
         einwilligungErteiltAm: jetzt,
         einwilligungVersion: CONSENT_VERSION,
+        coppaHinweisVersion: COPPA_HINWEIS_VERSION,
       });
       setEinstellungen((vorher) =>
         vorher ? { ...vorher, einwilligungErteiltAm: jetzt, einwilligungVersion: CONSENT_VERSION } : vorher
@@ -447,12 +445,14 @@ export function ParentDashboard({ navigation }: any) {
       // noch da), was sich über einen erneuten Löschversuch problemlos nachholen lässt.
       // Bekannte Grenze (siehe Entwurf): eine serverseitig GARANTIERT verknüpfte
       // Löschung bräuchte eine Cloud Function — für den MVP-Kern bewusst zurückgestellt.
-      const kinderSnap = await getDocs(collection(db, kinderCollectionPfad(user.uid)));
+      const kinderSnap = await getDocs(collection(holeDb(), kinderCollectionPfad(user.uid)));
       await Promise.all(kinderSnap.docs.map((kindDoc) => deleteDoc(kindDoc.ref)));
-      await deleteDoc(doc(db, elternEinstellungenPfad(user.uid))).catch(() => {
+      await deleteDoc(doc(holeDb(), elternEinstellungenPfad(user.uid))).catch(() => {
         // Kein Einstellungen-Dokument vorhanden (nie etwas gespeichert) — kein Fehlerfall.
       });
-      await AsyncStorage.removeItem(AKTIVES_KIND_ID_KEY_PREFIX + user.uid);
+      // Paket 5: auch auf diesem Gerät alles entfernen, was zum Konto gehört (Kind-ID,
+      // vorgemerkter Nickname, Spielstand + Warteschlangen) — siehe storage.ts.
+      await kontoBezogeneLokaleDatenLoeschen(user.uid);
 
       await deleteUser(user);
       navigation.replace("KidHome");
@@ -483,19 +483,7 @@ export function ParentDashboard({ navigation }: any) {
       //    Präfixe (siehe lib/freispielFortschritt.ts UND das ältere, separate
       //    lib/freispielEinfuehrung.ts — beide betreffen denselben "Farbeinführung
       //    schon gezeigt"-Moment, sicherheitshalber werden beide zurückgesetzt).
-      const alleSchluessel = await AsyncStorage.getAllKeys();
-      const zuLoeschen = alleSchluessel.filter(
-        (k) =>
-          k === "chesslynx:hatWillkommenGesehen" ||
-          k === GANZE_PARTIE_ETAPPE_KEY ||
-          k.startsWith("chesslynx:questFortschritt:") ||
-          k.startsWith("chesslynx:bonusFortschritt:") ||
-          k.startsWith("chesslynx:freispielFortschritt:") ||
-          k.startsWith("chesslynx:freispiel:") ||
-          k === "chesslynx:syncQueue" ||
-          k === "chesslynx:bonusSyncQueue"
-      );
-      if (zuLoeschen.length > 0) await AsyncStorage.multiRemove(zuLoeschen);
+      await lokalenSpielstandLoeschen();
 
       // 2. Cloud (Firestore): dieselben drei Felder auf dem Kinderprofil-Dokument, per
       //    updateDoc statt setDoc(..., {merge:true}) — merge:true führt bei
@@ -511,11 +499,12 @@ export function ParentDashboard({ navigation }: any) {
         mattIn3: false,
         figurenwert: false,
         schlossFinale: false,
+        ganzePartie: false,
       };
       const freispielFortschrittZurueckgesetzt: KindProfil["freispielFortschritt"] = {
         hoechsteFreigeschalteteElo: ersteStufe().elo,
       };
-      await updateDoc(doc(db, kindProfilPfad(user.uid, kindId)), {
+      await updateDoc(doc(holeDb(), kindProfilPfad(user.uid, kindId)), {
         questFortschritt: {},
         bonusFortschritt: bonusFortschrittZurueckgesetzt,
         freispielFortschritt: freispielFortschrittZurueckgesetzt,
@@ -1055,7 +1044,8 @@ export function ParentDashboard({ navigation }: any) {
           <View style={styles.loeschBox}>
             <Text style={styles.body}>
               Möchtest du dein Konto wirklich löschen? Alle Kinderprofile und der
-              gesamte Lernfortschritt werden unwiderruflich entfernt. Ein bereits
+              gesamte Lernfortschritt werden unwiderruflich entfernt — in der Cloud und
+              auf diesem Gerät. Ein bereits
               getätigter Store-Kauf bleibt an dein Apple-/Google-Konto gebunden und
               lässt sich bei einer Neuanmeldung jederzeit über „Käufe
               wiederherstellen“ zurückholen — der Lernfortschritt selbst kommt dabei

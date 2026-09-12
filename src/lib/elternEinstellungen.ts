@@ -10,7 +10,7 @@
 // rein lokal ("harte Sperre, lokal durchgesetzt").
 
 import { doc, getDoc, setDoc } from "firebase/firestore";
-import { db, elternEinstellungenPfad, type ElternEinstellungen } from "./firebase";
+import { holeDb, elternEinstellungenPfad, type ElternEinstellungen } from "./firebase";
 
 const STANDARD_EINSTELLUNGEN: ElternEinstellungen = {
   taeglichesZeitlimitMinuten: 15,
@@ -30,7 +30,7 @@ const STANDARD_EINSTELLUNGEN: ElternEinstellungen = {
  * Firestore-Dokument angelegt wird — das passiert erst beim ersten echten Schreiben.
  */
 export async function ladeElternEinstellungen(parentUid: string): Promise<ElternEinstellungen> {
-  const snap = await getDoc(doc(db, elternEinstellungenPfad(parentUid)));
+  const snap = await getDoc(doc(holeDb(), elternEinstellungenPfad(parentUid)));
   if (!snap.exists()) return { ...STANDARD_EINSTELLUNGEN };
   return { ...STANDARD_EINSTELLUNGEN, ...(snap.data() as Partial<ElternEinstellungen>) };
 }
@@ -44,5 +44,5 @@ export async function speichereElternEinstellungen(
   parentUid: string,
   aenderung: Partial<ElternEinstellungen>
 ): Promise<void> {
-  await setDoc(doc(db, elternEinstellungenPfad(parentUid)), aenderung, { merge: true });
+  await setDoc(doc(holeDb(), elternEinstellungenPfad(parentUid)), aenderung, { merge: true });
 }

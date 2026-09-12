@@ -47,6 +47,9 @@ import { QuestMoveScreen, type QuestPhase } from "../lib/QuestMoveScreen";
 // pieceMasters.tsx) — `chessPieces.tsx`/`creatures.tsx` werden in dieser Datei dadurch gar
 // nicht mehr importiert.
 import { BauerMasterIcon, BauerMasterDunkelIcon, BauerMasterGrossIcon } from "../lib/pieceMasters";
+// Lebendiges Quest-Tier für Screen 1 und den Verwandlungsmoment (2026-09-12, siehe
+// src/lib/questTiere.tsx): vor der Verwandlung zeigt die App das Tier, danach die Figur.
+import { QuestTierIcon } from "../lib/questTiere";
 // Bugfix (Opus-Review, 2026-09-07, Befund 2.1, siehe claude/review_logik_grafik_
 // audiofuehrung.md): LuxEckIcon statt des beigen Platzhalter-Kreises (styles.luxHead).
 // LuxAtem (Update 2026-09-08, siehe Screen-1-Kommentar unten): dasselbe Puls-Muster, das
@@ -370,7 +373,7 @@ export default function Quest1() {
             accessibilityLabel="Den Igel antippen, um die Verwandlung zu sehen"
           >
             <LuxAtem dauer={900} betrag={1.08}>
-              <BauerMasterGrossIcon size={150} />
+              <QuestTierIcon quest="quest1" size={150} />
             </LuxAtem>
           </Pressable>
         </View>
@@ -379,6 +382,7 @@ export default function Quest1() {
       {screen === "verwandlung" && (
         <Verwandlung
           figur={<BauerMasterGrossIcon size={150} />}
+          tier={<QuestTierIcon quest="quest1" size={150} />}
           grossGroesse={150}
           // Zielgröße bewusst identisch zur pieceIcon-Standardgröße auf dem Brett (siehe
           // Board.tsx/pieceMasters.tsx) — die Figur rastet exakt in der Größe ein, die sie

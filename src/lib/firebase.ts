@@ -15,13 +15,15 @@
 // (sie werden clientseitig ohnehin ausgeliefert), aber die Trennung ist trotzdem guter Stil.
 
 import { Platform } from "react-native";
-import { initializeApp, type FirebaseOptions } from "firebase/app";
+import { initializeApp, type FirebaseApp, type FirebaseOptions } from "firebase/app";
 import {
   browserLocalPersistence,
   getReactNativePersistence,
   initializeAuth,
+  useDeviceLanguage,
+  type Auth,
 } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { getFirestore, type Firestore } from "firebase/firestore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const firebaseConfig: FirebaseOptions = {
@@ -33,7 +35,25 @@ const firebaseConfig: FirebaseOptions = {
   appId: "1:94955044847:web:9e314c51c4190a228d401a",
 };
 
-export const firebaseApp = initializeApp(firebaseConfig);
+// Paket 5 (2026-09-11, COPPA-Grundlage, compliance_paket_2026-09-10.md Abschnitt 1):
+// Firebase wird NICHT mehr beim App-Start initialisiert, sondern erst beim ersten echten
+// Bedarf — und den gibt es nur im Eltern-Bereich (Login, Dashboard, Sync). Der kostenlose
+// Teil (Willkommenssequenz, Quest 1–3) und überhaupt alles, was das Kind spielt, läuft damit
+// ohne jede Firebase-Verbindung: kein Auth-Listener, kein Token-Refresh, keine Firestore-
+// Instanz, solange kein Erwachsener den Eltern-Bereich geöffnet hat. Die Imports oben laden
+// nur Code, sie bauen keine Verbindung auf.
+//
+// Deshalb gibt es statt der früheren Konstanten `firebaseApp`/`auth`/`db` drei Getter.
+// `verify/test-konto-datenschutz.cjs` prüft, dass beim Laden der Kind-Module (Karte,
+// Speicher, Gate) kein `initializeApp` passiert.
+let firebaseAppInstanz: FirebaseApp | undefined;
+let authInstanz: Auth | undefined;
+let dbInstanz: Firestore | undefined;
+
+export function holeFirebaseApp(): FirebaseApp {
+  if (!firebaseAppInstanz) firebaseAppInstanz = initializeApp(firebaseConfig);
+  return firebaseAppInstanz;
+}
 
 // React Native braucht eine explizite Persistenz-Strategie für den Login-Status —
 // anders als im Web nutzt Firebase hier nicht automatisch localStorage, sonst wäre
@@ -43,18 +63,31 @@ export const firebaseApp = initializeApp(firebaseConfig);
 //
 // Korrektur (2026-09-04, gefunden beim ersten echten Test): `getReactNativePersistence`
 // darf NICHT plattformunabhängig aufgerufen werden — im Expo-Web-Build (Metro-Bundler)
-// führte das zu einem sofortigen, unabgefangenen Fehler beim Modul-Import (noch bevor
-// React überhaupt rendert), sichtbar nur als leere/weiße Seite ohne Fehler-Overlay,
-// nicht in `RootNavigator.tsx` oder einem Error-Boundary abfangbar. Deshalb jetzt per
-// `Platform.OS` unterschieden: Web nutzt Firebases eigene `browserLocalPersistence`
-// (entspricht dem bereits vorhandenen localStorage-Verhalten im Browser), nur native
-// (iOS/Android) nutzt weiterhin `getReactNativePersistence(AsyncStorage)`.
-export const auth = initializeAuth(firebaseApp, {
-  persistence:
-    Platform.OS === "web" ? browserLocalPersistence : getReactNativePersistence(AsyncStorage),
-});
+// führte das zu einem sofortigen, unabgefangenen Fehler (leere/weiße Seite). Deshalb per
+// `Platform.OS` unterschieden: Web nutzt Firebases eigene `browserLocalPersistence`, nur
+// native (iOS/Android) nutzt `getReactNativePersistence(AsyncStorage)`.
+export function holeAuth(): Auth {
+  if (!authInstanz) {
+    authInstanz = initializeAuth(holeFirebaseApp(), {
+      persistence:
+        Platform.OS === "web" ? browserLocalPersistence : getReactNativePersistence(AsyncStorage),
+    });
+    // Mails (Bestätigung, Passwort-Reset) in der Gerätesprache — DE oder EN, passend zum
+    // Simultan-Launch. Die Vorlagen selbst pflegt Christian in der Firebase-Konsole.
+    useDeviceLanguage(authInstanz);
+  }
+  return authInstanz;
+}
 
-export const db = getFirestore(firebaseApp);
+export function holeDb(): Firestore {
+  if (!dbInstanz) dbInstanz = getFirestore(holeFirebaseApp());
+  return dbInstanz;
+}
+
+/** Nur für Tests/Diagnose: wurde Firebase in dieser Sitzung schon gestartet? */
+export function istFirebaseGestartet(): boolean {
+  return firebaseAppInstanz !== undefined;
+}
 
 // --- Firestore-Pfade (Datenmodell 1:1 aus technisches_konzept.md Abschnitt 5) ---
 // Eltern-Konto (Firebase-Auth-User, UID als Dokument-ID in der Collection "eltern")
@@ -147,6 +180,13 @@ export type KindProfil = {
 // aktiv zugestimmt werden (Re-Consent-Flow), nicht nur eine Kenntnisnahme-Meldung.
 export const CONSENT_VERSION = "1.0";
 
+// Paket 5 (2026-09-11, compliance_paket_2026-09-10.md Abschnitt 1): Version des COPPA-
+// Elternhinweises (Direct Notice — was erhoben wird, wofür, keine Weitergabe, Rechte auf
+// Einsicht/Löschung). Wird bei Registrierung und bei jeder erneuten Einwilligung mit
+// protokolliert, getrennt von CONSENT_VERSION, weil sich die beiden Texte unabhängig ändern
+// können (z. B. nach der Fachperson-Prüfung nur der US-Hinweis).
+export const COPPA_HINWEIS_VERSION = "1.0";
+
 export type ElternEinstellungen = {
   taeglichesZeitlimitMinuten: number; // Standard laut Design-Dokument: 15
   einwilligungErteiltAm: number | null;
@@ -154,6 +194,8 @@ export type ElternEinstellungen = {
   // (siehe CONSENT_VERSION oben) — ohne dieses Feld ließe sich eine künftige
   // Text-/Rechtsänderung nicht von der ursprünglichen Einwilligung unterscheiden.
   einwilligungVersion: string | null;
+  // Paket 5: COPPA-Hinweis-Version zum Zeitpunkt der Einwilligung (fehlt bei älteren Konten).
+  coppaHinweisVersion?: string | null;
   benachrichtigungenAktiv: boolean; // Default false — nie ans Kind, siehe Design-Dokument
   // Ergänzt (2026-09-09, Monetarisierung/IAP-Vorbereitung, siehe Claude-Projekt
   // "ChessLynx", monetarisierung_iap_technische_recherche_2026-09-09.md): Freischaltungs-

@@ -1,3 +1,8 @@
+// Update (2026-09-11, spät): die Bilddatei assets/brand/chesslynx_watermark_icon.png war
+// trotz der Code-Anpassung unten noch der alte Platzhalter (330x383, Nebeneinander-
+// Komposition) — jetzt tatsächlich durch den Export des Umarmungs-Masters ersetzt
+// (330x412, Alpha bereinigt). Pfad unverändert, daher keine weitere Code-Änderung.
+//
 // Update (2026-09-11): der bisherige Arbeitsentwurf (Nebeneinander-Komposition,
 // Stand 2026-09-07) ist abgelöst durch den neuen Logo-Master "Lux & Springer –
 // Umarmung" (freundschaftliche Umarmungspose statt Nebeneinander). Status
@@ -20,7 +25,7 @@
 // "none" (der Container selbst darf keine Touches außerhalb des Logos schlucken — er
 // überspannt ja potenziell die ganze Fläche über NavigationContainer, siehe
 // RootNavigator.tsx), und ein `Pressable` mit `hitSlop` um das Logo, damit die kleine
-// 34×40-Grafik trotzdem ein angenehmes Tap-Ziel abgibt. Der eigentliche Kinder-Schutz
+// 34×42-Grafik trotzdem ein angenehmes Tap-Ziel abgibt. Der eigentliche Kinder-Schutz
 // bleibt unverändert das ParentGate selbst (Halten+Wischen+Rechenaufgabe) — nicht die
 // Unauffälligkeit des Zugangs, siehe Kommentar in RootNavigator.tsx.
 import { Image, Pressable, StyleSheet, View } from "react-native";

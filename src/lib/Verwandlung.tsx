@@ -1,3 +1,14 @@
+// Update (2026-09-12): ECHTE Verwandlung statt reinem Schrumpfen. Bis hierher zeigte
+// Screen 1 bereits die geschnitzte Schachfigur, die Animation machte sie nur kleiner —
+// "aus dem Igel wird ein Bauer" war also nie zu sehen (siehe Kommentar von Schritt 6
+// weiter unten). Jetzt bekommt die Komponente zusätzlich das LEBENDIGE Tier (`tier`,
+// src/lib/questTiere.tsx) und blendet in der Mitte der Sequenz zur Figur um:
+//   Lichtschein → Anticipation → greller Lichtblitz, unter dem das Bild getauscht wird →
+//   Schrumpfen mit Federn und kleiner Landung → Funkeln → Ausklang.
+// Der Tausch passiert im hellsten Moment des Blitzes, damit kein hartes Umschalten zu
+// sehen ist. Ohne `tier` verhält sich die Komponente exakt wie vorher (rückwärts-
+// kompatibel für Aufrufstellen ohne lebendiges Tier).
+//
 // Der "Verwandlungsmoment": beim Übergang von der Tier-Vorstellung (Screen 1, "Das ist
 // ein/eine …") zur Bewegungs-Aufgabe (Screen 2) verwandelt sich das Waldtier sichtbar,
 // dauerhaft und unumkehrbar in die echte Schachfigur — siehe projektwissen.md, Abschnitt
@@ -53,17 +64,29 @@ import { Funkeln } from "../components/Funkeln";
 
 // Zeitpunkt (ms), an dem die Figur laut Sequenz unten eingerastet ist und das Funkeln
 // einsetzen soll: Ankündigung (300ms) + Anticipation (140ms) + größter Teil der
-// Schrumpf-Feder (~460ms) ≈ 900ms.
+// Schrumpf-Feder (~460ms) ≈ 900ms. Mit lebendigem Tier kommt der Blitz (160+200ms)
+// dazwischen.
 const FUNKELN_START_MS = 900;
+const BLITZ_AUF_MS = 160;
+const BLITZ_AB_MS = 200;
+/** Moment des Bildtauschs: Ankündigung + Anticipation + Aufblenden des Blitzes. */
+const TAUSCH_MS = 300 + 140 + BLITZ_AUF_MS;
 
 export function Verwandlung({
   figur,
+  tier,
   grossGroesse = 140,
   kleinGroesse = 34,
   onDone,
 }: {
   /** Die große Master-Illustration, bereits auf `grossGroesse` skaliert (z. B. <BauerMasterGrossIcon size={140} />). */
   figur: ReactNode;
+  /**
+   * Das lebendige Waldtier (z. B. <QuestTierIcon quest="quest1" size={150} />), ebenfalls
+   * bereits auf `grossGroesse` skaliert. Wird zu Beginn gezeigt und im hellsten Moment des
+   * Lichtblitzes gegen `figur` getauscht. Ohne diese Prop bleibt alles wie bisher.
+   */
+  tier?: ReactNode;
   /** Muss zur tatsächlichen Größe des `figur`-Elements passen — bestimmt die Boxgröße von Lichtschein/Ring. */
   grossGroesse?: number;
   /** Zielgröße nach der Verwandlung — standardmäßig identisch zur pieceIcon-Standardgröße auf dem Brett (34px, siehe Board.tsx/pieceMasters.tsx), damit die Figur exakt in der Größe einrastet, die sie im nächsten Screen ohnehin hat. */
@@ -78,7 +101,12 @@ export function Verwandlung({
   const glowSkalierung = useRef(new Animated.Value(0.7)).current;
   const ringOpacity = useRef(new Animated.Value(0)).current;
   const ringSkalierung = useRef(new Animated.Value(0.6)).current;
+  const blitzOpacity = useRef(new Animated.Value(0)).current;
+  const landung = useRef(new Animated.Value(0)).current;
   const [zeigeFunkeln, setZeigeFunkeln] = useState(false);
+  // Solange `tier` gesetzt ist, startet die Animation mit dem lebendigen Tier; der Wechsel
+  // auf die Figur passiert unter dem Lichtblitz (siehe TAUSCH_MS).
+  const [zeigeFigur, setZeigeFigur] = useState(!tier);
   // Update (2026-09-10, siehe Datei-Kommentar oben): die frühere antippbare
   // "ueberspringen()"-Funktion (Opus-Review 2026-09-07, Abschnitt 3.3) ist entfallen —
   // `fertig` bleibt trotzdem als einfache Absicherung gegen einen doppelten
@@ -87,7 +115,9 @@ export function Verwandlung({
   const fertig = useRef(false);
 
   useEffect(() => {
-    const funkelnTimer = setTimeout(() => setZeigeFunkeln(true), FUNKELN_START_MS);
+    const blitzDauer = tier ? BLITZ_AUF_MS + BLITZ_AB_MS : 0;
+    const funkelnTimer = setTimeout(() => setZeigeFunkeln(true), FUNKELN_START_MS + blitzDauer);
+    const tauschTimer = tier ? setTimeout(() => setZeigeFigur(true), TAUSCH_MS) : undefined;
 
     const sequenz = Animated.sequence([
       // 1. Ankündigung: warmes Licht blendet auf
@@ -107,6 +137,25 @@ export function Verwandlung({
         easing: Easing.out(Easing.quad),
         useNativeDriver: true,
       }),
+      // 2b. Lichtblitz (nur mit lebendigem Tier): das Bild wird im hellsten Moment
+      // getauscht (siehe tauschTimer oben), sodass der Wechsel Tier → Figur nicht als
+      // hartes Umschalten, sondern als Verwandlung gelesen wird.
+      ...(tier
+        ? [
+            Animated.timing(blitzOpacity, {
+              toValue: 1,
+              duration: BLITZ_AUF_MS,
+              easing: Easing.out(Easing.quad),
+              useNativeDriver: true,
+            }),
+            Animated.timing(blitzOpacity, {
+              toValue: 0,
+              duration: BLITZ_AB_MS,
+              easing: Easing.in(Easing.quad),
+              useNativeDriver: true,
+            }),
+          ]
+        : []),
       // 3. Schrumpfen: Feder-Bewegung + leichtes Wackeln + Magie-Ring + mitschrumpfender Lichtschein
       Animated.parallel([
         Animated.spring(figurSkalierung, {
@@ -138,6 +187,9 @@ export function Verwandlung({
           easing: Easing.inOut(Easing.quad),
           useNativeDriver: true,
         }),
+        // Kleine Landung: die geschrumpfte Figur setzt am Ende sichtbar auf, statt in der
+        // Luft stehen zu bleiben.
+        Animated.spring(landung, { toValue: 1, friction: 5, tension: 60, useNativeDriver: true }),
       ]),
       Animated.delay(250),
       // 5. Ausklang
@@ -153,14 +205,17 @@ export function Verwandlung({
     return () => {
       sequenz.stop();
       clearTimeout(funkelnTimer);
+      if (tauschTimer) clearTimeout(tauschTimer);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const drehung = wackeln.interpolate({ inputRange: [-1, 1], outputRange: ["-6deg", "6deg"] });
+  const absetzen = landung.interpolate({ inputRange: [0, 1], outputRange: [0, grossGroesse * 0.06] });
   const wrapGroesse = grossGroesse + 80;
   const glowGroesse = grossGroesse + 40;
   const ringGroesse = grossGroesse + 20;
+  const blitzGroesse = grossGroesse + 60;
 
   return (
     // Siehe Datei-Kommentar oben (Update 2026-09-10): kein Pressable/onPress mehr — die
@@ -193,7 +248,25 @@ export function Verwandlung({
           },
         ]}
       />
-      <Animated.View style={{ transform: [{ scale: figurSkalierung }, { rotate: drehung }] }}>{figur}</Animated.View>
+      <Animated.View
+        style={{ transform: [{ scale: figurSkalierung }, { rotate: drehung }, { translateY: absetzen }] }}
+      >
+        {zeigeFigur ? figur : tier}
+      </Animated.View>
+      {tier && (
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            styles.blitz,
+            {
+              width: blitzGroesse,
+              height: blitzGroesse,
+              borderRadius: blitzGroesse / 2,
+              opacity: blitzOpacity,
+            },
+          ]}
+        />
+      )}
       {zeigeFunkeln && <Funkeln size={grossGroesse * 1.1} />}
     </View>
   );
@@ -212,5 +285,12 @@ const styles = StyleSheet.create({
     position: "absolute",
     borderWidth: 3,
     borderColor: "#D7A52D", // Marken-Gold, siehe Funkeln.tsx
+  },
+  // Lichtblitz für den Bildtausch Tier → Figur (2026-09-12). Bewusst warmes Cremeweiß
+  // statt reinem Weiß, passend zum Lichtschein oben und zur App-Grundfarbe — Design-
+  // Grundsatz 3 (keine harten, grellen Signale für Kinder).
+  blitz: {
+    position: "absolute",
+    backgroundColor: "#FFFBF2",
   },
 });

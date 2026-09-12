@@ -40,8 +40,9 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { elternAnmelden, elternKontoErstellen } from "../lib/auth";
-import { CONSENT_VERSION } from "../lib/firebase";
+import { elternAnmelden, elternKontoErstellen, passwortZuruecksetzen } from "../lib/auth";
+import { CONSENT_VERSION, COPPA_HINWEIS_VERSION } from "../lib/firebase";
+import { merkeKindNicknameVor } from "../lib/storage";
 import { speichereElternEinstellungen } from "../lib/elternEinstellungen";
 
 // Passwort-Richtlinie für NEUE Elternkonten (2026-09-04, auf Nutzerwunsch verschärft —
@@ -68,6 +69,35 @@ export function ElternLogin({ navigation }: any) {
   const [consentAkzeptiert, setConsentAkzeptiert] = useState(false);
   const [ladend, setLadend] = useState(false);
   const [fehler, setFehler] = useState<string | null>(null);
+  // Paket 5: Rückmeldung nach „Passwort vergessen?“ (bewusst neutral formuliert — verrät
+  // nicht, ob zu der Adresse ein Konto existiert).
+  const [info, setInfo] = useState<string | null>(null);
+
+  async function passwortVergessen() {
+    setInfo(null);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setFehler("Bitte zuerst oben deine E-Mail-Adresse eingeben.");
+      return;
+    }
+    setFehler(null);
+    setLadend(true);
+    try {
+      await passwortZuruecksetzen(email);
+      setInfo(
+        "Falls es zu dieser Adresse ein Elternkonto gibt, ist jetzt eine E-Mail zum Zurücksetzen des Passworts unterwegs. Bitte auch im Spam-Ordner nachsehen."
+      );
+    } catch (e: any) {
+      if (e?.code === "auth/user-not-found") {
+        setInfo(
+          "Falls es zu dieser Adresse ein Elternkonto gibt, ist jetzt eine E-Mail zum Zurücksetzen des Passworts unterwegs. Bitte auch im Spam-Ordner nachsehen."
+        );
+      } else {
+        setFehler(uebersetzeFirebaseFehler(e?.code));
+      }
+    } finally {
+      setLadend(false);
+    }
+  }
 
   async function absenden() {
     if (!email.trim()) {
@@ -102,13 +132,16 @@ export function ElternLogin({ navigation }: any) {
           await speichereElternEinstellungen(neuerUser.uid, {
             einwilligungErteiltAm: Date.now(),
             einwilligungVersion: CONSENT_VERSION,
+            coppaHinweisVersion: COPPA_HINWEIS_VERSION,
           });
         } catch (consentFehler) {
           console.warn("ElternLogin: Einwilligung bei Registrierung nicht gespeichert:", consentFehler);
         }
-        // Das neue Kinderprofil wird erst im ElternBereichRouter angelegt (dort läuft
-        // ohnehin schon getOrCreateAktivesKindId für den Anmelden-Fall) — der hier
-        // eingegebene Nickname wird als Routenparameter mitgegeben, siehe unten.
+        // Paket 5 (Double-Opt-In): Das Kinderprofil entsteht erst nach der E-Mail-
+        // Bestätigung im ElternBereichRouter. Bis dahin wird der Nickname nur auf diesem
+        // Gerät vorgemerkt (storage.ts) — der Router schickt ein unbestätigtes Konto
+        // zuerst zum Bestätigungs-Screen.
+        await merkeKindNicknameVor(kindNickname);
         navigation.replace("ElternBereich", { kindNicknameFallsNeu: kindNickname });
       } else {
         await elternAnmelden(email, passwort);
@@ -175,6 +208,16 @@ export function ElternLogin({ navigation }: any) {
               Bevor du ein Konto erstellst, lies bitte die Datenschutzerklärung und die
               Nutzungsbedingungen.
             </Text>
+            {/* Paket 5: Kurzfassung des Elternhinweises (COPPA „Direct Notice“, DSGVO
+                Transparenz) direkt am Einwilligungsmoment. Wortlaut vorläufig, bis die
+                Fachperson-Prüfung zurück ist — Version: COPPA_HINWEIS_VERSION. */}
+            <Text style={styles.consentText}>
+              Gespeichert werden nur deine E-Mail-Adresse, der Spitzname deines Kindes und
+              der Lernfortschritt — ohne Werbung, ohne Tracking, ohne Weitergabe an Dritte.
+              Nach dem Anmelden schicken wir dir eine Bestätigungs-E-Mail; erst danach wird
+              der Fortschritt in deinem Konto gesichert. Du kannst alles jederzeit im
+              Eltern-Bereich einsehen und löschen.
+            </Text>
             <Pressable onPress={() => Linking.openURL("https://www.chesslynx.de/datenschutz")}>
               <Text style={styles.consentLink}>Datenschutzerklärung ansehen</Text>
             </Pressable>
@@ -196,6 +239,7 @@ export function ElternLogin({ navigation }: any) {
         )}
 
         {fehler ? <Text style={styles.error}>{fehler}</Text> : null}
+        {info ? <Text style={styles.info}>{info}</Text> : null}
 
         <Pressable
           style={[
@@ -212,10 +256,17 @@ export function ElternLogin({ navigation }: any) {
           )}
         </Pressable>
 
+        {modus === "anmelden" && (
+          <Pressable style={styles.switchModeLink} onPress={passwortVergessen} disabled={ladend}>
+            <Text style={styles.switchModeLinkText}>Passwort vergessen?</Text>
+          </Pressable>
+        )}
+
         <Pressable
           style={styles.switchModeLink}
           onPress={() => {
             setFehler(null);
+            setInfo(null);
             setModus(modus === "anmelden" ? "registrieren" : "anmelden");
           }}
         >
@@ -242,6 +293,8 @@ function uebersetzeFirebaseFehler(code?: string): string {
       return "E-Mail-Adresse oder Passwort ist falsch.";
     case "auth/network-request-failed":
       return "Keine Verbindung möglich. Bitte Internetverbindung prüfen.";
+    case "auth/too-many-requests":
+      return "Zu viele Versuche. Bitte in ein paar Minuten erneut versuchen.";
     default:
       return `Etwas ist schiefgelaufen, bitte später erneut versuchen.${code ? ` (${code})` : ""}`;
   }
@@ -280,6 +333,7 @@ const styles = StyleSheet.create({
   consentZeile: { flexDirection: "row", alignItems: "center", marginTop: 8, gap: 10 },
   consentZeileText: { flex: 1, fontSize: 13, color: "#4A4038", lineHeight: 18 },
   error: { color: "#B0553A", fontSize: 13, marginBottom: 12 },
+  info: { color: "#5C7A63", fontSize: 13, lineHeight: 18, marginBottom: 12 },
   submitButton: {
     backgroundColor: "#C9855F",
     paddingVertical: 14,

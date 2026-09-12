@@ -43,6 +43,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ParentGate } from "../screens/ParentGate";
 import { Credits } from "../screens/Credits";
 import { ElternLogin } from "../screens/ElternLogin";
+import { EmailBestaetigung } from "../screens/EmailBestaetigung";
 import { ParentDashboard } from "../screens/ParentDashboard";
 import { LuxSperre } from "../components/LuxSperre";
 // Dezentes Marken-Wasserzeichen, immer oben rechts, auf jedem Bildschirm — siehe
@@ -50,8 +51,14 @@ import { LuxSperre } from "../components/LuxSperre";
 // Designentwürfe in der App zu schützen"). Bewusst hier zentral montiert statt in jedem
 // Screen einzeln, siehe components/BrandWatermark.tsx für die Details/Grenzen.
 import { BrandWatermark } from "../components/BrandWatermark";
-import { useAuthUser } from "../lib/auth";
-import { getOrCreateAktivesKindId, syncPendingProgress, syncPendingBonusProgress } from "../lib/storage";
+import { darfCloudNutzen, useAuthUser } from "../lib/auth";
+import {
+  getOrCreateAktivesKindId,
+  holeVorgemerktenKindNickname,
+  syncPendingBonusProgress,
+  syncPendingProgress,
+  vergesseVorgemerktenKindNickname,
+} from "../lib/storage";
 import { kindProfilPfad } from "../lib/firebase";
 // Neu (2026-09-06): Sync des neuen Freispiel-Fortschritts (Übungslichtung, siehe
 // endlosmodus_freispiel_konzept.md) — eigener Aufruf neben syncPendingProgress, damit
@@ -179,6 +186,8 @@ export type RootStackParamList = {
   // Registrieren-Formular in ElternLogin.tsx.
   ElternBereich: { kindNicknameFallsNeu?: string } | undefined;
   ElternLogin: undefined;
+  // Paket 5: Double-Opt-In — angemeldet, E-Mail noch nicht bestätigt.
+  EmailBestaetigung: undefined;
   ParentDashboard: undefined;
   Credits: undefined;
   // Neu (2026-09-06): Sperr-Bildschirm, wenn das tägliche Zeitlimit erreicht ist —
@@ -383,10 +392,18 @@ function ElternBereichRouter({ navigation, route }: any) {
       navigation.replace("ElternLogin");
       return;
     }
+    // Paket 5 (Double-Opt-In, COPPA „Email plus“): ohne bestätigte E-Mail kein Kinderprofil
+    // in der Cloud, kein Sync — erst der Bestätigungs-Screen.
+    if (!darfCloudNutzen(user)) {
+      navigation.replace("EmailBestaetigung");
+      return;
+    }
     let abgebrochen = false;
     (async () => {
       try {
-        const kindId = await getOrCreateAktivesKindId(user.uid, route?.params?.kindNicknameFallsNeu);
+        const nickname = route?.params?.kindNicknameFallsNeu || (await holeVorgemerktenKindNickname());
+        const kindId = await getOrCreateAktivesKindId(user.uid, nickname);
+        await vergesseVorgemerktenKindNickname();
         await syncPendingProgress(kindProfilPfad(user.uid, kindId));
         await syncPendingFreispielFortschritt(kindProfilPfad(user.uid, kindId));
         await syncPendingBonusProgress(kindProfilPfad(user.uid, kindId));
@@ -590,6 +607,7 @@ export function RootNavigator() {
             <Stack.Screen name="ParentGate" component={ParentGateScreen} />
             <Stack.Screen name="ElternBereich" component={ElternBereichRouter} />
             <Stack.Screen name="ElternLogin" component={ElternLogin} />
+            <Stack.Screen name="EmailBestaetigung" component={EmailBestaetigung} />
             <Stack.Screen name="ParentDashboard" component={ParentDashboard} />
             <Stack.Screen name="Credits" component={Credits} />
             <Stack.Screen name="ZeitlimitSperre" component={ZeitlimitSperreScreen} />

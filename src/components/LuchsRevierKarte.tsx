@@ -192,7 +192,19 @@ export type WegmarkenEintrag = {
   // Seitenverhältnis der jeweiligen Illustration (aspekt unten) statt einem festen Wert.
   breiteFrac: number;
   aspekt: number; // Höhe/Breite der Originalgrafik
+  // Lebendiges Tier (2026-09-12, siehe src/lib/questTiere.tsx): Solange die Quest noch
+  // nicht abgeschlossen ist, steht auf der Karte das lebendige Waldtier; ab der
+  // abgeschlossenen Quest die geschnitzte Schachfigur — dieselbe Regel wie in den Quests
+  // selbst ("vor der Verwandlung das Tier, danach die Figur"). Die Tier-PNGs liegen alle
+  // auf derselben quadratischen Leinwand, damit die Größenverhältnisse untereinander
+  // stimmen; `hoeheFrac`/`breiteFrac` sagen, welchen Anteil dieser Leinwand das Tier
+  // tatsächlich einnimmt (aus dem Export gemessen), damit es auf der Karte genauso hoch
+  // erscheint wie vorher die Figur und der Puls-Ring die richtige Größe behält.
+  lebendig: { bild: ReturnType<typeof require>; hoeheFrac: number; breiteFrac: number };
 };
+
+/** Fußlinie innerhalb der quadratischen Tier-Leinwand (3 % Rand unten, siehe Export). */
+const TIER_FUSS_FRAC = 0.97;
 
 export const WEGMARKEN: WegmarkenEintrag[] = [
   {
@@ -202,6 +214,11 @@ export const WEGMARKEN: WegmarkenEintrag[] = [
     fy: 590 / REFERENZ_HOEHE,
     breiteFrac: 46 / REFERENZ_BREITE,
     aspekt: 466 / 274,
+    lebendig: {
+      bild: require("../../assets/figuren/lebendig/chesslynx_igel_lebendig.png"),
+      hoeheFrac: 397/768,
+      breiteFrac: 227/768,
+    },
   },
   {
     quest: "quest2",
@@ -210,6 +227,11 @@ export const WEGMARKEN: WegmarkenEintrag[] = [
     fy: 580 / REFERENZ_HOEHE,
     breiteFrac: 50 / REFERENZ_BREITE,
     aspekt: 656 / 322,
+    lebendig: {
+      bild: require("../../assets/figuren/lebendig/chesslynx_baer_lebendig.png"),
+      hoeheFrac: 548/768,
+      breiteFrac: 267/768,
+    },
   },
   {
     quest: "quest3",
@@ -218,6 +240,11 @@ export const WEGMARKEN: WegmarkenEintrag[] = [
     fy: 450 / REFERENZ_HOEHE,
     breiteFrac: 46 / REFERENZ_BREITE,
     aspekt: 636 / 272,
+    lebendig: {
+      bild: require("../../assets/figuren/lebendig/chesslynx_eule_lebendig.png"),
+      hoeheFrac: 476/768,
+      breiteFrac: 247/768,
+    },
   },
   {
     quest: "quest4",
@@ -226,6 +253,11 @@ export const WEGMARKEN: WegmarkenEintrag[] = [
     fy: 410 / REFERENZ_HOEHE,
     breiteFrac: 50 / REFERENZ_BREITE,
     aspekt: 620 / 315,
+    lebendig: {
+      bild: require("../../assets/figuren/lebendig/chesslynx_pferd_lebendig.png"),
+      hoeheFrac: 671/768,
+      breiteFrac: 414/768,
+    },
   },
   {
     quest: "quest5",
@@ -234,6 +266,11 @@ export const WEGMARKEN: WegmarkenEintrag[] = [
     fy: 300 / REFERENZ_HOEHE,
     breiteFrac: 48 / REFERENZ_BREITE,
     aspekt: 711 / 328,
+    lebendig: {
+      bild: require("../../assets/figuren/lebendig/chesslynx_schwan_lebendig.png"),
+      hoeheFrac: 606/768,
+      breiteFrac: 355/768,
+    },
   },
   {
     quest: "quest6",
@@ -242,6 +279,11 @@ export const WEGMARKEN: WegmarkenEintrag[] = [
     fy: 230 / REFERENZ_HOEHE,
     breiteFrac: 48 / REFERENZ_BREITE,
     aspekt: 770 / 372,
+    lebendig: {
+      bild: require("../../assets/figuren/lebendig/chesslynx_hirsch_lebendig.png"),
+      hoeheFrac: 721/768,
+      breiteFrac: 375/768,
+    },
   },
 ];
 
@@ -513,16 +555,25 @@ export function LuchsRevierKarte({
             const zustand = status?.[w.quest] ?? "gesperrt";
             const bildBreite = w.breiteFrac * breite;
             const bildHoehe = bildBreite * w.aspekt;
+            // Vor der Verwandlung (= Quest noch nicht abgeschlossen) steht hier das
+            // lebendige Tier, danach die Schachfigur. Die Tier-Leinwand ist quadratisch und
+            // größer als das Tier selbst, deshalb wird sie so skaliert, dass das Tier
+            // dieselbe Höhe wie die Figur bekommt, und um den unteren Leinwandrand nach
+            // unten geschoben, damit der Fußpunkt exakt gleich bleibt.
+            const zeigeTier = zustand !== "erledigt";
+            const kante = bildHoehe / w.lebendig.hoeheFrac;
             return (
               <Wegmarke
                 key={w.quest}
-                bild={w.bild}
+                bild={zeigeTier ? w.lebendig.bild : w.bild}
                 left={w.fx * breite}
-                top={w.fy * hoehe}
-                breite={bildBreite}
-                hoehe={bildHoehe}
+                top={w.fy * hoehe + (zeigeTier ? kante * (1 - TIER_FUSS_FRAC) : 0)}
+                breite={zeigeTier ? kante : bildBreite}
+                hoehe={zeigeTier ? kante : bildHoehe}
                 zustand={zustand}
                 onPress={zustand === "gesperrt" ? undefined : () => onSelectQuest(w.quest)}
+                ringMitteY={zeigeTier ? TIER_FUSS_FRAC : undefined}
+                ringFaktor={zeigeTier ? 1.55 * w.lebendig.breiteFrac : undefined}
               />
             );
           })}

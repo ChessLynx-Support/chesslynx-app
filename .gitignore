@@ -19,3 +19,6 @@ GoogleService-Info.plist
 
 # Lokale Lichess-Rohdaten (groß, jederzeit neu ladbar)
 *.csv.zst
+
+# Stimm-Hörproben zum einmaligen Anhören (werden lokal von scripts/tts_voranhoeren.py erzeugt)
+scripts/voranhoeren/

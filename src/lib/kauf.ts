@@ -45,7 +45,7 @@ import {
 } from "expo-iap";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { doc, getDoc } from "firebase/firestore";
-import { db, elternEinstellungenPfad, firebaseApp, type ElternEinstellungen } from "./firebase";
+import { holeDb, elternEinstellungenPfad, holeFirebaseApp, type ElternEinstellungen } from "./firebase";
 
 // Produkt-ID — muss exakt mit der ID übereinstimmen, die in App Store Connect bzw.
 // Google Play Console angelegt wird (Recherche-Notiz, Schritt 3). Ein einziges
@@ -82,7 +82,7 @@ async function stelleVerbindungSicher(): Promise<void> {
  * Freischaltungsstatus braucht, ohne die volle ElternEinstellungen-Struktur).
  */
 export async function pruefeFreischaltungStatus(parentUid: string): Promise<boolean> {
-  const snap = await getDoc(doc(db, elternEinstellungenPfad(parentUid)));
+  const snap = await getDoc(doc(holeDb(), elternEinstellungenPfad(parentUid)));
   if (!snap.exists()) return false;
   const daten = snap.data() as Partial<ElternEinstellungen>;
   return daten.vollstaendigerLernpfadFreigeschaltet === true;
@@ -96,7 +96,7 @@ export async function pruefeFreischaltungStatus(parentUid: string): Promise<bool
  * Recherche-Notiz als unsicher/manipulierbar.
  */
 async function quittungPruefen(kauf: Purchase): Promise<void> {
-  const functions = getFunctions(firebaseApp, FUNCTIONS_REGION);
+  const functions = getFunctions(holeFirebaseApp(), FUNCTIONS_REGION);
   const verifyPurchase = httpsCallable<
     { platform: "ios" | "android"; productId: string; receipt: string; purchaseToken?: string },
     { freigeschaltet: boolean }

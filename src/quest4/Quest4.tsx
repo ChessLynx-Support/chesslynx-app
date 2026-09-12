@@ -39,6 +39,9 @@ import { QuestMoveScreen, type QuestPhase } from "../lib/QuestMoveScreen";
 // "Besuchsfigur" (opponentIcon) und QuestGeschafft nutzen jetzt die neue Pferd/Springer-
 // Master-Illustration statt der alten `creatures.tsx`/`chessPieces.tsx`-SVGs.
 import { SpringerMasterIcon, SpringerMasterDunkelIcon, SpringerMasterGrossIcon } from "../lib/pieceMasters";
+// Lebendiges Quest-Tier für Screen 1 und den Verwandlungsmoment (2026-09-12, siehe
+// src/lib/questTiere.tsx): vor der Verwandlung zeigt die App das Tier, danach die Figur.
+import { QuestTierIcon } from "../lib/questTiere";
 // Bugfix (Nutzer-Feedback 2026-09-07, nach dem ersten `npm test`-Durchlauf: "Es ist sehr
 // unrealistisch, dass der Springer von so vielen anderen Springern umzingelt ist"): Screen 4
 // zeigte hier fälschlich SpringerMasterIcon für die umgebenden Figuren, obwohl die FEN
@@ -225,7 +228,7 @@ export default function Quest4() {
       {screen === 0 && (
         <View style={styles.tapArea}>
           <Einschweben sichtbar={lineIndex >= 1}>
-            <SpringerMasterGrossIcon size={150} />
+            <QuestTierIcon quest="quest4" size={150} />
           </Einschweben>
         </View>
       )}
@@ -242,7 +245,7 @@ export default function Quest4() {
             accessibilityLabel="Das Pferd antippen, um die Verwandlung zu sehen"
           >
             <LuxAtem dauer={900} betrag={1.08}>
-              <SpringerMasterGrossIcon size={150} />
+              <QuestTierIcon quest="quest4" size={150} />
             </LuxAtem>
           </Pressable>
         </View>
@@ -251,6 +254,7 @@ export default function Quest4() {
       {screen === "verwandlung" && (
         <Verwandlung
           figur={<SpringerMasterGrossIcon size={150} />}
+          tier={<QuestTierIcon quest="quest4" size={150} />}
           grossGroesse={150}
           kleinGroesse={34}
           onDone={() => {

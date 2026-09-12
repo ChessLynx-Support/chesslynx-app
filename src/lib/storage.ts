@@ -12,11 +12,12 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { addDoc, collection, doc, getDocs, limit, query, setDoc } from "firebase/firestore";
 import type { KindProfil, QuestFortschritt } from "./firebase";
-import { db, kinderCollectionPfad } from "./firebase";
+import { holeDb, kinderCollectionPfad } from "./firebase";
 // Ergänzt 2026-09-06: Startwert für das neue freispielFortschritt-Feld unten
 // (KindProfil verlangt es jetzt als Pflichtfeld, siehe firebase.ts) — Single Source of
 // Truth für "welche Elo-Stufe ist die erste/leichteste" bleibt waldfreundeBot.ts.
 import { ersteStufe } from "./waldfreundeBot";
+import { GANZE_PARTIE_ETAPPE_KEY } from "./ganzePartieStand";
 
 const KEY_PREFIX = "chesslynx:questFortschritt:";
 const SYNC_QUEUE_KEY = "chesslynx:syncQueue";
@@ -78,7 +79,7 @@ export async function syncPendingProgress(kindProfilPfad: string): Promise<void>
     const fortschritt = await loadQuestFortschrittLocal(questId);
     if (fortschritt) {
       await setDoc(
-        doc(db, kindProfilPfad),
+        doc(holeDb(), kindProfilPfad),
         { questFortschritt: { [questId]: fortschritt }, zuletztAktivAm: Date.now() },
         { merge: true }
       );
@@ -133,7 +134,7 @@ export async function syncPendingBonusProgress(kindProfilPfad: string): Promise<
   for (const kapitelId of queue) {
     bonusFortschritt[kapitelId] = await loadBonusFortschrittLocal(kapitelId as BonusKapitelId);
   }
-  await setDoc(doc(db, kindProfilPfad), { bonusFortschritt, zuletztAktivAm: Date.now() }, { merge: true });
+  await setDoc(doc(holeDb(), kindProfilPfad), { bonusFortschritt, zuletztAktivAm: Date.now() }, { merge: true });
   await AsyncStorage.removeItem(BONUS_SYNC_QUEUE_KEY);
 }
 
@@ -163,7 +164,7 @@ export async function getOrCreateAktivesKindId(
   const gecachteId = await AsyncStorage.getItem(cacheKey);
   if (gecachteId) return gecachteId;
 
-  const kinderRef = collection(db, kinderCollectionPfad(parentUid));
+  const kinderRef = collection(holeDb(), kinderCollectionPfad(parentUid));
   const vorhandene = await getDocs(query(kinderRef, limit(1)));
   if (!vorhandene.empty) {
     const kindId = vorhandene.docs[0].id;
@@ -194,4 +195,56 @@ export async function getOrCreateAktivesKindId(
   const neuesDoc = await addDoc(kinderRef, neuesKindProfil);
   await AsyncStorage.setItem(cacheKey, neuesDoc.id);
   return neuesDoc.id;
+}
+
+// --- Paket 5 (2026-09-11): Double-Opt-In und Kontolöschung -----------------------------------
+
+// Der Kind-Nickname aus dem Registrieren-Formular wird erst NACH der E-Mail-Bestätigung in die
+// Cloud geschrieben (Kinderdaten erst mit bestätigtem Elternkonto, COPPA „Email plus“). Bis
+// dahin liegt er nur auf diesem Gerät — sonst ginge er verloren, weil zwischen Registrierung
+// und Bestätigung der Bestätigungs-Screen liegt (Routenparameter überleben das nicht).
+const NICKNAME_VORGEMERKT_KEY = "chesslynx:kindNicknameVorgemerkt";
+
+export async function merkeKindNicknameVor(nickname: string): Promise<void> {
+  if (nickname.trim()) await AsyncStorage.setItem(NICKNAME_VORGEMERKT_KEY, nickname.trim());
+}
+
+export async function holeVorgemerktenKindNickname(): Promise<string | undefined> {
+  return (await AsyncStorage.getItem(NICKNAME_VORGEMERKT_KEY)) ?? undefined;
+}
+
+export async function vergesseVorgemerktenKindNickname(): Promise<void> {
+  await AsyncStorage.removeItem(NICKNAME_VORGEMERKT_KEY);
+}
+
+/** Alle lokalen Schlüssel, die zum Spielstand des Kindes auf diesem Gerät gehören. */
+export function istSpielstandSchluessel(k: string): boolean {
+  return (
+    k === WILLKOMMEN_GESEHEN_KEY ||
+    k === GANZE_PARTIE_ETAPPE_KEY ||
+    k.startsWith(KEY_PREFIX) ||
+    k.startsWith(BONUS_KEY_PREFIX) ||
+    k.startsWith("chesslynx:freispielFortschritt:") ||
+    k.startsWith("chesslynx:freispiel:") ||
+    k === SYNC_QUEUE_KEY ||
+    k === BONUS_SYNC_QUEUE_KEY
+  );
+}
+
+/** Löscht den Spielstand auf diesem Gerät (Quests, Bonus, Freispiel, Willkommen, Warteschlangen). */
+export async function lokalenSpielstandLoeschen(): Promise<void> {
+  const zuLoeschen = (await AsyncStorage.getAllKeys()).filter(istSpielstandSchluessel);
+  if (zuLoeschen.length > 0) await AsyncStorage.multiRemove(zuLoeschen);
+}
+
+/**
+ * Kontolöschung (Apple 5.1.1(v), COPPA-Löschanspruch): entfernt alles, was auf diesem Gerät
+ * an das gelöschte Konto gebunden ist — Kind-ID-Cache, vorgemerkter Nickname — und den
+ * lokalen Spielstand, damit „alle Daten löschen“ auch auf dem Gerät gilt und nichts davon
+ * später in ein neues Konto hochgeladen wird. Eltern-Einstellungen, die nur das Gerät
+ * betreffen (Zeitlimit, Untertitel, Stimme), bleiben.
+ */
+export async function kontoBezogeneLokaleDatenLoeschen(parentUid: string): Promise<void> {
+  await AsyncStorage.multiRemove([AKTIVES_KIND_ID_KEY_PREFIX + parentUid, NICKNAME_VORGEMERKT_KEY]);
+  await lokalenSpielstandLoeschen();
 }

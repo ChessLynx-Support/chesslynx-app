@@ -27,7 +27,7 @@
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { doc, setDoc } from "firebase/firestore";
-import { db } from "./firebase";
+import { holeDb } from "./firebase";
 import { ersteStufe, naechsteStufeNach, WALDFREUNDE_STUFEN, type WaldfreundeStufe } from "./waldfreundeBot";
 
 const LOKALER_SCHLUESSEL = "chesslynx:freispielFortschritt:hoechsteFreigeschalteteElo";
@@ -131,7 +131,7 @@ export async function syncPendingFreispielFortschritt(kindProfilPfad: string): P
 
   const hoechsteFreigeschaltete = await ladeHoechsteFreigeschalteteElo();
   await setDoc(
-    doc(db, kindProfilPfad),
+    doc(holeDb(), kindProfilPfad),
     { freispielFortschritt: { hoechsteFreigeschalteteElo: hoechsteFreigeschaltete }, zuletztAktivAm: Date.now() },
     { merge: true }
   );

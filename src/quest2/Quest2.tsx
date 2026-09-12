@@ -34,6 +34,9 @@ import { QuestMoveScreen, type QuestPhase } from "../lib/QuestMoveScreen";
 // "Besuchsfigur" (opponentIcon) und QuestGeschafft nutzen jetzt die neue Bär/Turm-Master-
 // Illustration statt der alten `creatures.tsx`/`chessPieces.tsx`-SVGs.
 import { TurmMasterIcon, TurmMasterDunkelIcon, TurmMasterGrossIcon } from "../lib/pieceMasters";
+// Lebendiges Quest-Tier für Screen 1 und den Verwandlungsmoment (2026-09-12, siehe
+// src/lib/questTiere.tsx): vor der Verwandlung zeigt die App das Tier, danach die Figur.
+import { QuestTierIcon } from "../lib/questTiere";
 // Bugfix (Opus-Review, 2026-09-07, Befund 2.1, siehe claude/review_logik_grafik_
 // audiofuehrung.md): LuxEckIcon statt des beigen Platzhalter-Kreises (styles.luxHead).
 // LuxAtem (Update 2026-09-08, Task #109, siehe Screen-1-Aufrufstelle unten): dasselbe
@@ -244,7 +247,7 @@ export default function Quest2() {
       {screen === 0 && (
         <View style={styles.tapArea}>
           <Einschweben sichtbar={lineIndex >= 1}>
-            <TurmMasterGrossIcon size={150} />
+            <QuestTierIcon quest="quest2" size={150} />
           </Einschweben>
         </View>
       )}
@@ -266,7 +269,7 @@ export default function Quest2() {
             accessibilityLabel="Den Bären antippen, um die Verwandlung zu sehen"
           >
             <LuxAtem dauer={900} betrag={1.08}>
-              <TurmMasterGrossIcon size={150} />
+              <QuestTierIcon quest="quest2" size={150} />
             </LuxAtem>
           </Pressable>
         </View>
@@ -275,6 +278,7 @@ export default function Quest2() {
       {screen === "verwandlung" && (
         <Verwandlung
           figur={<TurmMasterGrossIcon size={150} />}
+          tier={<QuestTierIcon quest="quest2" size={150} />}
           grossGroesse={150}
           kleinGroesse={34}
           onDone={() => {

@@ -81,6 +81,9 @@ import { QuestMoveScreen, type QuestPhase } from "../lib/QuestMoveScreen";
 // den König aus kurzer Distanz, bei einer Linienfigur läge sie weit außerhalb jedes
 // sinnvollen Anzeigebereichs.
 import { KoenigMasterIcon, KoenigMasterGrossIcon, SpringerMasterDunkelIcon } from "../lib/pieceMasters";
+// Lebendiges Quest-Tier für Screen 1 und den Verwandlungsmoment (2026-09-12, siehe
+// src/lib/questTiere.tsx): vor der Verwandlung zeigt die App das Tier, danach die Figur.
+import { QuestTierIcon } from "../lib/questTiere";
 // Bugfix (Opus-Review, 2026-09-07, Befund 2.1, siehe claude/review_logik_grafik_
 // audiofuehrung.md): LuxEckIcon statt des beigen Platzhalter-Kreises (styles.luxHead) —
 // wie bei checkBadge (siehe Datei-Kommentar oben) war Quest 6 hier bisher nicht auf den
@@ -411,7 +414,7 @@ export default function Quest6() {
       {screen === 0 && (
         <View style={styles.tapArea}>
           <Einschweben sichtbar={lineIndex >= 1}>
-            <KoenigMasterGrossIcon size={150} />
+            <QuestTierIcon quest="quest6" size={150} />
           </Einschweben>
         </View>
       )}
@@ -427,7 +430,7 @@ export default function Quest6() {
             accessibilityLabel="Den Hirsch antippen, um die Verwandlung zu sehen"
           >
             <LuxAtem dauer={900} betrag={1.08}>
-              <KoenigMasterGrossIcon size={150} />
+              <QuestTierIcon quest="quest6" size={150} />
             </LuxAtem>
           </Pressable>
         </View>
@@ -436,6 +439,7 @@ export default function Quest6() {
       {screen === "verwandlung" && (
         <Verwandlung
           figur={<KoenigMasterGrossIcon size={150} />}
+          tier={<QuestTierIcon quest="quest6" size={150} />}
           grossGroesse={150}
           kleinGroesse={34}
           onDone={() => geheZu(2)}
