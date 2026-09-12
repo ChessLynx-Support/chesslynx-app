@@ -17,10 +17,14 @@ Aufrufe:
     python scripts/rig_master.py build  scripts/rig_configs/schildkroete.json
     python scripts/rig_master.py check  scripts/rig_configs/schildkroete.json
     python scripts/rig_master.py build-all scripts/rig_configs/
-    python scripts/rig_master.py todo   scripts/rig_configs/
+    python scripts/rig_master.py todo    scripts/rig_configs/
+    python scripts/rig_master.py prompts scripts/rig_configs/ -o auftraege.md
 
 `todo` listet alle noch nicht erzeugten Zustandsbilder mit Ablageort und fertigem
-Auftragstext — das ist die Produktionsliste fürs Bild-Tool. Ein Zustand darf in der
+Auftragstext; `prompts` schreibt daraus eine Copy-&-Paste-Vorlage fürs Bild-Tool
+(je Zustand: welches Bild hochladen, welcher Text, wohin das Ergebnis). Die
+Konfigurationsdateien selbst gehören NICHT ins Bild-Tool — sie steuern dieses Skript.
+Ein Zustand darf in der
 Konfiguration mit "geplant": true stehen; er wird dann übersprungen, und alles, was auf
 ihm aufbaut, ebenfalls. Dadurch ist jede Konfiguration der vollständige Rig-Plan einer
 Figur, auch solange erst ein Teil der Bilder vorliegt.
@@ -644,13 +648,27 @@ def pruefen(cfg: dict, ktx: Kontext) -> bool:
     """Prüft die Eingangsbilder gegen die Projektregeln, ohne etwas zu schreiben."""
     ok = True
     for z in cfg["states"]:
-        p = pfad(ktx, z["file"])
-        if not p.exists():
+        p = pfad(ktx, z["file"]) if z.get("file") else None
+        if p is None or not p.exists():
             ktx.sag(f"  FEHLT: {p}")
             ok = False
             continue
-        img = Image.open(p).convert("RGBA")
+        roh = Image.open(p)
+        kein_alpha = roh.mode not in ("RGBA", "LA") and "transparency" not in roh.info
+        img = roh.convert("RGBA")
         a = np.array(img)[..., 3]
+        if kein_alpha or (a == 255).all():
+            # Wiederkehrender Lieferfehler: Das Bild-Tool MALT ein Karomuster ins Bild,
+            # statt einen Alphakanal zu liefern. Sieht in der Vorschau aus wie
+            # Transparenz, ist aber undurchsichtig — in der App läge ein Karobrett
+            # hinter der Figur. Das ist ein harter Abbruchgrund.
+            ktx.sag(
+                f"  {z['id']:16s} {img.size} → KEIN ECHTER ALPHAKANAL "
+                f"(Modus {roh.mode}, Hintergrund undurchsichtig). "
+                "Vermutlich ein ins Bild gemaltes Karomuster — neu anfordern."
+            )
+            ok = False
+            continue
         ecken = [a[0, 0], a[0, -1], a[-1, 0], a[-1, -1]]
         b = bbox(img)
         rand = min(b[0], b[1], img.width - b[2], img.height - b[3])
@@ -682,7 +700,7 @@ def standard_pfade(script: Path) -> tuple[Path, Path]:
 def main(argv: list[str] | None = None) -> int:
     g_std, r_std = standard_pfade(Path(__file__))
     p = argparse.ArgumentParser(description="ChessLynx Rig-Master")
-    p.add_argument("befehl", choices=["clean", "build", "check", "build-all", "todo"])
+    p.add_argument("befehl", choices=["clean", "build", "check", "build-all", "todo", "prompts"])
     p.add_argument("ziel")
     p.add_argument("-o", "--out")
     p.add_argument("--grafiken", default=str(g_std))
@@ -704,6 +722,52 @@ def main(argv: list[str] | None = None) -> int:
     dateien = (
         sorted(Path(args.ziel).glob("*.json")) if args.befehl == "build-all" else [Path(args.ziel)]
     )
+    if args.befehl == "prompts":
+        # Fertige Copy-&-Paste-Vorlage fürs Bild-Tool: je offenem Zustand ein Block mit
+        # dem hochzuladenden Master, dem Auftragstext und dem Ablageort. Die JSON selbst
+        # gehört NICHT ins Bild-Tool — sie ist Konfiguration für dieses Skript.
+        dateien = sorted(Path(args.ziel).glob("*.json")) if Path(args.ziel).is_dir() else [Path(args.ziel)]
+        zeilen = [
+            "# Auftragstexte fürs Bild-Tool",
+            "",
+            "Je Zustand eine eigene Anfrage. Hochladen: **nur das genannte Vorlagenbild**, sonst nichts.",
+            "Den Textblock unverändert einfügen. Das Ergebnis unter dem angegebenen Namen ablegen.",
+            "",
+        ]
+        offen_gesamt = 0
+        for f in dateien:
+            cfg = json.loads(f.read_text(encoding="utf-8"))
+            vorlage = next((z.get("file") for z in cfg["states"] if not z.get("geplant")), "")
+            fehlend = [
+                z for z in cfg["states"]
+                if z.get("geplant") or not (z.get("file") and pfad(ktx, z["file"]).exists())
+            ]
+            if not fehlend:
+                continue
+            zeilen += [f"## {cfg.get('display_name', cfg['character'])}", ""]
+            for z in fehlend:
+                offen_gesamt += 1
+                quelle = z.get("vorlage") or vorlage
+                zeilen += [
+                    f"### {z['id']} — {z.get('zweck', '')}",
+                    "",
+                    f"**Hochladen:** `{quelle}`  ",
+                    f"**Ergebnis ablegen als:** `{z['file']}`",
+                    "",
+                    "```",
+                    z.get("produktion", "").strip(),
+                    "```",
+                    "",
+                ]
+        zeilen.append(f"Offen insgesamt: {offen_gesamt} Zustandsbilder.")
+        text = "\n".join(zeilen)
+        if args.out:
+            Path(args.out).write_text(text + "\n", encoding="utf-8")
+            print(f"geschrieben: {args.out}  ({offen_gesamt} Aufträge)")
+        else:
+            print(text)
+        return 0
+
     if args.befehl == "todo":
         dateien = sorted(Path(args.ziel).glob("*.json")) if Path(args.ziel).is_dir() else [Path(args.ziel)]
         gesamt = 0

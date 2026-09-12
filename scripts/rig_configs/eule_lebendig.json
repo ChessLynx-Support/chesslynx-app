@@ -22,7 +22,7 @@
       "registered_to": "S0_standing",
       "max_abweichung": 14,
       "zweck": "Blinzeln — kleinste Lebendigkeit, überall einsetzbar",
-      "produktion": "Neuer Zustand im Bild-Tool: dasselbe Bild, nur die Augen geschlossen (Lider zu, Wimpern nach unten). Alles andere pixelgleich lassen — Körperhaltung, Licht, Rand. Quelle: der freigegebene Master als einziges Referenzbild hochladen."
+      "produktion": "Male das hochgeladene Bild des ChessLynx-Charakters neu — als blinzelnde Fassung desselben Moments.\n\nBEIDE Augen sind geschlossen: die Lider gesenkt, als ruhige Bogenlinie sichtbar, die Wimpern zeigen nach unten. Von Augenweiß, Iris und Pupille ist nichts mehr zu sehen. Ein kurzer Lidschlag — kein Zwinkern, kein Zukneifen, kein Lächeln.\n\nDas neue Bild MUSS sich vom hochgeladenen sichtbar unterscheiden, und zwar genau an dieser Stelle. Ein Bild, das aussieht wie die Vorlage, ist kein gültiges Ergebnis — dann bitte noch einmal, deutlicher.\n\nGleich bleibt dagegen alles Übrige, so genau wie möglich:\n- Haltung, Stand, Größe und Position im Bild, Abstand zu allen vier Rändern\n- Kopfhaltung und Blickrichtung\n- Brauen und Wangen\n- Schnabel bzw. Schnauze und Mund\n- Fell- bzw. Federzeichnung\n- Farben, Licht, Schattierung, Detailgrad\n\nFORMAT:\n- PNG mit ECHTEM Alphakanal, Hintergrund tatsächlich transparent. Ein ins Bild gemaltes Karo- oder Schachbrettmuster ist KEIN transparenter Hintergrund und unbrauchbar; eine weiße Fläche ebenso wenig.\n- gleiche Bildgröße wie die Vorlage, quadratisch, nichts angeschnitten\n- kein Boden, keine Kulisse, kein Schlagschatten auf einer Fläche\n- kein Text, keine Zahlen, keine Symbole, kein Wasserzeichen\n\nAls Vorlage dient ausschließlich das hochgeladene Bild, sonst nichts."
     },
     {
       "id": "S1_kopfdreh",
@@ -31,7 +31,7 @@
       "registered_to": "S0_standing",
       "max_abweichung": 14,
       "zweck": "Kopfdrehung — typische Eulenbewegung",
-      "produktion": "Dasselbe Bild, nur der Kopf etwa 25° zur Seite gedreht, Blick weiter freundlich zum Betrachter. Körper und Füße pixelgleich."
+      "produktion": "Male das hochgeladene Bild des ChessLynx-Charakters neu — als Fassung mit gedrehtem Kopf.\n\nDer Kopf ist deutlich zur Seite gedreht, etwa 25°, der Blick bleibt freundlich zum Betrachter. Körper, Füße und Gefieder unterhalb des Halses bleiben pixelgleich.\n\nDas neue Bild MUSS sich vom hochgeladenen sichtbar unterscheiden, und zwar genau an dieser Stelle. Ein Bild, das aussieht wie die Vorlage, ist kein gültiges Ergebnis — dann bitte noch einmal, deutlicher.\n\nGleich bleibt dagegen alles Übrige, so genau wie möglich:\n- Haltung, Stand, Größe und Position im Bild, Abstand zu allen vier Rändern\n- die Augen (Form, Farbe, Pupille, Glanzlicht)\n- Brauen und Wangen\n- Schnabel bzw. Schnauze und Mund\n- Fell- bzw. Federzeichnung\n- Farben, Licht, Schattierung, Detailgrad\n\nFORMAT:\n- PNG mit ECHTEM Alphakanal, Hintergrund tatsächlich transparent. Ein ins Bild gemaltes Karo- oder Schachbrettmuster ist KEIN transparenter Hintergrund und unbrauchbar; eine weiße Fläche ebenso wenig.\n- gleiche Bildgröße wie die Vorlage, quadratisch, nichts angeschnitten\n- kein Boden, keine Kulisse, kein Schlagschatten auf einer Fläche\n- kein Text, keine Zahlen, keine Symbole, kein Wasserzeichen\n\nAls Vorlage dient ausschließlich das hochgeladene Bild, sonst nichts."
     }
   ],
   "layers": [

@@ -22,7 +22,7 @@
       "registered_to": "S0_standing",
       "max_abweichung": 14,
       "zweck": "Blinzeln — kleinste Lebendigkeit, überall einsetzbar",
-      "produktion": "Neuer Zustand im Bild-Tool: dasselbe Bild, nur die Augen geschlossen (Lider zu, Wimpern nach unten). Alles andere pixelgleich lassen — Körperhaltung, Licht, Rand. Quelle: der freigegebene Master als einziges Referenzbild hochladen."
+      "produktion": "Male das hochgeladene Bild des ChessLynx-Charakters neu — als blinzelnde Fassung desselben Moments.\n\nBEIDE Augen sind geschlossen: die Lider gesenkt, als ruhige Bogenlinie sichtbar, die Wimpern zeigen nach unten. Von Augenweiß, Iris und Pupille ist nichts mehr zu sehen. Ein kurzer Lidschlag — kein Zwinkern, kein Zukneifen, kein Lächeln.\n\nDas neue Bild MUSS sich vom hochgeladenen sichtbar unterscheiden, und zwar genau an dieser Stelle. Ein Bild, das aussieht wie die Vorlage, ist kein gültiges Ergebnis — dann bitte noch einmal, deutlicher.\n\nGleich bleibt dagegen alles Übrige, so genau wie möglich:\n- Haltung, Stand, Größe und Position im Bild, Abstand zu allen vier Rändern\n- Kopfhaltung und Blickrichtung\n- Brauen und Wangen\n- Schnabel bzw. Schnauze und Mund\n- Fell- bzw. Federzeichnung\n- Farben, Licht, Schattierung, Detailgrad\n\nFORMAT:\n- PNG mit ECHTEM Alphakanal, Hintergrund tatsächlich transparent. Ein ins Bild gemaltes Karo- oder Schachbrettmuster ist KEIN transparenter Hintergrund und unbrauchbar; eine weiße Fläche ebenso wenig.\n- gleiche Bildgröße wie die Vorlage, quadratisch, nichts angeschnitten\n- kein Boden, keine Kulisse, kein Schlagschatten auf einer Fläche\n- kein Text, keine Zahlen, keine Symbole, kein Wasserzeichen\n\nAls Vorlage dient ausschließlich das hochgeladene Bild, sonst nichts."
     },
     {
       "id": "S1_scharren",
@@ -31,7 +31,7 @@
       "registered_to": "S0_standing",
       "max_abweichung": 14,
       "zweck": "Scharren — Vorderhuf kratzt am Boden",
-      "produktion": "Dasselbe Bild, nur ein Vorderhuf leicht angehoben und nach vorn gestellt. Kopf, Mähne und Hinterhand unverändert."
+      "produktion": "Male das hochgeladene Bild des ChessLynx-Charakters neu — als scharrende Fassung desselben Moments.\n\nEin Vorderhuf ist sichtbar angehoben und nach vorn gesetzt, als scharre das Pferd am Boden. Kopf, Mähne, Schweif und Hinterhand bleiben unverändert.\n\nDas neue Bild MUSS sich vom hochgeladenen sichtbar unterscheiden, und zwar genau an dieser Stelle. Ein Bild, das aussieht wie die Vorlage, ist kein gültiges Ergebnis — dann bitte noch einmal, deutlicher.\n\nGleich bleibt dagegen alles Übrige, so genau wie möglich:\n- Kopfhaltung und Blickrichtung\n- die Augen (Form, Farbe, Pupille, Glanzlicht)\n- Brauen und Wangen\n- Schnabel bzw. Schnauze und Mund\n- Fell- bzw. Federzeichnung\n- Farben, Licht, Schattierung, Detailgrad\n\nFORMAT:\n- PNG mit ECHTEM Alphakanal, Hintergrund tatsächlich transparent. Ein ins Bild gemaltes Karo- oder Schachbrettmuster ist KEIN transparenter Hintergrund und unbrauchbar; eine weiße Fläche ebenso wenig.\n- gleiche Bildgröße wie die Vorlage, quadratisch, nichts angeschnitten\n- kein Boden, keine Kulisse, kein Schlagschatten auf einer Fläche\n- kein Text, keine Zahlen, keine Symbole, kein Wasserzeichen\n\nAls Vorlage dient ausschließlich das hochgeladene Bild, sonst nichts."
     }
   ],
   "layers": [

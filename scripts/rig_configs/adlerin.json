@@ -13,25 +13,54 @@
     {
       "id": "S0_standing",
       "file": "Landesherren/Adlerin/V1/adlerin_freigestellt_kandidat_v1.png",
-      "zweck": "Grundzustand, freigegeben"
+      "zweck": "Grundzustand, freigegeben",
+      "freigabe": "freigegeben 2026-09-12"
     },
     {
       "id": "S0b_blink",
       "file": "Landesherren/Adlerin/Zustaende/adlerin_S0b_blink.png",
-      "geplant": true,
       "registered_to": "S0_standing",
-      "max_abweichung": 14,
-      "zweck": "Blinzeln",
-      "produktion": "Neuer Zustand im Bild-Tool: dasselbe Bild, nur die Augen geschlossen (Lider zu). Alles andere pixelgleich lassen — Körperhaltung, Licht, Rand. Quelle: der freigegebene Master als einziges Referenzbild hochladen."
+      "max_abweichung": 20,
+      "zweck": "Blinzeln — kurzer Lidschlag, Ausdruck bleibt gleich",
+      "produktion": "Male das hochgeladene Bild des ChessLynx-Charakters neu — als blinzelnde Fassung desselben Moments.\n\nBEIDE Augen sind geschlossen: die Lider gesenkt, als ruhige Bogenlinie sichtbar, die Wimpern zeigen nach unten. Von Augenweiß, Iris und Pupille ist nichts mehr zu sehen. Ein kurzer Lidschlag — kein Zwinkern, kein Zukneifen, kein Lächeln.\n\nDas neue Bild MUSS sich vom hochgeladenen sichtbar unterscheiden, und zwar genau an dieser Stelle. Ein Bild, das aussieht wie die Vorlage, ist kein gültiges Ergebnis — dann bitte noch einmal, deutlicher.\n\nGleich bleibt dagegen alles Übrige, so genau wie möglich:\n- Haltung, Stand, Größe und Position im Bild, Abstand zu allen vier Rändern\n- Kopfhaltung und Blickrichtung\n- Brauen und Wangen\n- Schnabel bzw. Schnauze und Mund\n- Fell- bzw. Federzeichnung\n- Farben, Licht, Schattierung, Detailgrad\n\nFORMAT:\n- PNG mit ECHTEM Alphakanal, Hintergrund tatsächlich transparent. Ein ins Bild gemaltes Karo- oder Schachbrettmuster ist KEIN transparenter Hintergrund und unbrauchbar; eine weiße Fläche ebenso wenig.\n- gleiche Bildgröße wie die Vorlage, quadratisch, nichts angeschnitten\n- kein Boden, keine Kulisse, kein Schlagschatten auf einer Fläche\n- kein Text, keine Zahlen, keine Symbole, kein Wasserzeichen\n\nAls Vorlage dient ausschließlich das hochgeladene Bild, sonst nichts.",
+      "change_region": [
+        452,
+        155,
+        768,
+        292
+      ],
+      "freigabe": "geliefert 2026-09-12 (zweiter Anlauf), echtes RGBA"
     },
     {
       "id": "S1_sprechen",
       "file": "Landesherren/Adlerin/Zustaende/adlerin_S1_sprechen.png",
-      "geplant": true,
       "registered_to": "S0_standing",
-      "max_abweichung": 14,
+      "max_abweichung": 20,
       "zweck": "Mund offen — Sprechblase/Vertonung",
-      "produktion": "Dasselbe Bild, nur der Mund/Schnabel geöffnet wie beim Sprechen eines 'A'. Augen, Kopfhaltung und Körper unverändert."
+      "produktion": "Male das hochgeladene Bild des ChessLynx-Charakters neu — als sprechende Fassung desselben Moments.\n\nDer Mund bzw. Schnabel ist deutlich geöffnet, wie beim Sprechen eines „A\" — so weit, dass die Öffnung klar zu erkennen ist.\n\nDas neue Bild MUSS sich vom hochgeladenen sichtbar unterscheiden, und zwar genau an dieser Stelle. Ein Bild, das aussieht wie die Vorlage, ist kein gültiges Ergebnis — dann bitte noch einmal, deutlicher.\n\nGleich bleibt dagegen alles Übrige, so genau wie möglich:\n- Haltung, Stand, Größe und Position im Bild, Abstand zu allen vier Rändern\n- Kopfhaltung und Blickrichtung\n- die Augen (Form, Farbe, Pupille, Glanzlicht)\n- Brauen und Wangen\n- Fell- bzw. Federzeichnung\n- Farben, Licht, Schattierung, Detailgrad\n\nFORMAT:\n- PNG mit ECHTEM Alphakanal, Hintergrund tatsächlich transparent. Ein ins Bild gemaltes Karo- oder Schachbrettmuster ist KEIN transparenter Hintergrund und unbrauchbar; eine weiße Fläche ebenso wenig.\n- gleiche Bildgröße wie die Vorlage, quadratisch, nichts angeschnitten\n- kein Boden, keine Kulisse, kein Schlagschatten auf einer Fläche\n- kein Text, keine Zahlen, keine Symbole, kein Wasserzeichen\n\nAls Vorlage dient ausschließlich das hochgeladene Bild, sonst nichts.",
+      "change_region": [
+        440,
+        120,
+        780,
+        460
+      ],
+      "freigabe": "geliefert 2026-09-12, geprüft: echtes RGBA, Versatz -1/0 px, Abweichung 9,96/255"
+    },
+    {
+      "id": "S2_zwinkern",
+      "file": "Landesherren/Adlerin/Zustaende/adlerin_S2_zwinkern.png",
+      "registered_to": "S0_standing",
+      "max_abweichung": 20,
+      "change_region": [
+        440,
+        120,
+        780,
+        300
+      ],
+      "zweck": "Echtes Zwinkern: ein Auge zu, eines offen — Reaktion auf Lob",
+      "produktion": "Male das hochgeladene Bild des ChessLynx-Charakters neu — als zwinkernde Fassung desselben Moments.\n\nGENAU EIN Auge ist geschlossen, das andere bleibt weit offen. Das linke Auge der Figur (im Bild rechts) ist zu, das Lid gesenkt, als feine Bogenlinie sichtbar. Das rechte Auge der Figur (im Bild links) bleibt genau wie in der Vorlage: offen, mit Augenweiß, farbiger Iris, Pupille und Glanzlicht. Dazu ein vergnügtes Lächeln; die Braue über dem geschlossenen Auge geht ein Stück mit, die andere bleibt, wo sie ist.\nPrüfe das Ergebnis: Sind BEIDE Augen zu, ist es falsch — dann noch einmal mit einem offenen Auge.\n\nDas neue Bild MUSS sich vom hochgeladenen sichtbar unterscheiden, und zwar genau an dieser Stelle. Ein Bild, das aussieht wie die Vorlage, ist kein gültiges Ergebnis — dann bitte noch einmal, deutlicher.\n\nGleich bleibt dagegen alles Übrige, so genau wie möglich:\n- Haltung, Stand, Größe und Position im Bild, Abstand zu allen vier Rändern\n- Kopfhaltung und Blickrichtung\n- Fell- bzw. Federzeichnung\n- Farben, Licht, Schattierung, Detailgrad\n\nFORMAT:\n- PNG mit ECHTEM Alphakanal, Hintergrund tatsächlich transparent. Ein ins Bild gemaltes Karo- oder Schachbrettmuster ist KEIN transparenter Hintergrund und unbrauchbar; eine weiße Fläche ebenso wenig.\n- gleiche Bildgröße wie die Vorlage, quadratisch, nichts angeschnitten\n- kein Boden, keine Kulisse, kein Schlagschatten auf einer Fläche\n- kein Text, keine Zahlen, keine Symbole, kein Wasserzeichen\n\nAls Vorlage dient ausschließlich das hochgeladene Bild, sonst nichts.",
+      "herkunft": "Erster Anlauf am 2026-09-12 lieferte beide Augen geschlossen, also eine zweite Blinzel-Variante statt eines Zwinkerns. Auftrag daraufhin verschärft: die Seite wird benannt und das offene Auge ausdrücklich beschrieben.",
+      "freigabe": "geliefert 2026-09-12 (dritter Anlauf), echtes RGBA"
     }
   ],
   "layers": [
@@ -40,12 +69,12 @@
       "from": "S0_standing",
       "to": "S0b_blink",
       "region": [
-        0,
-        0,
-        2048,
-        2048
+        452,
+        155,
+        768,
+        292
       ],
-      "threshold": 40,
+      "threshold": 45,
       "feather": 2.0,
       "zweck": "geschlossene Lider"
     },
@@ -54,14 +83,28 @@
       "from": "S0_standing",
       "to": "S1_sprechen",
       "region": [
-        0,
-        0,
-        2048,
-        2048
+        450,
+        280,
+        740,
+        470
       ],
-      "threshold": 35,
+      "threshold": 45,
       "feather": 2.0,
-      "zweck": "geöffneter Mund/Schnabel"
+      "zweck": "geöffneter Schnabel"
+    },
+    {
+      "id": "04_zwinkern",
+      "from": "S0_standing",
+      "to": "S2_zwinkern",
+      "region": [
+        445,
+        130,
+        620,
+        300
+      ],
+      "threshold": 45,
+      "feather": 2.0,
+      "zweck": "zugekniffenes Auge samt gehobener Braue"
     }
   ],
   "previews": {
@@ -75,6 +118,10 @@
     "preview_sprechen": [
       "S0_standing",
       "03_mund_offen"
+    ],
+    "preview_zwinkern": [
+      "S0_standing",
+      "04_zwinkern"
     ]
   },
   "animation": {
@@ -84,7 +131,18 @@
       ],
       "sprechen": [
         "03_mund_offen im Takt der Silben ein-/ausblenden, 90 ms je Wechsel"
+      ],
+      "zwinkern": [
+        "04_zwinkern einblenden (140 ms), halten 400 ms, ausblenden (160 ms) — nur auf Lob, nie als Idle"
       ]
     }
+  },
+  "known_limits": [],
+  "freigabe": {
+    "stufe": "APPROVED FOR PRODUCTION",
+    "durch": "Christian",
+    "datum": "2026-09-12",
+    "umfang": "Grundzustand, S0b_blink, S1_sprechen, S2_zwinkern und das Rig-Paket V1",
+    "beleg": "Grafiken/Landesherren/Adlerin/rights.md, Abschnitt E"
   }
 }
