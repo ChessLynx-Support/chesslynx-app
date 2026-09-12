@@ -1,0 +1,102 @@
+{
+  "character": "pferd",
+  "display_name": "Pferd (lebendig)",
+  "datum": "2026-09-12",
+  "rolle": "Lebendiges Quest-Tier auf Saga-Karte und Quest-Screen 1, vor der Verwandlung.",
+  "rig_dir": "Figuren/Pferd/Lebendig/Rig/V1",
+  "canvas": {
+    "size": 2048,
+    "margin": 0.08,
+    "reference_state": "S0_standing"
+  },
+  "states": [
+    {
+      "id": "S0_standing",
+      "file": "Figuren/Pferd/Lebendig/V1/pferd_lebendig_kandidat_v1.png",
+      "zweck": "Grundzustand, freigegeben 2026-09-11/12"
+    },
+    {
+      "id": "S0b_blink",
+      "file": "Figuren/Pferd/Lebendig/Zustaende/pferd_S0b_blink.png",
+      "geplant": true,
+      "registered_to": "S0_standing",
+      "max_abweichung": 14,
+      "zweck": "Blinzeln — kleinste Lebendigkeit, überall einsetzbar",
+      "produktion": "Neuer Zustand im Bild-Tool: dasselbe Bild, nur die Augen geschlossen (Lider zu, Wimpern nach unten). Alles andere pixelgleich lassen — Körperhaltung, Licht, Rand. Quelle: der freigegebene Master als einziges Referenzbild hochladen."
+    },
+    {
+      "id": "S1_scharren",
+      "file": "Figuren/Pferd/Lebendig/Zustaende/pferd_S1_scharren.png",
+      "geplant": true,
+      "registered_to": "S0_standing",
+      "max_abweichung": 14,
+      "zweck": "Scharren — Vorderhuf kratzt am Boden",
+      "produktion": "Dasselbe Bild, nur ein Vorderhuf leicht angehoben und nach vorn gestellt. Kopf, Mähne und Hinterhand unverändert."
+    }
+  ],
+  "layers": [
+    {
+      "id": "02_lider_zu",
+      "from": "S0_standing",
+      "to": "S0b_blink",
+      "region": [
+        0,
+        0,
+        2048,
+        2048
+      ],
+      "threshold": 40,
+      "feather": 2.0,
+      "zweck": "geschlossene Lider als eigene Ebene über dem Grundzustand"
+    },
+    {
+      "id": "03_scharren",
+      "from": "S0_standing",
+      "to": "S1_scharren",
+      "region": [
+        0,
+        0,
+        2048,
+        2048
+      ],
+      "threshold": 35,
+      "feather": 2.0,
+      "zweck": "Scharren — Vorderhuf kratzt am Boden"
+    }
+  ],
+  "previews": {
+    "preview_grund": [
+      "S0_standing"
+    ],
+    "preview_blinzeln": [
+      "S0_standing",
+      "02_lider_zu"
+    ],
+    "preview_scharren": [
+      "S0_standing",
+      "03_scharren"
+    ]
+  },
+  "animation": {
+    "presets": {
+      "blink": [
+        "02_lider_zu EIN 3 Frames (~120 ms), Intervall 3-6 s, leicht zufällig"
+      ],
+      "scharren": [
+        "03_scharren einblenden, translateX -8 -> 0, 2 Durchläufe à 400 ms"
+      ]
+    }
+  },
+  "app_export": [
+    {
+      "state": "S0_standing",
+      "file": "assets/figuren/lebendig/chesslynx_pferd_lebendig.png",
+      "canvas": 768,
+      "margin": 0.03,
+      "rel_height": 0.93
+    }
+  ],
+  "known_limits": [
+    "Die relative Höhe ist fest eingebacken (gemeinsame 768er-Leinwand), damit an der Aufrufstelle eine einzige size-Angabe genügt — siehe src/lib/questTiere.tsx."
+  ]
+}

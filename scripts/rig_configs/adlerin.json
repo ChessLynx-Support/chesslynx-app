@@ -1,0 +1,90 @@
+{
+  "character": "adlerin",
+  "display_name": "Adlerin (Landesherrin)",
+  "datum": "2026-09-12",
+  "rolle": "Landesherr/Landesherrin — Gefährte in Erzählung und Revier.",
+  "rig_dir": "Landesherren/Adlerin/Rig/V1",
+  "canvas": {
+    "size": 2048,
+    "margin": 0.08,
+    "reference_state": "S0_standing"
+  },
+  "states": [
+    {
+      "id": "S0_standing",
+      "file": "Landesherren/Adlerin/V1/adlerin_freigestellt_kandidat_v1.png",
+      "zweck": "Grundzustand, freigegeben"
+    },
+    {
+      "id": "S0b_blink",
+      "file": "Landesherren/Adlerin/Zustaende/adlerin_S0b_blink.png",
+      "geplant": true,
+      "registered_to": "S0_standing",
+      "max_abweichung": 14,
+      "zweck": "Blinzeln",
+      "produktion": "Neuer Zustand im Bild-Tool: dasselbe Bild, nur die Augen geschlossen (Lider zu). Alles andere pixelgleich lassen — Körperhaltung, Licht, Rand. Quelle: der freigegebene Master als einziges Referenzbild hochladen."
+    },
+    {
+      "id": "S1_sprechen",
+      "file": "Landesherren/Adlerin/Zustaende/adlerin_S1_sprechen.png",
+      "geplant": true,
+      "registered_to": "S0_standing",
+      "max_abweichung": 14,
+      "zweck": "Mund offen — Sprechblase/Vertonung",
+      "produktion": "Dasselbe Bild, nur der Mund/Schnabel geöffnet wie beim Sprechen eines 'A'. Augen, Kopfhaltung und Körper unverändert."
+    }
+  ],
+  "layers": [
+    {
+      "id": "02_lider_zu",
+      "from": "S0_standing",
+      "to": "S0b_blink",
+      "region": [
+        0,
+        0,
+        2048,
+        2048
+      ],
+      "threshold": 40,
+      "feather": 2.0,
+      "zweck": "geschlossene Lider"
+    },
+    {
+      "id": "03_mund_offen",
+      "from": "S0_standing",
+      "to": "S1_sprechen",
+      "region": [
+        0,
+        0,
+        2048,
+        2048
+      ],
+      "threshold": 35,
+      "feather": 2.0,
+      "zweck": "geöffneter Mund/Schnabel"
+    }
+  ],
+  "previews": {
+    "preview_grund": [
+      "S0_standing"
+    ],
+    "preview_blinzeln": [
+      "S0_standing",
+      "02_lider_zu"
+    ],
+    "preview_sprechen": [
+      "S0_standing",
+      "03_mund_offen"
+    ]
+  },
+  "animation": {
+    "presets": {
+      "blink": [
+        "02_lider_zu EIN 3 Frames (~120 ms), Intervall 3-6 s"
+      ],
+      "sprechen": [
+        "03_mund_offen im Takt der Silben ein-/ausblenden, 90 ms je Wechsel"
+      ]
+    }
+  }
+}

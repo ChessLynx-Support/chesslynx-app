@@ -166,8 +166,8 @@ import {
 
 // Board-Kacheln — dieselben Bilder wie im Hauptspiel (quest1/Board.tsx), statt der
 // bisherigen reinen Flächenfarbe (2026-09-09, siehe Update-Kommentar oben).
-const feldHell = require("../../assets/brett/tile_hell.png");
-const feldDunkel = require("../../assets/brett/tile_dunkel.png");
+const feldHell = require("../../assets/brett/tile_hell.webp");
+const feldDunkel = require("../../assets/brett/tile_dunkel.webp");
 
 // Weißer Außenrahmen ums Brett — als Konstante statt Literal, damit die Breiten-/Höhen-
 // Berechnung unten (cellSize * 8 + RAHMEN_BREITE * 2) und der tatsächliche StyleSheet-Wert

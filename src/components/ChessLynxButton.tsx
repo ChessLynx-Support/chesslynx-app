@@ -54,9 +54,9 @@ const GOLD = "#D7A52D";
 // Vektor-Näherungen (SteinHintergrund/HolzHintergrund/AquarellHintergrund unten) durch
 // SVG-`<Pattern>`-Füllungen mit den echten, gemalten Kacheln. `textur="vektor"` bleibt
 // unverändert die versagenssichere Grundeinstellung/Fallback (siehe Datei-Kommentar oben).
-const steinTexturBild = require("../../assets/ui/buttons/button_stein_export.png");
-const holzTexturBild = require("../../assets/ui/buttons/button_holz_export.png");
-const aquarellTexturBild = require("../../assets/ui/buttons/button_aquarell_export.png");
+const steinTexturBild = require("../../assets/ui/buttons/button_stein_export.webp");
+const holzTexturBild = require("../../assets/ui/buttons/button_holz_export.webp");
+const aquarellTexturBild = require("../../assets/ui/buttons/button_aquarell_export.webp");
 
 type Variante = "primary" | "secondary" | "icon";
 type Textur = "vektor" | "stein" | "holz" | "aquarell";

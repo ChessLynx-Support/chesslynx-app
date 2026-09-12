@@ -1,0 +1,201 @@
+{
+  "character": "schildkroete",
+  "display_name": "Schildkröte",
+  "datum": "2026-09-12",
+  "rig_dir": "Schildkroete/Rig/V3",
+  "canvas": {
+    "size": 2048,
+    "margin": 0.08,
+    "reference_state": "S0_standing"
+  },
+  "states": [
+    {
+      "id": "S0_standing",
+      "file": "Schildkroete/V1/schildkroete_freigestellt_kandidat_v1.png"
+    },
+    {
+      "id": "S0b_blink",
+      "file": "Schildkroete/Zustaende/S0b_blink_quelle.png",
+      "registered_to": "S0_standing",
+      "change_region": [
+        400,
+        160,
+        860,
+        350
+      ],
+      "max_abweichung": 14
+    },
+    {
+      "id": "S2_retracted",
+      "file": "Schildkroete/Zustaende/S2_retracted_quelle.png",
+      "scale_rel": 0.625
+    },
+    {
+      "id": "S3_peek",
+      "file": "Schildkroete/Zustaende/S3_peek_quelle.png",
+      "same_transform_as": "S2_retracted",
+      "registered_to": "S2_retracted",
+      "change_region": [
+        390,
+        290,
+        860,
+        520
+      ],
+      "max_abweichung": 2
+    }
+  ],
+  "layers": [
+    {
+      "id": "02_eyelids_closed",
+      "from": "S0_standing",
+      "to": "S0b_blink",
+      "region": [
+        400,
+        160,
+        860,
+        350
+      ],
+      "threshold": 40,
+      "feather": 2.0
+    },
+    {
+      "id": "04_peek_head",
+      "from": "S2_retracted",
+      "to": "S3_peek",
+      "region": [
+        380,
+        280,
+        870,
+        530
+      ],
+      "threshold": 30,
+      "feather": 1.5
+    }
+  ],
+  "previews": {
+    "preview_standing": [
+      "S0_standing"
+    ],
+    "preview_blink": [
+      "S0_standing",
+      "02_eyelids_closed"
+    ],
+    "preview_retracted": [
+      "S2_retracted"
+    ],
+    "preview_peek": [
+      "S2_retracted",
+      "04_peek_head"
+    ]
+  },
+  "animation": {
+    "presets": {
+      "blink": [
+        "02_eyelids_closed EIN 3 Frames (~120 ms), Intervall 3-6 s"
+      ],
+      "retract": [
+        "S0 scaleY 1.0 -> 0.94 (80 ms)",
+        "Überblendung S0 -> S2 (120 ms)",
+        "S2 scaleY zurück (100 ms)"
+      ],
+      "peek": [
+        "04_peek_head einblenden, translateY +12 -> 0 (180 ms)",
+        "halten 500 ms"
+      ],
+      "emerge": [
+        "Überblendung S2/S3 -> S0 (140 ms)",
+        "scaleY 1.06 -> 1.0 (160 ms)"
+      ]
+    },
+    "preview": [
+      {
+        "layers": [
+          "S0_standing"
+        ],
+        "ms": 700
+      },
+      {
+        "layers": [
+          "S0_standing",
+          "02_eyelids_closed"
+        ],
+        "ms": 140
+      },
+      {
+        "layers": [
+          "S0_standing"
+        ],
+        "ms": 500
+      },
+      {
+        "layers": [
+          "S2_retracted"
+        ],
+        "ms": 800
+      },
+      {
+        "layers": [
+          "S2_retracted",
+          "04_peek_head"
+        ],
+        "ms": 900
+      },
+      {
+        "layers": [
+          "S0_standing"
+        ],
+        "ms": 600
+      }
+    ]
+  },
+  "app_export": [
+    {
+      "state": "S0_standing",
+      "file": "assets/figuren/chesslynx_turtle_zustand_stehend.png",
+      "canvas": [
+        420,
+        768
+      ],
+      "margin": 0.005
+    },
+    {
+      "compose": [
+        "S0_standing",
+        "02_eyelids_closed"
+      ],
+      "state": "S0_standing",
+      "file": "assets/figuren/chesslynx_turtle_zustand_blinzeln.png",
+      "canvas": [
+        420,
+        768
+      ],
+      "margin": 0.005
+    },
+    {
+      "state": "S2_retracted",
+      "file": "assets/figuren/chesslynx_turtle_zustand_panzer_zu.png",
+      "canvas": [
+        420,
+        768
+      ],
+      "margin": 0.005
+    },
+    {
+      "compose": [
+        "S2_retracted",
+        "04_peek_head"
+      ],
+      "state": "S2_retracted",
+      "file": "assets/figuren/chesslynx_turtle_zustand_hervorschauen.png",
+      "canvas": [
+        420,
+        768
+      ],
+      "margin": 0.005
+    }
+  ],
+  "known_limits": [
+    "Kein separater Kontaktschatten; App-seitig als weiche Ellipse ergänzen.",
+    "Panzer in S2/S3 etwas weicher gemalt als der Panzerrand in S0."
+  ]
+}

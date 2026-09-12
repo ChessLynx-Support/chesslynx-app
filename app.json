@@ -7,7 +7,28 @@
     "userInterfaceStyle": "light",
     "icon": "./assets/brand/chesslynx_app_icon_1024.png",
     "assetBundlePatterns": [
-      "**/*"
+      "assets/brand/chesslynx_app_icon_1024.png",
+      "assets/brand/chesslynx_watermark_icon.webp",
+      "assets/brett/*.webp",
+      "assets/figuren/*.webp",
+      "assets/figuren/chesslynx_hedgehog_pawn_light_export.png",
+      "assets/figuren/chesslynx_hedgehog_pawn_dark_export.png",
+      "assets/figuren/lebendig/*.webp",
+      "assets/hintergrund/luchsrevier_*.webp",
+      "assets/hintergrund/questkulisse_q?.webp",
+      "assets/hintergrund/waldkulisse_oben.webp",
+      "assets/hintergrund/waldkulisse_unten.webp",
+      "assets/hintergrund/waldkulisse_oben_q1.webp",
+      "assets/hintergrund/waldkulisse_unten_q1.webp",
+      "assets/lux/chesslynx_lux_hero.webp",
+      "assets/lux/intro/*.mp4",
+      "assets/sounds/*.wav",
+      "assets/ui/board_chrome/*.webp",
+      "assets/ui/buttons/*.webp",
+      "assets/ui/lichess_bereich/icon_bots_schildkroete.webp",
+      "assets/ui/lichess_bereich/icon_puzzles_brett.webp",
+      "assets/ui/linien_texturen/*.webp",
+      "assets/ui/puzzle_ziele/icon_krone_stern_matt.webp"
     ],
     "ios": {
       "supportsTablet": false,
@@ -15,7 +36,8 @@
     },
     "android": {
       "package": "com.chesslynx.app",
-      "permissions": [
+      "permissions": [],
+      "blockedPermissions": [
         "android.permission.RECORD_AUDIO",
         "android.permission.MODIFY_AUDIO_SETTINGS",
         "android.permission.FOREGROUND_SERVICE",
@@ -31,8 +53,20 @@
     "plugins": [
       "expo-asset",
       "expo-status-bar",
-      "expo-audio",
-      "expo-video",
+      [
+        "expo-audio",
+        {
+          "recordAudioAndroid": false,
+          "microphonePermission": false
+        }
+      ],
+      [
+        "expo-video",
+        {
+          "supportsBackgroundPlayback": false,
+          "supportsPictureInPicture": false
+        }
+      ],
       "expo-iap"
     ],
     "owner": "cmzen"

@@ -8,28 +8,24 @@
 //   `vollstaendigerLernpfadFreigeschaltet: true` im Eltern-Einstellungen-Dokument.
 //
 // ══════════════════════════════════════════════════════════════════════════════
-// ACHTUNG — diese Datei ist erst LAUFFÄHIG, sobald zwei Voraussetzungen erfüllt
-// sind (siehe Recherche-Notiz, Abschnitt "Konkrete nächste Schritte", Punkte 1+2):
-//   1. `npx expo install expo-iap` wurde lokal ausgeführt. Das Paket steht noch
-//      NICHT in package.json — diese Datei importiert es trotzdem bereits, weil
-//      sie genau der Code ist, der danach gebraucht wird.
-//   2. Ein Custom Dev Client (EAS Build) existiert. Expo Go unterstützt keine
-//      In-App-Käufe (native Module lassen sich dort nicht konfigurieren).
-//
-// Bis beide Punkte erledigt sind, DARF diese Datei NIRGENDS importiert werden —
-// auch nicht in ParentDashboard.tsx. Ein Import von `expo-iap` schlägt fehl,
-// solange das Paket nicht installiert ist, und bringt das komplette
-// Metro-Bundling zum Absturz (nicht nur diesen Screen). Siehe ParentDashboard.tsx,
-// Abschnitt "5. Freischaltung / Kauf", für den entsprechend auskommentierten
-// Anschlusspunkt, der erst nach Punkt 1+2 einkommentiert werden soll.
+// STAND 2026-09-12 (ersetzt den früheren ACHTUNG-Block):
+//   1. `expo-iap` ist installiert und steht in package.json (^5.5.1) sowie als
+//      Plugin in app.json — die frühere Warnung "Paket fehlt, Datei darf nirgends
+//      importiert werden" gilt nicht mehr.
+//   2. Offen bleibt der Custom Dev Client (EAS Build): Expo Go unterstützt keine
+//      In-App-Käufe. Vor dem ersten echten Kauf-Test außerdem in
+//      functions/src/index.ts: numerische App-ID eintragen, Apple-Root-Zertifikate
+//      laden, Sandbox/Production umschalten, die vier Firebase-Secrets setzen;
+//      dazu Produkt-ID `vollstaendiger_lernpfad` in beiden Store-Konsolen anlegen
+//      und Sandbox-Testkonten einrichten.
+//   3. Der Kaufbutton in ParentDashboard.tsx ist weiterhin auskommentiert
+//      (Abschnitt "5. Freischaltung / Kauf") und wird in Paket 8 aktiviert.
 //
 // Hinweis zur API-Form unten: `expo-iap` folgt der etablierten react-native-iap-
 // API-Form (initConnection/purchaseUpdatedListener/requestPurchase/...), auf der
-// die OpenIAP-Spezifikation aufbaut. Da das Paket in dieser Umgebung nicht
-// installiert werden kann (kein Terminalzugriff auf dieses Gerät), ließen sich die
-// exakten Funktions-/Typnamen der tatsächlich installierten Version nicht
-// gegenprüfen — nach Schritt 1 zeigt TypeScript/die IDE sofort, falls sich hier
-// seit Version 3.4 etwas verschoben hat (kleine, lokal behebbare Abweichungen).
+// die OpenIAP-Spezifikation aufbaut. Die exakten Funktions-/Typnamen der jetzt
+// installierten Version sind noch nicht gegengeprüft — TypeScript zeigt beim
+// ersten Build sofort, falls sich seit Version 3.4 etwas verschoben hat.
 // ══════════════════════════════════════════════════════════════════════════════
 
 import { Platform } from "react-native";

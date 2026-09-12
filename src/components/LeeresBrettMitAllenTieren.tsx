@@ -145,8 +145,8 @@ import {
 // Verwandlung/QuestGeschafft für "magische Momente" steht.
 import { Funkeln } from "./Funkeln";
 
-const feldHell = require("../../assets/brett/tile_hell.png");
-const feldDunkel = require("../../assets/brett/tile_dunkel.png");
+const feldHell = require("../../assets/brett/tile_hell.webp");
+const feldDunkel = require("../../assets/brett/tile_dunkel.webp");
 
 // Zwei benachbarte Reihen (0-indiziert), siehe Datei-Kommentar oben — "unten" ist die
 // bisherige mittlere Reihe 4, "oben" die Reihe direkt darüber.

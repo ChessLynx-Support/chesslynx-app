@@ -1,0 +1,153 @@
+{
+  "character": "lux",
+  "display_name": "Lux (Luchs, Markenfigur)",
+  "datum": "2026-09-12",
+  "rolle": "Markenfigur und Begleiterin durch die ganze App.",
+  "rig_dir": "Lux/Rig/V7",
+  "canvas": {
+    "size": 2048,
+    "margin": 0.08,
+    "reference_state": "S0_standing"
+  },
+  "states": [
+    {
+      "id": "S0_standing",
+      "file": "Lux/V6/chesslynx_lux_assets_png_masterfaithful_revision6/lux_master_reference.png",
+      "zweck": "Grundzustand — Master-Referenz aus dem Lux-Paket V6"
+    },
+    {
+      "id": "S0b_blink",
+      "file": "Lux/Zustaende/lux_S0b_blink.png",
+      "geplant": true,
+      "registered_to": "S0_standing",
+      "max_abweichung": 14,
+      "zweck": "Blinzeln",
+      "produktion": "Neuer Zustand im Bild-Tool: dasselbe Bild, nur die Augen geschlossen (Lider zu). Alles andere pixelgleich lassen — Körperhaltung, Licht, Rand. Quelle: der freigegebene Master als einziges Referenzbild hochladen."
+    },
+    {
+      "id": "S1_sprechen",
+      "file": "Lux/Zustaende/lux_S1_sprechen.png",
+      "geplant": true,
+      "registered_to": "S0_standing",
+      "max_abweichung": 14,
+      "zweck": "Mund offen — Sprechblase/Vertonung",
+      "produktion": "Dasselbe Bild, nur der Mund/Schnabel geöffnet wie beim Sprechen eines 'A'. Augen, Kopfhaltung und Körper unverändert."
+    },
+    {
+      "id": "L1_winken",
+      "file": "Lux/Zustaende/lux_L1_winken.png",
+      "geplant": true,
+      "registered_to": "S0_standing",
+      "max_abweichung": 16,
+      "zweck": "Winken — Begrüßung im Willkommens-Screen",
+      "produktion": "Dasselbe Bild, nur eine Pfote zum Gruß erhoben. Kopf, Blick und Stand unverändert."
+    },
+    {
+      "id": "L2_zeigen",
+      "file": "Lux/Zustaende/lux_L2_zeigen.png",
+      "geplant": true,
+      "registered_to": "S0_standing",
+      "max_abweichung": 16,
+      "zweck": "Zeigen — verweist auf ein Feld oder eine Figur",
+      "produktion": "Dasselbe Bild, nur eine Pfote nach vorn/seitlich ausgestreckt, Blick in dieselbe Richtung. Körper unverändert."
+    }
+  ],
+  "layers": [
+    {
+      "id": "02_lider_zu",
+      "from": "S0_standing",
+      "to": "S0b_blink",
+      "region": [
+        0,
+        0,
+        2048,
+        2048
+      ],
+      "threshold": 40,
+      "feather": 2.0,
+      "zweck": "geschlossene Lider"
+    },
+    {
+      "id": "03_mund_offen",
+      "from": "S0_standing",
+      "to": "S1_sprechen",
+      "region": [
+        0,
+        0,
+        2048,
+        2048
+      ],
+      "threshold": 35,
+      "feather": 2.0,
+      "zweck": "geöffneter Mund/Schnabel"
+    },
+    {
+      "id": "04_winkende_pfote",
+      "from": "S0_standing",
+      "to": "L1_winken",
+      "region": [
+        0,
+        0,
+        2048,
+        2048
+      ],
+      "threshold": 35,
+      "feather": 2.0,
+      "zweck": "winkende Pfote"
+    },
+    {
+      "id": "05_zeigende_pfote",
+      "from": "S0_standing",
+      "to": "L2_zeigen",
+      "region": [
+        0,
+        0,
+        2048,
+        2048
+      ],
+      "threshold": 35,
+      "feather": 2.0,
+      "zweck": "zeigende Pfote"
+    }
+  ],
+  "previews": {
+    "preview_grund": [
+      "S0_standing"
+    ],
+    "preview_blinzeln": [
+      "S0_standing",
+      "02_lider_zu"
+    ],
+    "preview_sprechen": [
+      "S0_standing",
+      "03_mund_offen"
+    ],
+    "preview_winken": [
+      "S0_standing",
+      "04_winkende_pfote"
+    ],
+    "preview_zeigen": [
+      "S0_standing",
+      "05_zeigende_pfote"
+    ]
+  },
+  "animation": {
+    "presets": {
+      "blink": [
+        "02_lider_zu EIN 3 Frames (~120 ms), Intervall 3-6 s"
+      ],
+      "sprechen": [
+        "03_mund_offen im Takt der Silben ein-/ausblenden, 90 ms je Wechsel"
+      ],
+      "winken": [
+        "04_winkende_pfote einblenden, Rotation ±8°, 2 Durchläufe à 360 ms"
+      ],
+      "zeigen": [
+        "Überblendung S0 -> 05_zeigende_pfote (200 ms), halten, zurück (200 ms)"
+      ]
+    }
+  },
+  "known_limits": [
+    "Das gelieferte Lux-Cutout-Rig (png_layers/) bleibt unbenutzt: dieselben Mängel wie beim Fuchs- und Bären-Rig (Vollfiguren-Fills, geometrische Masken). Lux wird nach der Zustands-Methode neu gerigt."
+  ]
+}

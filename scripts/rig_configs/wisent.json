@@ -1,0 +1,152 @@
+{
+  "character": "wisent",
+  "display_name": "Wisent",
+  "datum": "2026-09-12",
+  "rolle": "Gefährte an der Wisentfeste; führt die Lichess-Brücke ein.",
+  "rig_dir": "Wisent/Rig/V1",
+  "canvas": {
+    "size": 2048,
+    "margin": 0.08,
+    "reference_state": "S0_standing"
+  },
+  "states": [
+    {
+      "id": "S0_standing",
+      "file": "Wisent/V1/wisent_freigestellt_kandidat_v1.png",
+      "zweck": "Grundzustand, freigegeben"
+    },
+    {
+      "id": "S0b_blink",
+      "file": "Wisent/Zustaende/wisent_S0b_blink.png",
+      "geplant": true,
+      "registered_to": "S0_standing",
+      "max_abweichung": 14,
+      "zweck": "Blinzeln",
+      "produktion": "Neuer Zustand im Bild-Tool: dasselbe Bild, nur die Augen geschlossen (Lider zu). Alles andere pixelgleich lassen — Körperhaltung, Licht, Rand. Quelle: der freigegebene Master als einziges Referenzbild hochladen."
+    },
+    {
+      "id": "S1_sprechen",
+      "file": "Wisent/Zustaende/wisent_S1_sprechen.png",
+      "geplant": true,
+      "registered_to": "S0_standing",
+      "max_abweichung": 14,
+      "zweck": "Mund offen — Sprechblase/Vertonung",
+      "produktion": "Dasselbe Bild, nur der Mund/Schnabel geöffnet wie beim Sprechen eines 'A'. Augen, Kopfhaltung und Körper unverändert."
+    },
+    {
+      "id": "W1_kopf_heben",
+      "file": "Wisent/Zustaende/wisent_W1_kopf_heben.png",
+      "geplant": true,
+      "registered_to": "S0_standing",
+      "max_abweichung": 16,
+      "zweck": "Kopf heben — Auftritt an der Wisentfeste",
+      "produktion": "Dasselbe Bild, nur Kopf und Hals deutlich angehoben, Blick nach vorn oben. Körper und Beine pixelgleich."
+    },
+    {
+      "id": "W2_schnauben",
+      "file": "Wisent/Zustaende/wisent_W2_schnauben.png",
+      "geplant": true,
+      "registered_to": "W1_kopf_heben",
+      "max_abweichung": 16,
+      "zweck": "Schnauben — warme Atemwolke vor den Nüstern",
+      "produktion": "Wie W1_kopf_heben, zusätzlich eine weiche, halbtransparente weiße Atemwolke vor den Nüstern. Tier selbst pixelgleich zu W1."
+    }
+  ],
+  "layers": [
+    {
+      "id": "02_lider_zu",
+      "from": "S0_standing",
+      "to": "S0b_blink",
+      "region": [
+        0,
+        0,
+        2048,
+        2048
+      ],
+      "threshold": 40,
+      "feather": 2.0,
+      "zweck": "geschlossene Lider"
+    },
+    {
+      "id": "03_mund_offen",
+      "from": "S0_standing",
+      "to": "S1_sprechen",
+      "region": [
+        0,
+        0,
+        2048,
+        2048
+      ],
+      "threshold": 35,
+      "feather": 2.0,
+      "zweck": "geöffneter Mund/Schnabel"
+    },
+    {
+      "id": "04_kopf_gehoben",
+      "from": "S0_standing",
+      "to": "W1_kopf_heben",
+      "region": [
+        0,
+        0,
+        2048,
+        2048
+      ],
+      "threshold": 35,
+      "feather": 2.5,
+      "zweck": "gehobener Kopf"
+    },
+    {
+      "id": "05_atemwolke",
+      "from": "W1_kopf_heben",
+      "to": "W2_schnauben",
+      "align_to": "W1_kopf_heben",
+      "region": [
+        0,
+        0,
+        2048,
+        2048
+      ],
+      "threshold": 22,
+      "feather": 3.0,
+      "zweck": "Atemwolke allein"
+    }
+  ],
+  "previews": {
+    "preview_grund": [
+      "S0_standing"
+    ],
+    "preview_blinzeln": [
+      "S0_standing",
+      "02_lider_zu"
+    ],
+    "preview_sprechen": [
+      "S0_standing",
+      "03_mund_offen"
+    ],
+    "preview_kopf_heben": [
+      "S0_standing",
+      "04_kopf_gehoben"
+    ],
+    "preview_schnauben": [
+      "S0_standing",
+      "04_kopf_gehoben",
+      "05_atemwolke"
+    ]
+  },
+  "animation": {
+    "presets": {
+      "blink": [
+        "02_lider_zu EIN 3 Frames (~120 ms), Intervall 3-6 s"
+      ],
+      "sprechen": [
+        "03_mund_offen im Takt der Silben ein-/ausblenden, 90 ms je Wechsel"
+      ],
+      "kopf_heben": [
+        "Überblendung S0 -> 04_kopf_gehoben (260 ms), halten"
+      ],
+      "schnauben": [
+        "05_atemwolke einblenden (120 ms), translateY -10 und Deckkraft 0 über 600 ms"
+      ]
+    }
+  }
+}

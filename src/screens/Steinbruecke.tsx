@@ -33,8 +33,8 @@ import { LuxSprechblase } from "../components/LuxSprechblase";
 import { FarnZurueckIcon } from "../lib/freispielIcons";
 
 const hintergrund = require("../../assets/hintergrund/luchsrevier_uebungslichtung.webp");
-const iconBots = require("../../assets/ui/lichess_bereich/icon_bots_schildkroete.png");
-const iconPuzzles = require("../../assets/ui/lichess_bereich/icon_puzzles_brett.png");
+const iconBots = require("../../assets/ui/lichess_bereich/icon_bots_schildkroete.webp");
+const iconPuzzles = require("../../assets/ui/lichess_bereich/icon_puzzles_brett.webp");
 
 // Pixelmaße des Hintergrunds (1517×2331) und Fußpunkt der Schildkröte — seit dem Gerätetest
 // 2026-09-11 (Nutzerwunsch "nicht auf der Brücke, weiter links auf der Lichtung") auf der Wiese

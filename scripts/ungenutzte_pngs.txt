@@ -1,0 +1,57 @@
+# Ungenutzte PNG-Produktionsexporte (Stand 2026-09-12)
+# Zu jeder Datei liegt eine WebP-Fassung daneben, die der Code lädt; die Master liegen
+# ohnehin unter Grafiken/. Entfernen mit (Git Bash):    git rm $(grep -v '^#' scripts/ungenutzte_pngs.txt)
+# oder PowerShell:    git rm @(Get-Content scripts/ungenutzte_pngs.txt | Where-Object { $_ -notmatch '^#' })
+# Danach diese Datei selbst löschen. NICHT enthalten: die beiden Igel-PNGs, die
+# src/dev/RigRendererProbe.tsx absichtlich gegen ihre WebP-Fassung vergleicht.
+assets/brand/chesslynx_watermark_icon.png
+assets/brett/tile_dunkel.png
+assets/brett/tile_hell.png
+assets/figuren/chesslynx_bear_rook_dark_export.png
+assets/figuren/chesslynx_bear_rook_dark_export_gross.png
+assets/figuren/chesslynx_bear_rook_light_export.png
+assets/figuren/chesslynx_bear_rook_light_export_gross.png
+assets/figuren/chesslynx_deer_king_dark_export.png
+assets/figuren/chesslynx_deer_king_dark_export_gross.png
+assets/figuren/chesslynx_deer_king_light_export.png
+assets/figuren/chesslynx_deer_king_light_export_gross.png
+assets/figuren/chesslynx_hedgehog_pawn_dark_export_gross.png
+assets/figuren/chesslynx_hedgehog_pawn_light_export_gross.png
+assets/figuren/chesslynx_horse_knight_dark_export.png
+assets/figuren/chesslynx_horse_knight_dark_export_gross.png
+assets/figuren/chesslynx_horse_knight_light_export.png
+assets/figuren/chesslynx_horse_knight_light_export_gross.png
+assets/figuren/chesslynx_owl_bishop_dark_export.png
+assets/figuren/chesslynx_owl_bishop_dark_export_gross.png
+assets/figuren/chesslynx_owl_bishop_light_export.png
+assets/figuren/chesslynx_owl_bishop_light_export_gross.png
+assets/figuren/chesslynx_swan_queen_dark_export.png
+assets/figuren/chesslynx_swan_queen_dark_export_gross.png
+assets/figuren/chesslynx_swan_queen_light_export.png
+assets/figuren/chesslynx_swan_queen_light_export_gross.png
+assets/figuren/chesslynx_turtle_light_export_gross.png
+assets/figuren/lebendig/chesslynx_baer_lebendig.png
+assets/figuren/lebendig/chesslynx_eule_lebendig.png
+assets/figuren/lebendig/chesslynx_hirsch_lebendig.png
+assets/figuren/lebendig/chesslynx_igel_lebendig.png
+assets/figuren/lebendig/chesslynx_pferd_lebendig.png
+assets/figuren/lebendig/chesslynx_schwan_lebendig.png
+assets/hintergrund/luchsrevier_nebel_band.png
+assets/hintergrund/waldkulisse_oben.png
+assets/hintergrund/waldkulisse_unten.png
+assets/lux/chesslynx_lux_hero.png
+assets/ui/board_chrome/icon_board_bedrohung_gluehen.png
+assets/ui/board_chrome/icon_board_eichel_sammelobjekt.png
+assets/ui/board_chrome/icon_board_warnring.png
+assets/ui/board_chrome/icon_board_zielfeld_punkt.png
+assets/ui/board_chrome/icon_board_zielfeld_ring.png
+assets/ui/buttons/button_aquarell_export.png
+assets/ui/buttons/button_holz_export.png
+assets/ui/buttons/button_stein_export.png
+assets/ui/freispiel_navigation/icon_freispiel_nochmal.png
+assets/ui/freispiel_navigation/icon_freispiel_zurueck_farn.png
+assets/ui/lichess_bereich/icon_bots_schildkroete.png
+assets/ui/lichess_bereich/icon_puzzles_brett.png
+assets/ui/linien_texturen/textur_kettenglied.png
+assets/ui/linien_texturen/textur_warnlinie.png
+assets/ui/puzzle_ziele/icon_krone_stern_matt.png

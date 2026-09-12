@@ -1,0 +1,102 @@
+{
+  "character": "schwan",
+  "display_name": "Schwan (lebendig)",
+  "datum": "2026-09-12",
+  "rolle": "Lebendiges Quest-Tier auf Saga-Karte und Quest-Screen 1, vor der Verwandlung.",
+  "rig_dir": "Figuren/Schwan/Lebendig/Rig/V1",
+  "canvas": {
+    "size": 2048,
+    "margin": 0.08,
+    "reference_state": "S0_standing"
+  },
+  "states": [
+    {
+      "id": "S0_standing",
+      "file": "Figuren/Schwan/Lebendig/V1/schwan_lebendig_kandidat_v1.png",
+      "zweck": "Grundzustand, freigegeben 2026-09-11/12"
+    },
+    {
+      "id": "S0b_blink",
+      "file": "Figuren/Schwan/Lebendig/Zustaende/schwan_S0b_blink.png",
+      "geplant": true,
+      "registered_to": "S0_standing",
+      "max_abweichung": 14,
+      "zweck": "Blinzeln — kleinste Lebendigkeit, überall einsetzbar",
+      "produktion": "Neuer Zustand im Bild-Tool: dasselbe Bild, nur die Augen geschlossen (Lider zu, Wimpern nach unten). Alles andere pixelgleich lassen — Körperhaltung, Licht, Rand. Quelle: der freigegebene Master als einziges Referenzbild hochladen."
+    },
+    {
+      "id": "S1_fluegel",
+      "file": "Figuren/Schwan/Lebendig/Zustaende/schwan_S1_fluegel.png",
+      "geplant": true,
+      "registered_to": "S0_standing",
+      "max_abweichung": 14,
+      "zweck": "Flügelheben — Eleganz-Geste der Dame",
+      "produktion": "Dasselbe Bild, nur beide Flügel leicht vom Körper abgehoben und gespreizt. Hals, Kopf und Stand unverändert."
+    }
+  ],
+  "layers": [
+    {
+      "id": "02_lider_zu",
+      "from": "S0_standing",
+      "to": "S0b_blink",
+      "region": [
+        0,
+        0,
+        2048,
+        2048
+      ],
+      "threshold": 40,
+      "feather": 2.0,
+      "zweck": "geschlossene Lider als eigene Ebene über dem Grundzustand"
+    },
+    {
+      "id": "03_fluegel",
+      "from": "S0_standing",
+      "to": "S1_fluegel",
+      "region": [
+        0,
+        0,
+        2048,
+        2048
+      ],
+      "threshold": 35,
+      "feather": 2.0,
+      "zweck": "Flügelheben — Eleganz-Geste der Dame"
+    }
+  ],
+  "previews": {
+    "preview_grund": [
+      "S0_standing"
+    ],
+    "preview_blinzeln": [
+      "S0_standing",
+      "02_lider_zu"
+    ],
+    "preview_fluegel": [
+      "S0_standing",
+      "03_fluegel"
+    ]
+  },
+  "animation": {
+    "presets": {
+      "blink": [
+        "02_lider_zu EIN 3 Frames (~120 ms), Intervall 3-6 s, leicht zufällig"
+      ],
+      "fluegel": [
+        "03_fluegel einblenden (240 ms), halten 500 ms, ausblenden (240 ms)"
+      ]
+    }
+  },
+  "app_export": [
+    {
+      "state": "S0_standing",
+      "file": "assets/figuren/lebendig/chesslynx_schwan_lebendig.png",
+      "canvas": 768,
+      "margin": 0.03,
+      "rel_height": 0.84
+    }
+  ],
+  "known_limits": [
+    "Die relative Höhe ist fest eingebacken (gemeinsame 768er-Leinwand), damit an der Aufrufstelle eine einzige size-Angabe genügt — siehe src/lib/questTiere.tsx."
+  ]
+}

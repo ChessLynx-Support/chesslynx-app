@@ -56,8 +56,8 @@ const ANDROID_FIX_PROPS = { fadeDuration: 0 } as const;
 
 type MasterIconProps = { size?: number };
 
-const hedgehogPawnLight = require("../../assets/figuren/chesslynx_hedgehog_pawn_light_export.png");
-const hedgehogPawnDark = require("../../assets/figuren/chesslynx_hedgehog_pawn_dark_export.png");
+const hedgehogPawnLight = require("../../assets/figuren/chesslynx_hedgehog_pawn_light_export.webp");
+const hedgehogPawnDark = require("../../assets/figuren/chesslynx_hedgehog_pawn_dark_export.webp");
 
 /** Bauer (Igel), helle Master-Variante — Spielerfigur auf dem Brett, Quest 1. */
 export function BauerMasterIcon({ size = 34 }: MasterIconProps) {
@@ -81,16 +81,16 @@ export function BauerMasterDunkelIcon({ size = 34 }: MasterIconProps) {
 // per Prop für QuestGeschafft (92) und Verwandlung (nicht mehr genutzt, siehe unten).
 // ---------------------------------------------------------------------------------------
 
-const bearRookLight = require("../../assets/figuren/chesslynx_bear_rook_light_export.png");
-const bearRookDark = require("../../assets/figuren/chesslynx_bear_rook_dark_export.png");
-const owlBishopLight = require("../../assets/figuren/chesslynx_owl_bishop_light_export.png");
-const owlBishopDark = require("../../assets/figuren/chesslynx_owl_bishop_dark_export.png");
-const horseKnightLight = require("../../assets/figuren/chesslynx_horse_knight_light_export.png");
-const horseKnightDark = require("../../assets/figuren/chesslynx_horse_knight_dark_export.png");
-const swanQueenLight = require("../../assets/figuren/chesslynx_swan_queen_light_export.png");
-const swanQueenDark = require("../../assets/figuren/chesslynx_swan_queen_dark_export.png");
-const deerKingLight = require("../../assets/figuren/chesslynx_deer_king_light_export.png");
-const deerKingDark = require("../../assets/figuren/chesslynx_deer_king_dark_export.png");
+const bearRookLight = require("../../assets/figuren/chesslynx_bear_rook_light_export.webp");
+const bearRookDark = require("../../assets/figuren/chesslynx_bear_rook_dark_export.webp");
+const owlBishopLight = require("../../assets/figuren/chesslynx_owl_bishop_light_export.webp");
+const owlBishopDark = require("../../assets/figuren/chesslynx_owl_bishop_dark_export.webp");
+const horseKnightLight = require("../../assets/figuren/chesslynx_horse_knight_light_export.webp");
+const horseKnightDark = require("../../assets/figuren/chesslynx_horse_knight_dark_export.webp");
+const swanQueenLight = require("../../assets/figuren/chesslynx_swan_queen_light_export.webp");
+const swanQueenDark = require("../../assets/figuren/chesslynx_swan_queen_dark_export.webp");
+const deerKingLight = require("../../assets/figuren/chesslynx_deer_king_light_export.webp");
+const deerKingDark = require("../../assets/figuren/chesslynx_deer_king_dark_export.webp");
 
 /** Turm (Bär), helle Master-Variante — Spielerfigur auf dem Brett, Quest 2. */
 export function TurmMasterIcon({ size = 34 }: MasterIconProps) {
@@ -150,18 +150,18 @@ export function KoenigMasterDunkelIcon({ size = 34 }: MasterIconProps) {
 // kann.
 // ---------------------------------------------------------------------------------------
 
-const hedgehogPawnLightGross = require("../../assets/figuren/chesslynx_hedgehog_pawn_light_export_gross.png");
-const hedgehogPawnDarkGross = require("../../assets/figuren/chesslynx_hedgehog_pawn_dark_export_gross.png");
-const bearRookLightGross = require("../../assets/figuren/chesslynx_bear_rook_light_export_gross.png");
-const bearRookDarkGross = require("../../assets/figuren/chesslynx_bear_rook_dark_export_gross.png");
-const owlBishopLightGross = require("../../assets/figuren/chesslynx_owl_bishop_light_export_gross.png");
-const owlBishopDarkGross = require("../../assets/figuren/chesslynx_owl_bishop_dark_export_gross.png");
-const horseKnightLightGross = require("../../assets/figuren/chesslynx_horse_knight_light_export_gross.png");
-const horseKnightDarkGross = require("../../assets/figuren/chesslynx_horse_knight_dark_export_gross.png");
-const swanQueenLightGross = require("../../assets/figuren/chesslynx_swan_queen_light_export_gross.png");
-const swanQueenDarkGross = require("../../assets/figuren/chesslynx_swan_queen_dark_export_gross.png");
-const deerKingLightGross = require("../../assets/figuren/chesslynx_deer_king_light_export_gross.png");
-const deerKingDarkGross = require("../../assets/figuren/chesslynx_deer_king_dark_export_gross.png");
+const hedgehogPawnLightGross = require("../../assets/figuren/chesslynx_hedgehog_pawn_light_export_gross.webp");
+const hedgehogPawnDarkGross = require("../../assets/figuren/chesslynx_hedgehog_pawn_dark_export_gross.webp");
+const bearRookLightGross = require("../../assets/figuren/chesslynx_bear_rook_light_export_gross.webp");
+const bearRookDarkGross = require("../../assets/figuren/chesslynx_bear_rook_dark_export_gross.webp");
+const owlBishopLightGross = require("../../assets/figuren/chesslynx_owl_bishop_light_export_gross.webp");
+const owlBishopDarkGross = require("../../assets/figuren/chesslynx_owl_bishop_dark_export_gross.webp");
+const horseKnightLightGross = require("../../assets/figuren/chesslynx_horse_knight_light_export_gross.webp");
+const horseKnightDarkGross = require("../../assets/figuren/chesslynx_horse_knight_dark_export_gross.webp");
+const swanQueenLightGross = require("../../assets/figuren/chesslynx_swan_queen_light_export_gross.webp");
+const swanQueenDarkGross = require("../../assets/figuren/chesslynx_swan_queen_dark_export_gross.webp");
+const deerKingLightGross = require("../../assets/figuren/chesslynx_deer_king_light_export_gross.webp");
+const deerKingDarkGross = require("../../assets/figuren/chesslynx_deer_king_dark_export_gross.webp");
 
 // Gemeinsamer Default (140) statt 34 — die Groß-Variante wird für große Anzeigekontexte
 // (Screen 1, Saga-Karte, Verwandlung) gebraucht, nicht fürs kleine Spielbrett-Feld.

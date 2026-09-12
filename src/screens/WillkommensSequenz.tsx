@@ -95,7 +95,7 @@ const hintergrundKarte = require("../../assets/hintergrund/luchsrevier_wisentfes
 // (siehe dortige Kommentare zu Herkunft/Kalibrierung) — hier erneut per require()
 // eingebunden statt exportiert, da reines Bild-Asset ohne Koordinatenbezug (kein
 // Drift-Risiko wie bei Positionswerten).
-const nebelBand = require("../../assets/hintergrund/luchsrevier_nebel_band.png");
+const nebelBand = require("../../assets/hintergrund/luchsrevier_nebel_band.webp");
 // Exakt derselbe Grauton wie NEBEL_KLARUNG_NAECHSTES in LuchsRevierKarte.tsx — siehe
 // dortiger Kommentar.
 const NEBEL_KLARUNG_NAECHSTES = "#8A8A8A";

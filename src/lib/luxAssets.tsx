@@ -24,7 +24,7 @@ import { useEffect, useRef } from "react";
 import type { ReactNode } from "react";
 import { Animated, Image } from "react-native";
 
-const luxHero = require("../../assets/lux/chesslynx_lux_hero.png");
+const luxHero = require("../../assets/lux/chesslynx_lux_hero.webp");
 
 // Natives Seitenverhältnis des Produktions-Exports (Höhe/Breite) — siehe Kommentar oben.
 // Bewusst als Konstante statt hart im Style verdrahtet, falls die Quellgrafik künftig neu

@@ -8,7 +8,7 @@
 
 import { Image } from "react-native";
 
-export const SCHILDKROETE_BILD = require("../../assets/figuren/chesslynx_turtle_light_export_gross.png");
+export const SCHILDKROETE_BILD = require("../../assets/figuren/chesslynx_turtle_light_export_gross.webp");
 /** Höhe/Breite der exportierten Grafik (420 × 768 px). */
 export const SCHILDKROETE_ASPEKT = 768 / 420;
 

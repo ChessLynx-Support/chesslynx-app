@@ -38,7 +38,7 @@ import { Image, Pressable, StyleSheet, View } from "react-native";
 // SafeAreaProvider (RootNavigator.tsx) verdrahteten `react-native-safe-area-context`
 // liefert den tatsächlichen, geräteabhängigen unteren Sicherheitsabstand.
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-const LOGO = require("../../assets/brand/chesslynx_watermark_icon.png");
+const LOGO = require("../../assets/brand/chesslynx_watermark_icon.webp");
 
 type Props = { onPress?: () => void };
 

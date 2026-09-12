@@ -61,8 +61,8 @@
 
 import { View, Image, StyleSheet } from "react-native";
 
-const obenStandard = require("../../assets/hintergrund/waldkulisse_oben.png");
-const untenStandard = require("../../assets/hintergrund/waldkulisse_unten.png");
+const obenStandard = require("../../assets/hintergrund/waldkulisse_oben.webp");
+const untenStandard = require("../../assets/hintergrund/waldkulisse_unten.webp");
 
 // Update (2026-09-09, Nutzerwunsch "auch alle anderen prüfen"): alle sechs Quest-Varianten
 // (oben + unten) wurden aus dem später aufgetauchten, deutlich höher aufgelösten Master

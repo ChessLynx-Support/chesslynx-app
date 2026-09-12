@@ -12,7 +12,7 @@ import { BauerMasterDunkelIcon, KoenigMasterGrossDunkelIcon } from "../lib/piece
 // plastischen Figur, da nur reines 2D"): statt des flachen SVG-Icons (KroneSternIcon) das
 // gemalte Puzzle-Ziel-Icon aus Sheet 1 — gleiche Bedeutung ("Matt"), gleiche Malweise wie
 // die Figuren; mit genug Luft nach oben, damit nichts abgeschnitten wird.
-const KRONE_STERN_BILD = require("../../assets/ui/puzzle_ziele/icon_krone_stern_matt.png");
+const KRONE_STERN_BILD = require("../../assets/ui/puzzle_ziele/icon_krone_stern_matt.webp");
 import { Funkeln } from "../components/Funkeln";
 
 export function MattMomentFeier() {

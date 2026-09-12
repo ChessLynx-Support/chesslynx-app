@@ -35,12 +35,12 @@ export type QuestTierId = "quest1" | "quest2" | "quest3" | "quest4" | "quest5" |
 // Derselbe Android-Fix wie in pieceMasters.tsx (siehe dortigen Kommentar).
 const ANDROID_FIX_PROPS = { fadeDuration: 0 } as const;
 
-const igel = require("../../assets/figuren/lebendig/chesslynx_igel_lebendig.png");
-const baer = require("../../assets/figuren/lebendig/chesslynx_baer_lebendig.png");
-const eule = require("../../assets/figuren/lebendig/chesslynx_eule_lebendig.png");
-const pferd = require("../../assets/figuren/lebendig/chesslynx_pferd_lebendig.png");
-const schwan = require("../../assets/figuren/lebendig/chesslynx_schwan_lebendig.png");
-const hirsch = require("../../assets/figuren/lebendig/chesslynx_hirsch_lebendig.png");
+const igel = require("../../assets/figuren/lebendig/chesslynx_igel_lebendig.webp");
+const baer = require("../../assets/figuren/lebendig/chesslynx_baer_lebendig.webp");
+const eule = require("../../assets/figuren/lebendig/chesslynx_eule_lebendig.webp");
+const pferd = require("../../assets/figuren/lebendig/chesslynx_pferd_lebendig.webp");
+const schwan = require("../../assets/figuren/lebendig/chesslynx_schwan_lebendig.webp");
+const hirsch = require("../../assets/figuren/lebendig/chesslynx_hirsch_lebendig.webp");
 
 /** Lebendiges Tier je Quest. Alle Bilder: 768×768 RGBA, Tier fußbündig, Seitenverhältnis 1. */
 export const QUEST_TIER_BILD: Record<QuestTierId, ImageSourcePropType> = {

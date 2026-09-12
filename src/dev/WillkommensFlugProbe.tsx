@@ -81,7 +81,7 @@ const hintergrundKarte = require("../../assets/hintergrund/luchsrevier_wisentfes
 // eingebunden statt (wie WEGMARKEN/MAP_ASPECT) aus der Komponente exportiert, da es sich
 // um ein reines Bild-Asset ohne Koordinatenbezug handelt (kein "Sprung"-Risiko wie bei
 // Positionswerten, siehe Kommentar bei NEBEL_GEDIMMT unten).
-const nebelBand = require("../../assets/hintergrund/luchsrevier_nebel_band.png");
+const nebelBand = require("../../assets/hintergrund/luchsrevier_nebel_band.webp");
 // Exakt derselbe Grauton wie NEBEL_KLARUNG_NAECHSTES in LuchsRevierKarte.tsx — die
 // "als nächstes dran"-Lichtung ist dort bewusst nur eine schwache Aufhellung, kein
 // vollständiges Freilegen (das bleibt "erledigten" Wegmarken vorbehalten, die es hier noch

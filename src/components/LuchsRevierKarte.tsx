@@ -141,7 +141,7 @@ const SCHILDKROETE_WEGPUNKT = { fx: 0.1, fy: 0.56, breiteFrac: 36 / 390 };
 // eigentliche Verlaufsberechnung geschah beim Bauen des Assets (Python, nicht Teil der App) —
 // hier dokumentiert, damit sich das Band bei einem größeren Kartenausschnitt (18-Segment-Karte,
 // siehe oben) nachvollziehbar neu erzeugen lässt.
-const nebelBand = require("../../assets/hintergrund/luchsrevier_nebel_band.png");
+const nebelBand = require("../../assets/hintergrund/luchsrevier_nebel_band.webp");
 
 // Seitenverhältnis des Kartenausschnitts (Originalauflösung 829×1318px, siehe Datei-
 // Kopfkommentar) — legt bei gegebener Breite eindeutig die Höhe fest, damit die Karte nie
@@ -209,78 +209,78 @@ const TIER_FUSS_FRAC = 0.97;
 export const WEGMARKEN: WegmarkenEintrag[] = [
   {
     quest: "quest1",
-    bild: require("../../assets/figuren/chesslynx_hedgehog_pawn_light_export_gross.png"),
+    bild: require("../../assets/figuren/chesslynx_hedgehog_pawn_light_export_gross.webp"),
     fx: 150 / REFERENZ_BREITE,
     fy: 590 / REFERENZ_HOEHE,
     breiteFrac: 46 / REFERENZ_BREITE,
     aspekt: 466 / 274,
     lebendig: {
-      bild: require("../../assets/figuren/lebendig/chesslynx_igel_lebendig.png"),
+      bild: require("../../assets/figuren/lebendig/chesslynx_igel_lebendig.webp"),
       hoeheFrac: 397/768,
       breiteFrac: 227/768,
     },
   },
   {
     quest: "quest2",
-    bild: require("../../assets/figuren/chesslynx_bear_rook_light_export_gross.png"),
+    bild: require("../../assets/figuren/chesslynx_bear_rook_light_export_gross.webp"),
     fx: 255 / REFERENZ_BREITE,
     fy: 580 / REFERENZ_HOEHE,
     breiteFrac: 50 / REFERENZ_BREITE,
     aspekt: 656 / 322,
     lebendig: {
-      bild: require("../../assets/figuren/lebendig/chesslynx_baer_lebendig.png"),
+      bild: require("../../assets/figuren/lebendig/chesslynx_baer_lebendig.webp"),
       hoeheFrac: 548/768,
       breiteFrac: 267/768,
     },
   },
   {
     quest: "quest3",
-    bild: require("../../assets/figuren/chesslynx_owl_bishop_light_export_gross.png"),
+    bild: require("../../assets/figuren/chesslynx_owl_bishop_light_export_gross.webp"),
     fx: 195 / REFERENZ_BREITE,
     fy: 450 / REFERENZ_HOEHE,
     breiteFrac: 46 / REFERENZ_BREITE,
     aspekt: 636 / 272,
     lebendig: {
-      bild: require("../../assets/figuren/lebendig/chesslynx_eule_lebendig.png"),
+      bild: require("../../assets/figuren/lebendig/chesslynx_eule_lebendig.webp"),
       hoeheFrac: 476/768,
       breiteFrac: 247/768,
     },
   },
   {
     quest: "quest4",
-    bild: require("../../assets/figuren/chesslynx_horse_knight_light_export_gross.png"),
+    bild: require("../../assets/figuren/chesslynx_horse_knight_light_export_gross.webp"),
     fx: 110 / REFERENZ_BREITE,
     fy: 410 / REFERENZ_HOEHE,
     breiteFrac: 50 / REFERENZ_BREITE,
     aspekt: 620 / 315,
     lebendig: {
-      bild: require("../../assets/figuren/lebendig/chesslynx_pferd_lebendig.png"),
+      bild: require("../../assets/figuren/lebendig/chesslynx_pferd_lebendig.webp"),
       hoeheFrac: 671/768,
       breiteFrac: 414/768,
     },
   },
   {
     quest: "quest5",
-    bild: require("../../assets/figuren/chesslynx_swan_queen_light_export_gross.png"),
+    bild: require("../../assets/figuren/chesslynx_swan_queen_light_export_gross.webp"),
     fx: 120 / REFERENZ_BREITE,
     fy: 300 / REFERENZ_HOEHE,
     breiteFrac: 48 / REFERENZ_BREITE,
     aspekt: 711 / 328,
     lebendig: {
-      bild: require("../../assets/figuren/lebendig/chesslynx_schwan_lebendig.png"),
+      bild: require("../../assets/figuren/lebendig/chesslynx_schwan_lebendig.webp"),
       hoeheFrac: 606/768,
       breiteFrac: 355/768,
     },
   },
   {
     quest: "quest6",
-    bild: require("../../assets/figuren/chesslynx_deer_king_light_export_gross.png"),
+    bild: require("../../assets/figuren/chesslynx_deer_king_light_export_gross.webp"),
     fx: 245 / REFERENZ_BREITE,
     fy: 230 / REFERENZ_HOEHE,
     breiteFrac: 48 / REFERENZ_BREITE,
     aspekt: 770 / 372,
     lebendig: {
-      bild: require("../../assets/figuren/lebendig/chesslynx_hirsch_lebendig.png"),
+      bild: require("../../assets/figuren/lebendig/chesslynx_hirsch_lebendig.webp"),
       hoeheFrac: 721/768,
       breiteFrac: 375/768,
     },

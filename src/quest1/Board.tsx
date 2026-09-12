@@ -60,21 +60,21 @@ import type { BoardSquare } from "../lib/chessEngine";
 import { haptikZug, haptikStopp } from "../lib/luxHaptik";
 import { spieleZugKlang, spieleStoppKlang } from "../lib/luxKlang";
 
-const feldHell = require("../../assets/brett/tile_hell.png");
-const feldDunkel = require("../../assets/brett/tile_dunkel.png");
+const feldHell = require("../../assets/brett/tile_hell.webp");
+const feldDunkel = require("../../assets/brett/tile_dunkel.webp");
 
 // Sheet 6 (Board-Chrome-Marker) und Sheet 7 (Linien-Texturen) — produziert, QA-geprüft
 // (Kantenweichzeichnung Zielfeld-Punkt/-Ring, Farbkorrektur Warnlinie) und committet
 // 2026-09-11 (siehe claude/status_content_produktion.md, claude/produktionsliste_
 // buttons_farbcodes_v1.md §8/§9). Ersetzen ab hier die bisherigen, live gezeichneten
 // react-native-svg-Formen der Board-Chrome-Marker/Linien durch Bild-Assets.
-const zielfeldPunktBild = require("../../assets/ui/board_chrome/icon_board_zielfeld_punkt.png");
-const zielfeldRingBild = require("../../assets/ui/board_chrome/icon_board_zielfeld_ring.png");
-const warnringBild = require("../../assets/ui/board_chrome/icon_board_warnring.png");
-const bedrohungGluehenBild = require("../../assets/ui/board_chrome/icon_board_bedrohung_gluehen.png");
-const eichelSammelBild = require("../../assets/ui/board_chrome/icon_board_eichel_sammelobjekt.png");
-const kettenTexturBild = require("../../assets/ui/linien_texturen/textur_kettenglied.png");
-const warnlinieTexturBild = require("../../assets/ui/linien_texturen/textur_warnlinie.png");
+const zielfeldPunktBild = require("../../assets/ui/board_chrome/icon_board_zielfeld_punkt.webp");
+const zielfeldRingBild = require("../../assets/ui/board_chrome/icon_board_zielfeld_ring.webp");
+const warnringBild = require("../../assets/ui/board_chrome/icon_board_warnring.webp");
+const bedrohungGluehenBild = require("../../assets/ui/board_chrome/icon_board_bedrohung_gluehen.webp");
+const eichelSammelBild = require("../../assets/ui/board_chrome/icon_board_eichel_sammelobjekt.webp");
+const kettenTexturBild = require("../../assets/ui/linien_texturen/textur_kettenglied.webp");
+const warnlinieTexturBild = require("../../assets/ui/linien_texturen/textur_warnlinie.webp");
 
 // Zielfeld-Marker (löst styles.legalRing ab): weicher grüner Licht-/Ringschein, plus ein
 // sehr sanftes, endloses Atem-Pulsieren (Skalierung 1,0↔1,08), das den Blick des Kindes
