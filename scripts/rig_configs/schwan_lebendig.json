@@ -13,16 +13,23 @@
     {
       "id": "S0_standing",
       "file": "Figuren/Schwan/Lebendig/V1/schwan_lebendig_kandidat_v1.png",
-      "zweck": "Grundzustand, freigegeben 2026-09-11/12"
+      "zweck": "Grundzustand, freigegeben 2026-09-11/12",
+      "freigabe": "freigegeben durch Christian"
     },
     {
       "id": "S0b_blink",
       "file": "Figuren/Schwan/Lebendig/Zustaende/schwan_S0b_blink.png",
-      "geplant": true,
       "registered_to": "S0_standing",
-      "max_abweichung": 14,
+      "max_abweichung": 25,
       "zweck": "Blinzeln — kleinste Lebendigkeit, überall einsetzbar",
-      "produktion": "Male das hochgeladene Bild des ChessLynx-Charakters neu — als blinzelnde Fassung desselben Moments.\n\nBEIDE Augen sind geschlossen: die Lider gesenkt, als ruhige Bogenlinie sichtbar, die Wimpern zeigen nach unten. Von Augenweiß, Iris und Pupille ist nichts mehr zu sehen. Ein kurzer Lidschlag — kein Zwinkern, kein Zukneifen, kein Lächeln.\n\nDas neue Bild MUSS sich vom hochgeladenen sichtbar unterscheiden, und zwar genau an dieser Stelle. Ein Bild, das aussieht wie die Vorlage, ist kein gültiges Ergebnis — dann bitte noch einmal, deutlicher.\n\nGleich bleibt dagegen alles Übrige, so genau wie möglich:\n- Haltung, Stand, Größe und Position im Bild, Abstand zu allen vier Rändern\n- Kopfhaltung und Blickrichtung\n- Brauen und Wangen\n- Schnabel bzw. Schnauze und Mund\n- Fell- bzw. Federzeichnung\n- Farben, Licht, Schattierung, Detailgrad\n\nFORMAT:\n- PNG mit ECHTEM Alphakanal, Hintergrund tatsächlich transparent. Ein ins Bild gemaltes Karo- oder Schachbrettmuster ist KEIN transparenter Hintergrund und unbrauchbar; eine weiße Fläche ebenso wenig.\n- gleiche Bildgröße wie die Vorlage, quadratisch, nichts angeschnitten\n- kein Boden, keine Kulisse, kein Schlagschatten auf einer Fläche\n- kein Text, keine Zahlen, keine Symbole, kein Wasserzeichen\n\nAls Vorlage dient ausschließlich das hochgeladene Bild, sonst nichts."
+      "produktion": "Male das hochgeladene Bild des ChessLynx-Charakters neu — als blinzelnde Fassung desselben Moments.\n\nBEIDE Augen sind geschlossen: die Lider gesenkt, als ruhige Bogenlinie sichtbar, die Wimpern zeigen nach unten. Von Augenweiß, Iris und Pupille ist nichts mehr zu sehen. Ein kurzer Lidschlag — kein Zwinkern, kein Zukneifen, kein Lächeln.\n\nDas neue Bild MUSS sich vom hochgeladenen sichtbar unterscheiden, und zwar genau an dieser Stelle. Ein Bild, das aussieht wie die Vorlage, ist kein gültiges Ergebnis — dann bitte noch einmal, deutlicher.\n\nGleich bleibt dagegen alles Übrige, so genau wie möglich:\n- Haltung, Stand, Größe und Position im Bild, Abstand zu allen vier Rändern\n- Kopfhaltung und Blickrichtung\n- Brauen und Wangen\n- Schnabel bzw. Schnauze und Mund\n- Fell- bzw. Federzeichnung\n- Farben, Licht, Schattierung, Detailgrad\n\nFORMAT:\n- PNG mit ECHTEM Alphakanal, Hintergrund tatsächlich transparent. Ein ins Bild gemaltes Karo- oder Schachbrettmuster ist KEIN transparenter Hintergrund und unbrauchbar; eine weiße Fläche ebenso wenig.\n- gleiche Bildgröße wie die Vorlage, quadratisch, nichts angeschnitten\n- kein Boden, keine Kulisse, kein Schlagschatten auf einer Fläche\n- kein Text, keine Zahlen, keine Symbole, kein Wasserzeichen\n\nAls Vorlage dient ausschließlich das hochgeladene Bild, sonst nichts.",
+      "change_region": [
+        370,
+        110,
+        620,
+        320
+      ],
+      "freigabe": "freigegeben durch Christian"
     },
     {
       "id": "S1_fluegel",
@@ -31,7 +38,7 @@
       "registered_to": "S0_standing",
       "max_abweichung": 14,
       "zweck": "Flügelheben — Eleganz-Geste der Dame",
-      "produktion": "Male das hochgeladene Bild des ChessLynx-Charakters neu — als Fassung mit gehobenen Flügeln.\n\nBeide Flügel sind deutlich vom Körper abgehoben und gespreizt, die Schwungfedern sichtbar. Hals, Kopf und Stand bleiben unverändert.\n\nDas neue Bild MUSS sich vom hochgeladenen sichtbar unterscheiden, und zwar genau an dieser Stelle. Ein Bild, das aussieht wie die Vorlage, ist kein gültiges Ergebnis — dann bitte noch einmal, deutlicher.\n\nGleich bleibt dagegen alles Übrige, so genau wie möglich:\n- Kopfhaltung und Blickrichtung\n- die Augen (Form, Farbe, Pupille, Glanzlicht)\n- Brauen und Wangen\n- Schnabel bzw. Schnauze und Mund\n- Fell- bzw. Federzeichnung\n- Farben, Licht, Schattierung, Detailgrad\n\nFORMAT:\n- PNG mit ECHTEM Alphakanal, Hintergrund tatsächlich transparent. Ein ins Bild gemaltes Karo- oder Schachbrettmuster ist KEIN transparenter Hintergrund und unbrauchbar; eine weiße Fläche ebenso wenig.\n- gleiche Bildgröße wie die Vorlage, quadratisch, nichts angeschnitten\n- kein Boden, keine Kulisse, kein Schlagschatten auf einer Fläche\n- kein Text, keine Zahlen, keine Symbole, kein Wasserzeichen\n\nAls Vorlage dient ausschließlich das hochgeladene Bild, sonst nichts."
+      "produktion": "Male das hochgeladene Bild des ChessLynx-Charakters neu — als Fassung mit gehobenen Flügeln.\n\nBeide Flügel sind vom Körper abgehoben und leicht gespreizt, die Schwungfedern sichtbar — nur so weit, wie es im bisherigen Bildausschnitt Platz hat.\n\nDas neue Bild MUSS sich vom hochgeladenen sichtbar unterscheiden, und zwar genau an dieser Stelle. Ein Bild, das aussieht wie die Vorlage, ist kein gültiges Ergebnis — dann bitte noch einmal, deutlicher.\n\nPROPORTIONEN — hier scheitern solche Bilder meistens:\nBeim Ändern der Pose neigt man dazu, die ganze Figur neu zu zeichnen und sie dabei fülliger zu machen. Genau das soll nicht passieren.\n- Die Figur behält ihre GESAMTHÖHE. Sie steht genauso hoch im Bild wie in der Vorlage, mit demselben Abstand nach oben und unten.\n- Sie wird NICHT breiter und NICHT fülliger: gleiche Körperbreite, gleiche Kopfgröße, gleiche Gesichtsform, gleiche Bauchform. Hals, Kopf, Schnabel, Rumpf und beide Beine behalten Umfang und Lage.\n- Fellfarbe und Helligkeit bleiben exakt wie in der Vorlage — nicht dunkler, nicht satter, nicht kontrastreicher.\n- Glatte Flächen bleiben glatt: Wo die Vorlage gleichmäßiges, weiches Fell oder Gefieder zeigt — Bauch, Brust, Kehle —, kommt KEINE zusätzliche Struktur dazu. Keine Schuppen, keine Wellen, keine gezeichneten Federreihen, keine zusätzlichen Härchen. Die Textur bleibt genau so glatt wie in der Vorlage.\n- Bewegt wird nur die beiden Flügel, und zwar in einer kleinen, nah am Körper geführten Bewegung.\nGegenprobe vor der Ausgabe: Lege dein Ergebnis gedanklich über die Vorlage. Gleiche Höhe, gleiche Breite, gleicher Farbton? Wenn die Figur runder, breiter oder dunkler geworden ist, noch einmal.\n\nGleich bleibt dagegen alles Übrige, so genau wie möglich:\n- Kopfhaltung und Blickrichtung\n- die Augen (Form, Farbe, Pupille, Glanzlicht)\n- Brauen und Wangen\n- Schnabel bzw. Schnauze und Mund\n- Fell- bzw. Federzeichnung\n- Farben, Licht, Schattierung, Detailgrad\n\nFORMAT:\n- PNG mit ECHTEM Alphakanal, Hintergrund tatsächlich transparent. Ein ins Bild gemaltes Karo- oder Schachbrettmuster ist KEIN transparenter Hintergrund und unbrauchbar; eine weiße Fläche ebenso wenig.\n- gleiche Bildgröße wie die Vorlage, quadratisch, nichts angeschnitten\n- kein Boden, keine Kulisse, kein Schlagschatten auf einer Fläche\n- kein Text, keine Zahlen, keine Symbole, kein Wasserzeichen\n\nAls Vorlage dient ausschließlich das hochgeladene Bild, sonst nichts."
     }
   ],
   "layers": [
@@ -40,12 +47,12 @@
       "from": "S0_standing",
       "to": "S0b_blink",
       "region": [
-        0,
-        0,
-        2048,
-        2048
+        370,
+        110,
+        620,
+        320
       ],
-      "threshold": 40,
+      "threshold": 45,
       "feather": 2.0,
       "zweck": "geschlossene Lider als eigene Ebene über dem Grundzustand"
     },
@@ -98,5 +105,12 @@
   ],
   "known_limits": [
     "Die relative Höhe ist fest eingebacken (gemeinsame 768er-Leinwand), damit an der Aufrufstelle eine einzige size-Angabe genügt — siehe src/lib/questTiere.tsx."
-  ]
+  ],
+  "freigabe": {
+    "stufe": "teilweise freigegeben",
+    "durch": "Christian",
+    "datum": "2026-09-13",
+    "umfang": "Grundzustand (lebendige Fassung, 2026-09-11) und S0b_blink (2026-09-13); S1_fluegel offen",
+    "beleg": "Grafiken/Figuren/Schwan/rights.md, Abschnitt E"
+  }
 }

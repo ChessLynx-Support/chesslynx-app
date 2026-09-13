@@ -67,7 +67,7 @@
 // Update (2026-09-08, Nutzerwunsch "Zur Verhüllung der Karte kannst du diesen Nebel
 // verwenden?" + Entscheidung "Durchgehendes Höhenband wie im alten Mockup"): löst die bisherige
 // reine Opacity-Abblendung für "gesperrt" durch ein echtes Nebel-/Wolken-Höhenband ab — siehe
-// die ausführliche Herleitung/Kalibrierung unten bei Kommentar bei `nebelBand` unten ("NEBEL_HOEHENKURVE") und `claude/
+// die ausführliche Herleitung/Kalibrierung unten bei Kommentar bei `nebelTextur` und `claude/
 // luchsrevier_master_korrektur.md` im Claude-Projekt. Die alte Opacity-Abblendung
 // (GESPERRT_OPACITY) bleibt zusätzlich bestehen, nicht weil sie noch gebraucht würde, sondern
 // als zweite, unabhängige Absicherung: sollte die SVG-Maskierung auf einem Gerät aus
@@ -86,7 +86,7 @@ import {
   type LayoutChangeEvent,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
-import Svg, { Circle, Defs, G, Image as SvgBild, Mask, Path, RadialGradient, Rect, Stop } from "react-native-svg";
+import Svg, { Circle, Defs, G, Image as SvgBild, LinearGradient, Mask, Path, RadialGradient, Rect, Stop } from "react-native-svg";
 import { loadBonusFortschrittLocal, loadQuestFortschrittLocal } from "../lib/storage";
 import { pruefeSchlosstorStatus } from "../lib/gate";
 import { SCHILDKROETE_ASPEKT, SCHILDKROETE_BILD } from "../lib/schildkroete";
@@ -98,13 +98,9 @@ const oberland = require("../../assets/hintergrund/luchsrevier_oberland.webp");
 // bisherige Karte, deshalb schließen beide bei jeder Bildschirmbreite nahtlos aneinander an.
 export const OBERLAND_ASPECT = 519 / 1658;
 
-// Die obersten ~15 der 1318 Zeilen des Nebel-Höhenbands sind ein fast deckend weißer
-// Randstreifen (Artefakt beim Bauen des Bands). Solange die Karte am oberen Bildschirmrand
-// endete, fiel er nicht auf; mit dem Oberland darüber stünde er als weißer Balken genau auf
-// der Naht. Deshalb wird das Band auf beiden Seiten der Naht um diesen Streifen verschoben
-// (Karte: nach oben, Oberland: gespiegelt nach unten) — die Karte verliert dadurch nur die
-// unterste Nebelzeile, die ohnehin Dichte 0 hat (Lichtungs-Eingang).
-const NEBEL_RANDSTREIFEN_FRAC = 16 / 1318;
+// (Der frühere NEBEL_RANDSTREIFEN_FRAC entfällt seit 2026-09-13: er glich einen weißen
+// Randstreifen des alten Nebelbands aus. Die neue Textur deckt Oberland und Karte in
+// einem Stück ab und braucht weder Spiegelung noch Versatz.)
 
 // Schildkröten-Wegpunkt im Oberland: Fußpunkt als Anteil von Breite/Höhe des Oberland-
 // Stücks (Lichtung links der Steinbrücke), Bildbreite als Anteil der Kartenbreite.
@@ -141,7 +137,27 @@ const SCHILDKROETE_WEGPUNKT = { fx: 0.1, fy: 0.56, breiteFrac: 36 / 390 };
 // eigentliche Verlaufsberechnung geschah beim Bauen des Assets (Python, nicht Teil der App) —
 // hier dokumentiert, damit sich das Band bei einem größeren Kartenausschnitt (18-Segment-Karte,
 // siehe oben) nachvollziehbar neu erzeugen lässt.
-const nebelBand = require("../../assets/hintergrund/luchsrevier_nebel_band.webp");
+// 2026-09-13: neues Nebel-Asset. Das alte `luchsrevier_nebel_band.png` hatte die
+// Dichtekurve fest eingebacken und erreichte nie mehr als Alpha 171 — es konnte also
+// nichts wirklich verbergen. Die neue Textur trägt NUR die Wolkenform (Alpha 176–247,
+// Farbton fest 236/240/243) und deckt Oberland und Karte in einem Stück ab; die Dichte
+// kommt jetzt aus dem Fortschritts-Verlauf in `baueNebelVerlauf` und wird über die
+// SVG-Maske aufmultipliziert. Dadurch ist der Nebel fortschrittsabhängig steuerbar,
+// ohne das Bild neu zu bauen.
+//
+// Herkunft: aus den sechs Regionen des Pakets `Grafiken/map_fog_cloud_pack.zip`
+// (13.09.2026) — davon wurde ausschließlich der Alphakanal übernommen. Die Regionen
+// enthalten an jeder Bandkante einen Schwarzverlauf (9 % der Nebelfläche dunkler als
+// Helligkeit 120); direkt überblendet verdunkeln sie die Karte, statt zu vernebeln.
+// Löcher zwischen den Bändern sind mit einer stark geglätteten Fassung der Textur
+// aufgefüllt (Grundnebel 0,70), damit bei voller Dichte keine harten Fenster entstehen.
+const nebelTextur = require("../../assets/hintergrund/luchsrevier_nebel_textur.png");
+
+// Ziel-Deckung je Wegmarke, gezählt ab der nächsten offenen: die nächste ist frei, die
+// übernächste halb verschleiert, die dritte fast verdeckt, alles darüber voll verhüllt.
+// Entspricht der Vorgabe "nur der Igel zeigt sich, Bär schwach, Eule kaum, Rest gar nicht"
+// (Nutzerentscheidung 2026-09-13, Variante B).
+const NEBEL_ZIEL_DECKUNG = [0, 0.5, 0.8, 1, 1, 1] as const;
 
 // Seitenverhältnis des Kartenausschnitts (Originalauflösung 829×1318px, siehe Datei-
 // Kopfkommentar) — legt bei gegebener Breite eindeutig die Höhe fest, damit die Karte nie
@@ -192,98 +208,61 @@ export type WegmarkenEintrag = {
   // Seitenverhältnis der jeweiligen Illustration (aspekt unten) statt einem festen Wert.
   breiteFrac: number;
   aspekt: number; // Höhe/Breite der Originalgrafik
-  // Lebendiges Tier (2026-09-12, siehe src/lib/questTiere.tsx): Solange die Quest noch
-  // nicht abgeschlossen ist, steht auf der Karte das lebendige Waldtier; ab der
-  // abgeschlossenen Quest die geschnitzte Schachfigur — dieselbe Regel wie in den Quests
-  // selbst ("vor der Verwandlung das Tier, danach die Figur"). Die Tier-PNGs liegen alle
-  // auf derselben quadratischen Leinwand, damit die Größenverhältnisse untereinander
-  // stimmen; `hoeheFrac`/`breiteFrac` sagen, welchen Anteil dieser Leinwand das Tier
-  // tatsächlich einnimmt (aus dem Export gemessen), damit es auf der Karte genauso hoch
-  // erscheint wie vorher die Figur und der Puls-Ring die richtige Größe behält.
-  lebendig: { bild: ReturnType<typeof require>; hoeheFrac: number; breiteFrac: number };
 };
-
-/** Fußlinie innerhalb der quadratischen Tier-Leinwand (3 % Rand unten, siehe Export). */
-const TIER_FUSS_FRAC = 0.97;
 
 export const WEGMARKEN: WegmarkenEintrag[] = [
   {
     quest: "quest1",
-    bild: require("../../assets/figuren/chesslynx_hedgehog_pawn_light_export_gross.webp"),
+    bild: require("../../assets/figuren/chesslynx_hedgehog_pawn_light_export_gross.png"),
     fx: 150 / REFERENZ_BREITE,
-    fy: 590 / REFERENZ_HOEHE,
+    // 2026-09-13: 16 px tiefer — auf der neuen Karte stand der Igel bei y=590 am Bachufer
+    // (gemessene Farbe dort 106/207/201, also Wasser), jetzt mittig auf dem Sandweg.
+    fy: 606 / REFERENZ_HOEHE,
     breiteFrac: 46 / REFERENZ_BREITE,
     aspekt: 466 / 274,
-    lebendig: {
-      bild: require("../../assets/figuren/lebendig/chesslynx_igel_lebendig.webp"),
-      hoeheFrac: 397/768,
-      breiteFrac: 227/768,
-    },
   },
   {
     quest: "quest2",
-    bild: require("../../assets/figuren/chesslynx_bear_rook_light_export_gross.webp"),
+    bild: require("../../assets/figuren/chesslynx_bear_rook_light_export_gross.png"),
     fx: 255 / REFERENZ_BREITE,
-    fy: 580 / REFERENZ_HOEHE,
+    // 2026-09-13: 14 px höher, damit der Bär mittig auf dem Weg steht statt am unteren Rand.
+    fy: 566 / REFERENZ_HOEHE,
     breiteFrac: 50 / REFERENZ_BREITE,
     aspekt: 656 / 322,
-    lebendig: {
-      bild: require("../../assets/figuren/lebendig/chesslynx_baer_lebendig.webp"),
-      hoeheFrac: 548/768,
-      breiteFrac: 267/768,
-    },
   },
   {
     quest: "quest3",
-    bild: require("../../assets/figuren/chesslynx_owl_bishop_light_export_gross.webp"),
-    fx: 195 / REFERENZ_BREITE,
-    fy: 450 / REFERENZ_HOEHE,
+    bild: require("../../assets/figuren/chesslynx_owl_bishop_light_export_gross.png"),
+    // 2026-09-13: 20 px nach links und 25 px tiefer, auf den Weg. Abstand zum Pferd
+    // gemessen 19 px — die Silhouetten berühren sich nicht.
+    fx: 175 / REFERENZ_BREITE,
+    fy: 475 / REFERENZ_HOEHE,
     breiteFrac: 46 / REFERENZ_BREITE,
     aspekt: 636 / 272,
-    lebendig: {
-      bild: require("../../assets/figuren/lebendig/chesslynx_eule_lebendig.webp"),
-      hoeheFrac: 476/768,
-      breiteFrac: 247/768,
-    },
   },
   {
     quest: "quest4",
-    bild: require("../../assets/figuren/chesslynx_horse_knight_light_export_gross.webp"),
+    bild: require("../../assets/figuren/chesslynx_horse_knight_light_export_gross.png"),
     fx: 110 / REFERENZ_BREITE,
     fy: 410 / REFERENZ_HOEHE,
     breiteFrac: 50 / REFERENZ_BREITE,
     aspekt: 620 / 315,
-    lebendig: {
-      bild: require("../../assets/figuren/lebendig/chesslynx_pferd_lebendig.webp"),
-      hoeheFrac: 671/768,
-      breiteFrac: 414/768,
-    },
   },
   {
     quest: "quest5",
-    bild: require("../../assets/figuren/chesslynx_swan_queen_light_export_gross.webp"),
+    bild: require("../../assets/figuren/chesslynx_swan_queen_light_export_gross.png"),
     fx: 120 / REFERENZ_BREITE,
     fy: 300 / REFERENZ_HOEHE,
     breiteFrac: 48 / REFERENZ_BREITE,
     aspekt: 711 / 328,
-    lebendig: {
-      bild: require("../../assets/figuren/lebendig/chesslynx_schwan_lebendig.webp"),
-      hoeheFrac: 606/768,
-      breiteFrac: 355/768,
-    },
   },
   {
     quest: "quest6",
-    bild: require("../../assets/figuren/chesslynx_deer_king_light_export_gross.webp"),
+    bild: require("../../assets/figuren/chesslynx_deer_king_light_export_gross.png"),
     fx: 245 / REFERENZ_BREITE,
     fy: 230 / REFERENZ_HOEHE,
     breiteFrac: 48 / REFERENZ_BREITE,
     aspekt: 770 / 372,
-    lebendig: {
-      bild: require("../../assets/figuren/lebendig/chesslynx_hirsch_lebendig.webp"),
-      hoeheFrac: 721/768,
-      breiteFrac: 375/768,
-    },
   },
 ];
 
@@ -299,8 +278,37 @@ type Klarung = { cx: number; cy: number; r: number; zentrum: string };
 // Lichtung um jede erledigte Wegmarke, eine schwächere Aufhellung um die als-nächstes-dran-
 // Wegmarke, ein paar Zwischenpunkte entlang des bereits zurückgelegten Wegstücks (damit der Pfad
 // selbst durchgehend "durchschimmert" statt nur einzelne Kreise), ein fester Eingangsbereich am
-// unteren Kartenrand (immer leicht gelichtet, siehe Kommentar bei `nebelBand` unten ("NEBEL_HOEHENKURVE")-Kommentar: "praktisch klar
+// unteren Kartenrand (immer leicht gelichtet, siehe Kommentar bei `nebelTextur`: "praktisch klar
 // am Lichtungs-Eingang") sowie der dauerhaft leicht gelichtete Burgtor-Bereich.
+// Stützstellen für den senkrechten Dichteverlauf der Nebelmaske, ausgedrückt als Anteil
+// der GESAMTEN Kartenhöhe (Oberland + Karte), von oben nach unten. Weiß = voller Nebel,
+// Schwarz = frei. Die Lichtungen (siehe baueNebelKlarungen) werden anschließend darüber
+// gezeichnet und stanzen ihre Kreise hinein.
+// Maskenwert als Graustufe: 1 = voller Nebel (weiß), 0 = frei (schwarz).
+function grauwert(wert: number): string {
+  const v = Math.round(Math.max(0, Math.min(1, wert)) * 255);
+  return `rgb(${v}, ${v}, ${v})`;
+}
+
+function baueNebelVerlauf(
+  status: Record<QuestId, WegmarkeStatus> | null,
+  oberlandHoehe: number,
+  hoehe: number
+): { offset: number; wert: number }[] {
+  const gesamt = oberlandHoehe + hoehe;
+  const erledigt = WEGMARKEN.filter((w) => status?.[w.quest] === "erledigt").length;
+  // WEGMARKEN laufen von unten (Quest 1) nach oben (Quest 6) — für den Verlauf brauchen
+  // wir aufsteigende Offsets, also von oben nach unten.
+  const stufen = WEGMARKEN.map((w, i) => {
+    const rang = i - erledigt;
+    const wert =
+      rang < 0 ? 0 : NEBEL_ZIEL_DECKUNG[Math.min(rang, NEBEL_ZIEL_DECKUNG.length - 1)];
+    return { offset: (oberlandHoehe + w.fy * hoehe) / gesamt, wert };
+  });
+  stufen.reverse();
+  return [{ offset: 0, wert: 1 }, ...stufen, { offset: 1, wert: 0 }];
+}
+
 function baueNebelKlarungen(
   status: Record<QuestId, WegmarkeStatus> | null,
   breite: number,
@@ -433,6 +441,8 @@ export function LuchsRevierKarte({
   const burgtorDurchmesser = BURGTOR.durchmesserFrac * breite;
   const torOffen = steinbruecke !== "gesperrt";
   const nebelKlarungen = breite > 0 ? baueNebelKlarungen(status, breite, hoehe) : [];
+  const nebelVerlauf = breite > 0 ? baueNebelVerlauf(status, oberlandHoehe, hoehe) : [];
+  const nebelGesamtHoehe = oberlandHoehe + hoehe;
   // Paket 3: bei offenem Schlosstor lichtet sich der Weg vom Burgtor bis zur Oberkante der
   // Karte (dort geht er im Oberland-Stück weiter, siehe oberlandKlarungen).
   const turtleX = SCHILDKROETE_WEGPUNKT.fx * breite;
@@ -512,22 +522,39 @@ export function LuchsRevierKarte({
                   <Stop offset="100%" stopColor="#FFFFFF" stopOpacity={1} />
                 </RadialGradient>
               ))}
+              {/* Senkrechter Dichteverlauf in Koordinaten der GESAMTEN Karte (Oberland +
+                  Karte), damit beide Hälften dieselbe Kurve sehen und an der Naht nichts
+                  springt. Siehe baueNebelVerlauf. */}
+              <LinearGradient
+                id="oberlandNebelHoehe"
+                x1={0}
+                y1={0}
+                x2={0}
+                y2={nebelGesamtHoehe}
+                gradientUnits="userSpaceOnUse"
+              >
+                {nebelVerlauf.map((v, i) => (
+                  <Stop key={i} offset={v.offset} stopColor={grauwert(v.wert)} stopOpacity={1} />
+                ))}
+              </LinearGradient>
               <Mask id="oberlandMaske" maskUnits="userSpaceOnUse" x={0} y={0} width={breite} height={oberlandHoehe}>
-                <Rect x={0} y={0} width={breite} height={oberlandHoehe} fill="#FFFFFF" />
+                <Rect x={0} y={0} width={breite} height={oberlandHoehe} fill="url(#oberlandNebelHoehe)" />
                 {oberlandKlarungen.map((k, i) => (
                   <Circle key={i} cx={k.cx} cy={k.cy} r={k.r} fill={`url(#oberlandKlarung-${i})`} />
                 ))}
               </Mask>
             </Defs>
             <G mask="url(#oberlandMaske)">
+              {/* Die neue Textur deckt Oberland UND Karte in einem Stück ab — deshalb hier
+                  einfach über die Gesamthöhe gezeichnet, ohne Spiegelung und ohne den
+                  früheren Randstreifen-Versatz. */}
               <SvgBild
-                href={nebelBand}
+                href={nebelTextur}
                 x={0}
                 y={0}
                 width={breite}
-                height={hoehe}
-                preserveAspectRatio="xMidYMid slice"
-                transform={`translate(0, ${oberlandHoehe + NEBEL_RANDSTREIFEN_FRAC * hoehe}) scale(1, -1)`}
+                height={nebelGesamtHoehe}
+                preserveAspectRatio="none"
               />
             </G>
           </Svg>
@@ -555,25 +582,16 @@ export function LuchsRevierKarte({
             const zustand = status?.[w.quest] ?? "gesperrt";
             const bildBreite = w.breiteFrac * breite;
             const bildHoehe = bildBreite * w.aspekt;
-            // Vor der Verwandlung (= Quest noch nicht abgeschlossen) steht hier das
-            // lebendige Tier, danach die Schachfigur. Die Tier-Leinwand ist quadratisch und
-            // größer als das Tier selbst, deshalb wird sie so skaliert, dass das Tier
-            // dieselbe Höhe wie die Figur bekommt, und um den unteren Leinwandrand nach
-            // unten geschoben, damit der Fußpunkt exakt gleich bleibt.
-            const zeigeTier = zustand !== "erledigt";
-            const kante = bildHoehe / w.lebendig.hoeheFrac;
             return (
               <Wegmarke
                 key={w.quest}
-                bild={zeigeTier ? w.lebendig.bild : w.bild}
+                bild={w.bild}
                 left={w.fx * breite}
-                top={w.fy * hoehe + (zeigeTier ? kante * (1 - TIER_FUSS_FRAC) : 0)}
-                breite={zeigeTier ? kante : bildBreite}
-                hoehe={zeigeTier ? kante : bildHoehe}
+                top={w.fy * hoehe}
+                breite={bildBreite}
+                hoehe={bildHoehe}
                 zustand={zustand}
                 onPress={zustand === "gesperrt" ? undefined : () => onSelectQuest(w.quest)}
-                ringMitteY={zeigeTier ? TIER_FUSS_FRAC : undefined}
-                ringFaktor={zeigeTier ? 1.55 * w.lebendig.breiteFrac : undefined}
               />
             );
           })}
@@ -596,20 +614,34 @@ export function LuchsRevierKarte({
                   <Stop offset="100%" stopColor="#FFFFFF" stopOpacity={1} />
                 </RadialGradient>
               ))}
+              {/* Derselbe Verlauf wie im Oberland, nur um die Oberlandhöhe nach oben
+                  versetzt, weil dieses SVG bei y=0 erst unterhalb davon beginnt. */}
+              <LinearGradient
+                id="karteNebelHoehe"
+                x1={0}
+                y1={-oberlandHoehe}
+                x2={0}
+                y2={hoehe}
+                gradientUnits="userSpaceOnUse"
+              >
+                {nebelVerlauf.map((v, i) => (
+                  <Stop key={i} offset={v.offset} stopColor={grauwert(v.wert)} stopOpacity={1} />
+                ))}
+              </LinearGradient>
               <Mask id="nebelMaske" maskUnits="userSpaceOnUse" x={0} y={0} width={breite} height={hoehe}>
-                <Rect x={0} y={0} width={breite} height={hoehe} fill="#FFFFFF" />
+                <Rect x={0} y={0} width={breite} height={hoehe} fill="url(#karteNebelHoehe)" />
                 {nebelKlarungen.map((k, i) => (
                   <Circle key={i} cx={k.cx} cy={k.cy} r={k.r} fill={`url(#nebelKlarung-${i})`} />
                 ))}
               </Mask>
             </Defs>
             <SvgBild
-              href={nebelBand}
+              href={nebelTextur}
               x={0}
-              y={-NEBEL_RANDSTREIFEN_FRAC * hoehe}
+              y={-oberlandHoehe}
               width={breite}
-              height={hoehe}
-              preserveAspectRatio="xMidYMid slice"
+              height={nebelGesamtHoehe}
+              preserveAspectRatio="none"
               mask="url(#nebelMaske)"
             />
           </Svg>
