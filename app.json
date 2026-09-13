@@ -14,6 +14,7 @@
       "assets/figuren/chesslynx_hedgehog_pawn_light_export.png",
       "assets/figuren/chesslynx_hedgehog_pawn_dark_export.png",
       "assets/figuren/lebendig/*.webp",
+      "assets/figuren/lebendig/zustaende/*.webp",
       "assets/hintergrund/luchsrevier_*.webp",
       "assets/hintergrund/luchsrevier_nebel_textur.png",
       "assets/hintergrund/questkulisse_q?.webp",
@@ -21,6 +22,7 @@
       "assets/hintergrund/waldkulisse_unten.webp",
       "assets/lottie/*.json",
       "assets/lux/chesslynx_lux_hero.webp",
+      "assets/lux/zustaende/*.webp",
       "assets/lux/intro/*.mp4",
       "assets/sounds/*.wav",
       "assets/ui/board_chrome/*.webp",
@@ -43,11 +45,7 @@
         "foregroundImage": "./assets/brand/chesslynx_icon_android_foreground.png",
         "backgroundColor": "#F7F1E4"
       },
-      "permissions": [
-        "android.permission.MODIFY_AUDIO_SETTINGS",
-        "android.permission.FOREGROUND_SERVICE",
-        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
-      ],
+      "permissions": [],
       "blockedPermissions": [
         "android.permission.RECORD_AUDIO",
         "android.permission.MODIFY_AUDIO_SETTINGS",

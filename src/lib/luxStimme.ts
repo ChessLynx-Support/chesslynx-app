@@ -18,6 +18,7 @@
 // (die beiden anderen Pakete gehören zu luxHaptik.ts/luxKlang.ts, siehe dort). Ohne diesen
 // Schritt lässt sich die App gar nicht mehr bündeln ("Unable to resolve module").
 
+import { useEffect, useState } from "react";
 import * as Speech from "expo-speech";
 import { STIMME_OPTIONEN, bevorzugteStimmeIdSynchron, leseBevorzugteStimmeId } from "./stimmeAuswahl";
 
@@ -124,6 +125,82 @@ export function sprich(zeile: string, optionen?: { onFertig?: () => void }) {
     voice: stimme,
     onDone: () => optionen?.onFertig?.(),
   });
+  beginneSprechzustand();
+}
+
+// ---------------------------------------------------------------------------
+// "Spricht Lux gerade?" — als abonnierbarer Zustand für die Darstellung
+//
+// Wozu: Seit dem 2026-09-13 gibt es für Lux einen freigegebenen Zustand mit geöffnetem
+// Maul (assets/lux/zustaende/lux_sprechen.webp, siehe scripts/rig_configs/lux.json,
+// Zustand S1_sprechen). Damit das Maul sich zur Stimme bewegt statt willkürlich, braucht
+// die Anzeige eine Auskunft darüber, ob gerade tatsächlich gesprochen wird — und zwar
+// dieselbe Auskunft, die auch `useLuxSprechzeile.ts` benutzt: die der Engine.
+//
+// Warum nicht einfach `onDone` auswerten: aus genau dem Grund, der bei `sprichtGerade()`
+// weiter unten ausführlich steht — auf Android melden etliche TTS-Engines `onDone` viel zu
+// früh. Das Maul würde dann mitten im Satz zugehen. Deshalb wird der Zustand hier nur
+// EINGESCHALTET, wenn `sprich()` läuft, und ausgeschaltet, wenn die Engine selbst meldet,
+// dass sie verstummt ist.
+//
+// `ANLAUF_MS` ist die Gegenrichtung desselben Problems: Unmittelbar nach `Speech.speak()`
+// meldet die Engine je nach Plattform noch "spricht nicht" (die Äußerung steht erst in der
+// Warteschlange). Ohne diese Anlaufzeit ginge das Maul sofort wieder zu.
+//
+// Gehört bewusst in dieses Modul: Es kapselt die gesprochene Ausgabe, und ein späterer
+// Umstieg auf vorgerenderte Sprachdateien (siehe Datei-Kommentar oben) muss diese Auskunft
+// genauso liefern — dort sogar einfacher, weil die Dauer einer Datei bekannt ist.
+const ANLAUF_MS = 500;
+const PRUEF_TAKT_MS = 250;
+
+let spricht = false;
+let begonnenAm = 0;
+let pruefung: ReturnType<typeof setInterval> | undefined;
+const zuhoerer = new Set<(spricht: boolean) => void>();
+
+function setzeSprechzustand(neu: boolean) {
+  if (spricht === neu) return;
+  spricht = neu;
+  zuhoerer.forEach((melde) => melde(neu));
+}
+
+function beendePruefung() {
+  if (!pruefung) return;
+  clearInterval(pruefung);
+  pruefung = undefined;
+}
+
+function beginneSprechzustand() {
+  begonnenAm = Date.now();
+  setzeSprechzustand(true);
+  if (pruefung) return;
+  pruefung = setInterval(() => {
+    if (Date.now() - begonnenAm < ANLAUF_MS) return;
+    sprichtGerade().then((laeuft) => {
+      if (laeuft || Date.now() - begonnenAm < ANLAUF_MS) return;
+      beendePruefung();
+      setzeSprechzustand(false);
+    });
+  }, PRUEF_TAKT_MS);
+}
+
+/**
+ * Meldet, ob Lux gerade spricht — anders als `sprichtGerade()` nicht als einmalige Abfrage,
+ * sondern als React-Zustand, der sich von selbst aktualisiert. Gedacht für Lux' Maul
+ * (siehe lib/luxAssets.tsx) und alles andere, was zur Stimme mitgehen soll.
+ */
+export function useLuxSpricht(): boolean {
+  const [aktiv, setAktiv] = useState(spricht);
+  useEffect(() => {
+    // Beim Einhängen einmal nachziehen: Zwischen dem ersten Rendern und diesem Effekt kann
+    // eine Zeile begonnen haben.
+    setAktiv(spricht);
+    zuhoerer.add(setAktiv);
+    return () => {
+      zuhoerer.delete(setAktiv);
+    };
+  }, []);
+  return aktiv;
 }
 
 /**
@@ -140,6 +217,10 @@ export function fuerSprachausgabe(zeile: string): string {
 
 export function stoppen() {
   Speech.stop();
+  // Hier ist der Abbruch die verlässliche Information — nicht erst die Engine fragen,
+  // sondern das Maul sofort schließen.
+  beendePruefung();
+  setzeSprechzustand(false);
 }
 
 /**

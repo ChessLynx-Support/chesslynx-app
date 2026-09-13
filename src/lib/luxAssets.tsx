@@ -3,33 +3,147 @@
 // Lux auftaucht (Quest-Screens-Ecke, hier) stand bislang nur ein schlichter beigefarbener
 // Kreis (`styles.luxHead`) als Platzhalter.
 //
-// Diese Datei nutzt bewusst NICHT das komplette Mehrebenen-Rig aus
-// Grafiken/Lux/V4/chesslynx_lux_assets_png_masterfaithful_revision5/ (das Rig existiert für
-// spätere Idle-/Blinzel-Animation, siehe dortiges README.md und lux_rig_manifest.json),
-// sondern eine einzelne, flache Illustration: `lux_rig_composite_preview.png`, laut README
-// "auf allen sichtbaren Pixeln (Alpha>10) pixelidentisch" mit dem freigegebenen
-// Master-Referenzbild (Augen offen, Standard-Zustand) — für einen statischen Onboarding-
-// Screen ist das exakt richtig, ohne die Rig-Komplexität zu brauchen.
+// -------------------------------------------------------------------------------------
+// Update 2026-09-13 — LUX LEBT: Zustandsbilder statt eines Standbilds
+// -------------------------------------------------------------------------------------
+// Bis hierher war Lux überall ein einzelnes, unbewegtes Bild
+// (assets/lux/chesslynx_lux_hero.webp, ein flacher Abzug des Rig-Pakets V4/Revision 5).
+// Inzwischen gibt es für Lux freigegebene ZUSTÄNDE nach der Zustands-Methode: vollständige
+// Bilder auf gemeinsamer Leinwand, deckungsgleich zum Grundzustand ausgerichtet durch
+// scripts/rig_master.py (siehe claude/rig_master_system_2026-09-12.md und
+// scripts/rig_configs/lux.json).
 //
-// Produktions-Export: Quellcanvas 2048×2048, per Alpha-Bounding-Box (Schwelle 10, wie im
-// Lux-Rig-Abnahmeverfahren selbst verwendet) auf den tatsächlichen Bildinhalt zugeschnitten
-// (1194×1997 vor dem Resize) und mit Lanczos-Resampling auf 600px Breite herunterskaliert
-// (Seitenverhältnis 600:1004 bleibt erhalten) — deutlich mehr native Auflösung als die
-// Schachfiguren-Master (die aus einer nur ~230×560px kleinen Quelle stammen), weil Lux aus
-// einer eigenen hochauflösenden Referenzgrafik erzeugt wurde. PNG (827 KB) wird analog zu
-// Board.tsx/pieceMasters.tsx bewusst als Quelle verwendet; eine WebP-Variante (147 KB)
-// liegt für eine spätere Umstellung bereit (siehe dortige offene PNG/WebP-Detailfrage).
+// Eingebunden sind hier drei davon:
+//   lux_grund.webp     — S0_standing, der Grundzustand
+//   lux_blinzeln.webp  — S0b_blink, beide Augen geschlossen
+//   lux_sprechen.webp  — S1_sprechen, Maul geöffnet
+//
+// Gemessen gegen den Grundzustand (2026-09-13, maskiert über den Alphakanal): Blinzeln
+// verändert nur y 376–463, Sprechen nur y 519–556; alles andere — Ohrpinsel, Brauen,
+// Flecken, Backenbart, Körper — ist Pixel für Pixel dasselbe Bild, die Alphakanäle sind
+// identisch. Deshalb genügt reines Überblenden ohne jede Positionierungsrechnung, siehe
+// components/ZustandsTier.tsx.
+//
+// ACHTUNG, BEWUSSTE ÄNDERUNG AM AUSSEHEN: Die Zustände sind aus dem neueren Master
+// V6/Revision 6 gerechnet, das bisherige Hero-Bild stammt aus V4/Revision 5. Beide zeigen
+// dieselbe Figur, unterscheiden sich aber in Details (Silhouetten-IoU 0,933 — vor allem
+// Neigung der Ohrpinsel, Fleckenverteilung, Schwanzhaltung). Ein Mischbetrieb wäre schlimmer
+// als der Wechsel: Ein Lidschlag aus V6 über einem Körper aus V5 würde springen. Deshalb
+// zeigt die App ab jetzt durchgehend V6. `chesslynx_lux_hero.webp` bleibt liegen, bis der
+// Wechsel auf dem Gerät bestätigt ist.
+//
+// LEINWAND UND EINPASSUNG: Der Zustands-Export ist 660×1060 groß und hat rundherum Rand,
+// weil spätere Zustände (winkende Pfote, erhobene Zeigepfote) über die Silhouette des
+// Grundzustands hinausragen — ohne diesen Rand wären sie angeschnitten. Das bisherige
+// Hero-Bild dagegen war randlos auf die Figur zugeschnitten (600×1004). Würde man das neue
+// Bild einfach in denselben Kasten legen, stünde Lux kleiner und verschoben da. Die
+// Komponente `LuxZustand` unten rechnet den Rand deshalb heraus: Der äußere Kasten behält
+// exakt die alten Maße (`breite` × `breite * LUX_HERO_ASPECT_RATIO`), das Zustandsbild wird
+// darin so weit vergrößert und negativ versetzt, dass die FIGUR an derselben Stelle und in
+// derselben Größe steht wie vorher. Alle bestehenden Aufrufstellen bleiben dadurch
+// unverändert gültig.
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { Animated, Image } from "react-native";
+import { Animated, View } from "react-native";
 
-const luxHero = require("../../assets/lux/chesslynx_lux_hero.webp");
+import { ZustandsTier } from "../components/ZustandsTier";
+import { useLuxSpricht } from "./luxStimme";
 
-// Natives Seitenverhältnis des Produktions-Exports (Höhe/Breite) — siehe Kommentar oben.
-// Bewusst als Konstante statt hart im Style verdrahtet, falls die Quellgrafik künftig neu
-// zugeschnitten wird.
+const luxGrund = require("../../assets/lux/zustaende/lux_grund.webp");
+const luxBlinzeln = require("../../assets/lux/zustaende/lux_blinzeln.webp");
+const luxSprechen = require("../../assets/lux/zustaende/lux_sprechen.webp");
+
+// Natives Seitenverhältnis (Höhe/Breite) der FIGUR, wie sie die App darstellt. Der Wert
+// stammt aus dem randlosen Hero-Export und bleibt die Rechengrundlage aller Layouts
+// (Quest1.tsx, WillkommensSequenz.tsx) — die Umstellung auf die Zustandsbilder ändert ihn
+// bewusst nicht, damit sich keine Abstände verschieben.
 export const LUX_HERO_ASPECT_RATIO = 1004 / 600;
+
+// Maße des Zustands-Exports und Lage der Figur darin, gemessen am 2026-09-13 über den
+// Alphakanal (Schwelle 8): Leinwand 660×1060, Figur bei x 30–630, y 32–1027.
+const LEINWAND = { breite: 660, hoehe: 1060 };
+const FIGUR = { x: 30, y: 32, breite: 601 };
+
+/**
+ * Rechnet aus der gewünschten FIGURENBREITE den Kasten, in dem das Zustandsbild liegen
+ * muss, samt negativem Versatz. Ergebnis: Die Figur steht danach exakt dort, wo das alte,
+ * randlos zugeschnittene Bild stand.
+ */
+function kasten(figurBreite: number) {
+  const breite = figurBreite * (LEINWAND.breite / FIGUR.breite);
+  const hoehe = breite * (LEINWAND.hoehe / LEINWAND.breite);
+  return {
+    breite,
+    hoehe,
+    links: -breite * (FIGUR.x / LEINWAND.breite),
+    oben: -hoehe * (FIGUR.y / LEINWAND.hoehe),
+  };
+}
+
+// Wie schnell sich das Maul beim Sprechen öffnet und schließt. 150 ms ist bewusst kein
+// Silbentakt — die Geräte-Stimme liefert keine Lautinformation, ein echtes Lippenlesen ist
+// damit nicht möglich. Zusammen mit der 90-ms-Überblendung in ZustandsTier entsteht daraus
+// eine ruhige, weiche Mundbewegung statt eines Flackerns.
+const MUND_TAKT_MS = 150;
+
+function useMundTakt(spricht: boolean): boolean {
+  const [offen, setOffen] = useState(false);
+  useEffect(() => {
+    if (!spricht) {
+      setOffen(false);
+      return;
+    }
+    setOffen(true);
+    const takt = setInterval(() => setOffen((o) => !o), MUND_TAKT_MS);
+    return () => {
+      clearInterval(takt);
+      setOffen(false);
+    };
+  }, [spricht]);
+  return offen;
+}
+
+type LuxZustandProps = {
+  /** Breite der FIGUR, nicht der Leinwand — siehe Kommentar zur Einpassung oben. */
+  breite: number;
+  /** Lidschlag im Leerlauf. */
+  blinzeln?: boolean;
+  /** Maulbewegung, solange Lux spricht. Aus, wo Lux nur als Bild dasteht. */
+  mundBewegung?: boolean;
+};
+
+/**
+ * Lux in seiner jetzigen Machart: Grundzustand plus überblendete Zustände. Gemeinsame
+ * Grundlage von `LuxHeroIcon` und `LuxEckIcon` unten.
+ */
+function LuxZustand({ breite, blinzeln = true, mundBewegung = true }: LuxZustandProps) {
+  const spricht = useLuxSpricht();
+  const mundOffen = useMundTakt(mundBewegung && spricht);
+  const k = kasten(breite);
+
+  return (
+    // Äußerer Kasten in den Maßen der Figur: Er bestimmt, wie viel Platz Lux im Layout
+    // einnimmt. Das größere Zustandsbild liegt absolut darin und ragt darüber hinaus —
+    // aber nur mit seinem LEEREN Rand. Die Figur selbst liegt vollständig innerhalb des
+    // Kastens (sie ist sogar rund 1 % niedriger als er). Sollte Android den Überstand
+    // wider Erwarten abschneiden, geht deshalb nichts Sichtbares verloren.
+    <View style={{ width: breite, height: breite * LUX_HERO_ASPECT_RATIO }}>
+      <View style={{ position: "absolute", left: k.links, top: k.oben }}>
+        <ZustandsTier
+          grund={luxGrund}
+          blinzeln={luxBlinzeln}
+          aktiverZustand={luxSprechen}
+          aktiv={mundOffen}
+          breite={k.breite}
+          hoehe={k.hoehe}
+          idle={blinzeln}
+          accessibilityLabel="Lux, der Luchs"
+        />
+      </View>
+    </View>
+  );
+}
 
 type LuxHeroIconProps = { width?: number };
 
@@ -43,15 +157,7 @@ type LuxHeroIconProps = { width?: number };
  * `contain` würde das Bild unnötig verkleinern.
  */
 export function LuxHeroIcon({ width = 220 }: LuxHeroIconProps) {
-  const height = Math.round(width * LUX_HERO_ASPECT_RATIO);
-  return (
-    <Image
-      source={luxHero}
-      style={{ width, height }}
-      resizeMode="contain"
-      accessibilityLabel="Lux, der Luchs"
-    />
-  );
+  return <LuxZustand breite={width} />;
 }
 
 // Update (Opus-Review, 2026-09-07, Befund 2.1/2.8, siehe claude/review_logik_grafik_
@@ -95,33 +201,23 @@ type LuxEckIconProps = { size?: number; atmen?: boolean };
  *
  * Update (2026-09-08, Nutzerwunsch: "Ist es möglich für die Sprechblasen den Lux Master
  * vollständig zu nehmen (nicht nur einen Ausschnitt), dafür kleiner skaliert?"): bis dahin
- * zeigte diese Komponente nur einen kreisförmig zugeschnittenen KOPF-Ausschnitt (dieselbe
- * `chesslynx_lux_hero.png` stark vergrößert und verschoben, Rest per `overflow: hidden`
- * abgeschnitten — Details dazu in der Git-Historie dieser Datei). Jetzt stattdessen exakt
- * dasselbe Prinzip wie `LuxHeroIcon` oben: die KOMPLETTE Illustration (Ganzkörper), nur in
- * deutlich kleinerem Maßstab und ohne Kreis-Rahmen/Beige-Backdrop (dafür bräuchte es bei
- * einer Ganzkörper-Pose ohnehin eine andere Form als einen Kreis). `size` wirkt jetzt als
- * Bildbreite (vorher: Kreisdurchmesser) — die Höhe ergibt sich aus dem echten
- * Seitenverhältnis (LUX_HERO_ASPECT_RATIO). Bestehende Aufrufstellen (`<LuxEckIcon
- * size={52} />` in allen sechs Quest*.tsx) brauchen dafür keine Änderung, wirken durch die
- * neue Interpretation von `size` lediglich automatisch als kleines Ganzkörper-Lux statt
- * als Kopf-Kreis.
+ * zeigte diese Komponente nur einen kreisförmig zugeschnittenen KOPF-Ausschnitt. Jetzt
+ * stattdessen exakt dasselbe Prinzip wie `LuxHeroIcon` oben: die KOMPLETTE Illustration
+ * (Ganzkörper), nur in deutlich kleinerem Maßstab. `size` wirkt als Breite der Figur — die
+ * Höhe ergibt sich aus LUX_HERO_ASPECT_RATIO. Bestehende Aufrufstellen (`<LuxEckIcon
+ * size={52} />` in allen sechs Quest*.tsx) brauchen keine Änderung.
  *
  * `atmen`: sanftes Idle-Pulsieren (siehe LuxAtem oben) — standardmäßig an, da Lux hier
  * antippbar ist (löst laut useLuxSprechzeile.ts die aktuelle Sprechzeile erneut aus,
  * siehe Opus-Review Abschnitt 3.1) und die Bewegung zusätzlich "hier tut sich was"
  * signalisiert.
+ *
+ * Update 2026-09-13: Zusätzlich blinzelt Lux hier und bewegt beim Sprechen das Maul. Das
+ * Atem-Pulsieren bleibt trotzdem — es ist eine Skalierung des ganzen Bildes und stört die
+ * Überblendung der Zustände nicht, weil beide Ebenen innerhalb desselben skalierten
+ * Kastens liegen.
  */
 export function LuxEckIcon({ size = 52, atmen = true }: LuxEckIconProps) {
-  const hoehe = Math.round(size * LUX_HERO_ASPECT_RATIO);
-  const inhalt = (
-    <Image
-      source={luxHero}
-      style={{ width: size, height: hoehe }}
-      resizeMode="contain"
-      accessibilityLabel="Lux, der Luchs"
-    />
-  );
-
+  const inhalt = <LuxZustand breite={size} />;
   return atmen ? <LuxAtem>{inhalt}</LuxAtem> : inhalt;
 }

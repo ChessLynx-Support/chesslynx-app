@@ -448,6 +448,16 @@ def rig_bauen(cfg: dict, ktx: Kontext) -> dict:
             quelle = Image.new("RGBA", rig_ziele[teile_ex[0]].size, (0, 0, 0, 0))
             for t in teile_ex:
                 quelle.alpha_composite(rig_ziele[t])
+            # Auf die Silhouette des Grundzustands beschneiden. Eine Differenz-Ebene darf
+            # nie außerhalb der Figur malen; wenn die Änderungsregion in der Konfiguration
+            # zu weit gefasst ist, entstehen sonst freischwebende Streifen neben dem Tier
+            # (beim Hirsch am 2026-09-13 aufgetreten: ein Band auf Augenhöhe bis zum
+            # rechten Bildrand).
+            basis_alpha = np.array(rig_ziele[teile_ex[0]])[..., 3]
+            erlaubt = _binary_dilate(basis_alpha > 8, 2)
+            a_q = np.array(quelle)
+            a_q[..., 3] = np.where(erlaubt, a_q[..., 3], 0)
+            quelle = Image.fromarray(a_q, "RGBA")
         ex = {**ex, "state": ex.get("state", teile_ex[0])}
         c = ex.get("canvas", 768)
         breite_app, hoehe_app = (c, c) if isinstance(c, int) else (int(c[0]), int(c[1]))
@@ -492,7 +502,15 @@ def rig_bauen(cfg: dict, ktx: Kontext) -> dict:
         p = pfad(ktx, ex["file"])
         if not ktx.dry_run:
             p.parent.mkdir(parents=True, exist_ok=True)
-            leinwand.save(p, optimize=True)
+            if p.suffix.lower() == ".webp":
+                # Verlustfrei: Diese Exporte werden im Wechsel übereinander gezeigt
+                # (Grundzustand ↔ Blinzeln). Verlustbehaftete Kompression erzeugt in
+                # beiden Bildern unterschiedliches Rauschen, das beim Wechsel als
+                # Flimmern über die ganze Figur sichtbar würde — gemessen am Igel
+                # 2.615 Pixel mit über 18 Stufen Unterschied außerhalb der Augen.
+                leinwand.save(p, lossless=True, quality=100, method=6)
+            else:
+                leinwand.save(p, optimize=True)
         app.append(
             {
                 "datei": str(p),
@@ -710,6 +728,22 @@ def standard_pfade(script: Path) -> tuple[Path, Path]:
 # --------------------------------------------------------------------------------------
 
 AUFTRAGSDATEI = "auftragstexte_bildtool.md"
+UI_ORDNER = "auftraege_ui"   # Aufträge, die zu keiner Figur gehören (UI-Grafiken, Texturen)
+
+
+def ui_auftraege(konfig_ordner: Path, ktx: "Kontext") -> list[dict]:
+    """Aufträge für UI-Grafiken. Gleiche Datei, gleiche Prioritätenliste wie die
+    Figuren-Zustände — Christian will eine einzige Liste, nach Priorität sortiert
+    (Festlegung 2026-09-13). Erledigt ist ein Auftrag, sobald seine Zieldatei existiert."""
+    ordner = konfig_ordner.parent / UI_ORDNER
+    if not ordner.is_dir():
+        return []
+    aus = []
+    for f in sorted(ordner.glob("*.json")):
+        a = json.loads(f.read_text(encoding="utf-8"))
+        a["_erledigt"] = bool(a.get("file")) and pfad(ktx, a["file"]).exists()
+        aus.append(a)
+    return aus
 
 
 def auftragstexte(dateien: list[Path], ktx: "Kontext") -> tuple[str, int]:
@@ -737,6 +771,10 @@ def auftragstexte(dateien: list[Path], ktx: "Kontext") -> tuple[str, int]:
         fertig = [z for z in cfg["states"] if z not in offen and z.get("file")]
         geladen.append((cfg.get("prioritaet", 5), cfg.get("display_name", cfg["character"]),
                         cfg, offen, fertig))
+    for a in ui_auftraege(dateien[0].parent if dateien else Path("."), ktx):
+        offen = [] if a["_erledigt"] else [a]
+        geladen.append((a.get("prioritaet", 5), a.get("display_name", a["name"]), a, offen,
+                        [] if offen else [a]))
     geladen.sort(key=lambda e: (e[0], e[1]))
     mit_offen = [e for e in geladen if e[3]]
     offen_gesamt = sum(len(e[3]) for e in geladen)
@@ -744,14 +782,16 @@ def auftragstexte(dateien: list[Path], ktx: "Kontext") -> tuple[str, int]:
     zeilen = [
         "# Auftragstexte fürs Bild-Tool",
         "",
-        f"**Stand: {datetime.now().strftime('%Y-%m-%d %H:%M')} — {offen_gesamt} offene Zustände.** "
+        f"**Stand: {datetime.now().strftime('%Y-%m-%d %H:%M')} — {offen_gesamt} offene Aufträge.** "
         "Steht oben eine ältere Uhrzeit oder eine andere Zahl, ist es eine veraltete Kopie; "
         "die gültige Fassung liegt unter `Grafiken\\auftragstexte_bildtool.md`.",
         "",
-        "Automatisch erzeugt aus `scripts/rig_configs/*.json` durch `scripts/rig_master.py`. "
+        "Automatisch erzeugt aus `scripts/rig_configs/*.json` und `scripts/auftraege_ui/*.json` "
+        "durch `scripts/rig_master.py`. "
         "Nicht von Hand bearbeiten; Änderungen gehören in die Konfiguration.",
         "",
-        "Je Zustand eine eigene Anfrage. Hochladen: **nur das genannte Vorlagenbild**, sonst nichts.",
+        "Je Auftrag eine eigene Anfrage. Hochladen: **nur das genannte Vorlagenbild**, sonst nichts "
+        "(bei reinen Textaufträgen gar nichts).",
         "Den Textblock unverändert einfügen. Das Ergebnis unter dem angegebenen Namen ablegen.",
         "",
         f"## Offen ({offen_gesamt})",
@@ -760,7 +800,7 @@ def auftragstexte(dateien: list[Path], ktx: "Kontext") -> tuple[str, int]:
         "",
     ]
     for prio, name, cfg, offen, _ in mit_offen:
-        ids = ", ".join(f"`{z['id']}`" for z in offen)
+        ids = ", ".join(f"`{z.get('id') or z['name']}`" for z in offen)
         grund = cfg.get("prioritaet_grund", "")
         zeilen.append(f"{prio}. **{name}** — {ids}  ")
         if grund:
@@ -768,6 +808,20 @@ def auftragstexte(dateien: list[Path], ktx: "Kontext") -> tuple[str, int]:
     zeilen.append("")
 
     for prio, name, cfg, offen, _ in mit_offen:
+        if "states" not in cfg:                      # UI-Auftrag
+            a = cfg
+            zeilen += [f"## {name}", "", f"### {a['name']} — {a.get('zweck','')}", ""]
+            if a.get("vorlage"):
+                zeilen.append(f"**Hochladen:** `{a['vorlage']}`  ")
+            else:
+                zeilen.append("**Hochladen:** nichts — reiner Textauftrag  ")
+            zeilen += [f"**Ergebnis ablegen als:** `{a['file']}`", ""]
+            if a.get("hinweis"):
+                zeilen += [f"> {a['hinweis']}", ""]
+            zeilen += ["```", a.get("produktion", "").strip(), "```", ""]
+            if a.get("qa"):
+                zeilen += ["**Prüfung nach Lieferung:** " + a["qa"], ""]
+            continue
         vorlage = next((z.get("file") for z in cfg["states"] if not z.get("geplant")), "")
         zeilen += [f"## {name}", ""]
         for z in offen:
@@ -815,9 +869,10 @@ def auftragstexte(dateien: list[Path], ktx: "Kontext") -> tuple[str, int]:
         zeilen.append(f"**{name}** ({stand})  ")
         for z in fertig:
             frei = z.get("freigabe", "")
-            zeilen.append(f"- `{z['id']}` — `{z['file']}`" + (f" · {frei}" if frei else "") + "  ")
+            kennung = z.get("id") or z.get("name", "?")
+            zeilen.append(f"- `{kennung}` — `{z['file']}`" + (f" · {frei}" if frei else "") + "  ")
         zeilen.append("")
-    zeilen.append(f"Offen insgesamt: {offen_gesamt} Zustandsbilder.")
+    zeilen.append(f"Offen insgesamt: {offen_gesamt} Aufträge.")
     return "\n".join(zeilen) + "\n", offen_gesamt
 
 

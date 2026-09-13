@@ -33,8 +33,9 @@
 //      App Store Connect ersetzen (Pflichtfeld für Production laut aktueller
 //      SignedDataVerifier-Signatur, siehe Kommentar dort — in der Referenzrecherche
 //      vom 2026-09-09 noch nicht als eigener Parameter bekannt).
-//   4. Die vier Secrets einmalig setzen (siehe bestehende `defineSecret`-Deklarationen
-//      unten, unverändert) — erst DANN schaltet ein echter Kauf tatsächlich frei.
+//   4. Die vier Secrets einmalig setzen und die `defineSecret`-Zeilen unten wieder
+//      aktivieren (sie sind seit 2026-09-13 auskommentiert, Begründung dort) — erst DANN
+//      schaltet ein echter Kauf tatsächlich frei.
 //
 // Bis Punkt 1 erledigt ist, bleibt dieses Skelett bewusst NICHT deploybar (genau wie
 // src/lib/kauf.ts bewusst nicht importierbar ist, solange `expo-iap` nicht installiert
@@ -43,9 +44,13 @@
 // ══════════════════════════════════════════════════════════════════════════════
 
 import { onCall, HttpsError } from "firebase-functions/v2/https";
-import { defineSecret } from "firebase-functions/params";
+// `defineSecret` ist vorerst nicht in Gebrauch — siehe Kommentar bei den auskommentierten
+// Secret-Deklarationen weiter unten. Import beim Reaktivieren wieder ergänzen.
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
+// 1. Generation, ausschliesslich fuer den Auth-Loeschausloeser ganz unten —
+// Begruendung dort. Der Rest dieser Datei nutzt die v2-API.
+import * as functionsV1 from "firebase-functions/v1";
 
 initializeApp();
 const db = getFirestore();
@@ -58,15 +63,45 @@ const REGION = "europe-west1";
 // (Recherche-Notiz, Schritt 3).
 const ERWARTETE_PRODUKT_ID = "vollstaendiger_lernpfad";
 
-// Secrets — Werte werden NICHT hier eingetragen, sondern einmalig per
-// `firebase functions:secrets:set APPLE_IAP_PRIVATE_KEY` (und für die übrigen drei)
-// gesetzt, sobald die echte Prüfung implementiert wird. Bis dahin bleiben sie
-// ungenutzt (siehe Platzhalter-Funktionen unten) und müssen nicht gesetzt sein, damit
-// dieses Skelett trotzdem deploybar ist.
-const APPLE_IAP_PRIVATE_KEY = defineSecret("APPLE_IAP_PRIVATE_KEY");
-const APPLE_IAP_KEY_ID = defineSecret("APPLE_IAP_KEY_ID");
-const APPLE_IAP_ISSUER_ID = defineSecret("APPLE_IAP_ISSUER_ID");
-const GOOGLE_PLAY_SERVICE_ACCOUNT_JSON = defineSecret("GOOGLE_PLAY_SERVICE_ACCOUNT_JSON");
+// Secrets für die Kaufprüfung — Änderung 2026-09-13 (erster echter Deploy-Versuch): Die vier Secrets waren über
+// `defineSecret` deklariert UND in den `secrets`-Optionen von `verifyPurchase`
+// eingetragen. Damit prüft die Firebase-CLI sie beim Deploy — und der Deploy scheiterte
+// mit HTTP 403: Die Secret-Manager-API ist im Projekt gar nicht aktiviert, und keines der
+// vier Secrets existiert. Blockiert war damit ALLES, auch die Löschfunktion ganz unten,
+// die mit Käufen nichts zu tun hat.
+//
+// Die Kaufprüfung kann derzeit ohnehin nichts prüfen (siehe die drei TODOs im
+// ACHTUNG-Block oben: keine numerische App-ID, keine Apple-Root-Zertifikate, keine
+// gesetzten Secrets). Deshalb werden die Secrets vorerst NICHT deklariert, sondern zur
+// Laufzeit aus der Umgebung gelesen — fehlt einer, bricht die Prüfung mit einer klaren
+// Meldung ab, statt einen Kauf durchzuwinken.
+//
+// WENN DIE KAUFPRÜFUNG ECHT WIRD, in dieser Reihenfolge:
+//   1. Secret-Manager-API aktivieren.
+//   2. `firebase functions:secrets:set APPLE_IAP_PRIVATE_KEY` (und die übrigen drei).
+//   3. Hier die vier `defineSecret`-Zeilen unten einkommentieren und sie wieder in die
+//      `secrets`-Option von `verifyPurchase` eintragen — erst dadurch bindet Firebase sie
+//      als Umgebungsvariablen in die Funktion ein und `secretWert()` findet sie.
+// const APPLE_IAP_PRIVATE_KEY = defineSecret("APPLE_IAP_PRIVATE_KEY");
+// const APPLE_IAP_KEY_ID = defineSecret("APPLE_IAP_KEY_ID");
+// const APPLE_IAP_ISSUER_ID = defineSecret("APPLE_IAP_ISSUER_ID");
+// const GOOGLE_PLAY_SERVICE_ACCOUNT_JSON = defineSecret("GOOGLE_PLAY_SERVICE_ACCOUNT_JSON");
+
+/**
+ * Liest ein Secret aus der Laufzeitumgebung. Wirft, wenn es fehlt — bei einer Kaufprüfung
+ * ist ein Abbruch mit klarer Ursache die einzig vertretbare Reaktion; ein Leerstring würde
+ * die Prüfung gegen Apple/Google unbemerkt fehlschlagen lassen.
+ */
+function secretWert(name: string): string {
+  const wert = process.env[name];
+  if (!wert) {
+    throw new Error(
+      `Secret ${name} ist nicht gesetzt. Kaufprüfung nicht möglich — siehe Kommentar zu ` +
+        "den defineSecret-Zeilen in dieser Datei."
+    );
+  }
+  return wert;
+}
 
 // Bundle-ID/Package-Name — aus app.json übernommen (ios.bundleIdentifier /
 // android.package), nicht aus der Recherche-Notiz geraten.
@@ -77,7 +112,15 @@ const GOOGLE_PACKAGE_NAME = "com.chesslynx.app";
 // eintragen — Pflichtfeld für SignedDataVerifier in Production seit einer neueren
 // Version der Bibliothek (App Store Connect → App → "Apple ID" in den allgemeinen
 // App-Informationen, eine rein numerische ID, NICHT die Bundle-ID).
-const APPLE_APP_STORE_CONNECT_APP_ID = "TODO_NUMERISCHE_APP_ID_AUS_APP_STORE_CONNECT";
+//
+// Korrektur 2026-09-13: Stand hier als Platzhalter-STRING und ließ damit den gesamten
+// `functions`-Build scheitern (TS2345, erwartet wird `number`) — aufgefallen beim ersten
+// `npm run build` überhaupt. Jetzt `0` als klar unmöglicher Zahlenwert plus eine
+// Laufzeitprüfung in `pruefeAppleQuittung()`: Die Quittungsprüfung meldet sauber
+// „nicht verifiziert", solange die echte ID fehlt, statt mit einer Platzhalter-ID gegen
+// Apple zu laufen. Der Build läuft dadurch wieder, ohne dass irgendwo ein Kauf
+// fälschlich als gültig durchgeht.
+const APPLE_APP_STORE_CONNECT_APP_ID = 0;
 
 type VerifyPurchaseRequest = {
   platform: "ios" | "android";
@@ -93,7 +136,7 @@ type VerifyPurchaseResponse = {
 export const verifyPurchase = onCall<VerifyPurchaseRequest>(
   {
     region: REGION,
-    secrets: [APPLE_IAP_PRIVATE_KEY, APPLE_IAP_KEY_ID, APPLE_IAP_ISSUER_ID, GOOGLE_PLAY_SERVICE_ACCOUNT_JSON],
+    // `secrets: [...]` bewusst entfernt — siehe Kommentar bei den defineSecret-Zeilen oben.
   },
   async (request): Promise<VerifyPurchaseResponse> => {
     // Nur angemeldete Elternkonten dürfen Käufe verifizieren — `request.auth.uid` ist
@@ -148,6 +191,18 @@ export const verifyPurchase = onCall<VerifyPurchaseRequest>(
  * Widerrufsstatus aus (niemals aus der unverifizierten Antwort direkt).
  */
 async function pruefeAppleQuittung(transactionId: string): Promise<boolean> {
+  // Siehe Kommentar bei APPLE_APP_STORE_CONNECT_APP_ID: Ohne die echte, numerische App-ID
+  // aus App Store Connect kann hier nichts verifiziert werden. Dann lieber hier aussteigen
+  // als mit einem Platzhalter gegen Apple zu laufen — „nicht verifiziert" ist bei einer
+  // Kaufprüfung die einzig sichere Antwort, wenn die Voraussetzungen fehlen.
+  if (!APPLE_APP_STORE_CONNECT_APP_ID) {
+    console.error(
+      "Apple-Quittungsprüfung übersprungen: APPLE_APP_STORE_CONNECT_APP_ID ist noch nicht " +
+        "gesetzt (numerische Apple-ID aus App Store Connect)."
+    );
+    return false;
+  }
+
   const { SignedDataVerifier, AppStoreServerAPIClient, Environment } = await import(
     "@apple/app-store-server-library"
   );
@@ -157,9 +212,9 @@ async function pruefeAppleQuittung(transactionId: string): Promise<boolean> {
   const environment = Environment.PRODUCTION;
 
   const client = new AppStoreServerAPIClient(
-    APPLE_IAP_PRIVATE_KEY.value(),
-    APPLE_IAP_KEY_ID.value(),
-    APPLE_IAP_ISSUER_ID.value(),
+    secretWert("APPLE_IAP_PRIVATE_KEY"),
+    secretWert("APPLE_IAP_KEY_ID"),
+    secretWert("APPLE_IAP_ISSUER_ID"),
     APPLE_BUNDLE_ID,
     environment
   );
@@ -181,9 +236,16 @@ async function pruefeAppleQuittung(transactionId: string): Promise<boolean> {
 
   try {
     const transactionResponse = await client.getTransactionInfo(transactionId);
-    const verifiedTransaction = await verifier.verifyAndDecodeTransaction(
-      transactionResponse.signedTransactionInfo
-    );
+    // Korrektur 2026-09-13 (TS2345, zweiter Build-Fehler): `signedTransactionInfo` ist in
+    // der Bibliothek als optional deklariert — Apple liefert das Feld nicht in jeder
+    // Antwort. Ohne signiertes JWS gibt es nichts zu verifizieren; das als „Kauf nicht
+    // bestätigt" zu werten ist die einzig vertretbare Auslegung.
+    const signiert = transactionResponse.signedTransactionInfo;
+    if (!signiert) {
+      console.error("Apple-Antwort ohne signedTransactionInfo — Kauf nicht verifizierbar.");
+      return false;
+    }
+    const verifiedTransaction = await verifier.verifyAndDecodeTransaction(signiert);
 
     // Echtheit + richtiges Produkt + kein Widerruf/keine Erstattung.
     const istRichtigesProdukt = verifiedTransaction.productId === ERWARTETE_PRODUKT_ID;
@@ -204,7 +266,7 @@ async function pruefeAppleQuittung(transactionId: string): Promise<boolean> {
 async function pruefeGoogleQuittung(purchaseToken: string): Promise<boolean> {
   const { google } = await import("googleapis");
 
-  const serviceAccount = JSON.parse(GOOGLE_PLAY_SERVICE_ACCOUNT_JSON.value());
+  const serviceAccount = JSON.parse(secretWert("GOOGLE_PLAY_SERVICE_ACCOUNT_JSON"));
 
   const auth = new google.auth.GoogleAuth({
     credentials: serviceAccount,
@@ -239,3 +301,60 @@ async function pruefeGoogleQuittung(purchaseToken: string): Promise<boolean> {
     return false;
   }
 }
+
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Kontodaten löschen, wenn ein Eltern-Konto verschwindet
+// ══════════════════════════════════════════════════════════════════════════════
+//
+// WARUM ES DIESE FUNKTION GIBT (2026-09-13): Die App räumt beim "Konto löschen" im
+// Eltern-Bereich bereits selbst auf — am Gerät geprüft. Die Lücke liegt woanders: Wird ein
+// Konto NICHT über die App entfernt (in der Firebase-Konsole, über das Admin-SDK, über einen
+// späteren Support-Weg), läuft kein App-Code mit, und `eltern/<uid>` bleibt als Waise stehen
+// — personenbezogene Daten eines Kontos, das es nicht mehr gibt. Genau das ist am
+// 2026-09-13 nachgewiesen worden: 0 Konten in Authentication, ein vollständiger Datensatz
+// mit Kinderprofil in Firestore.
+//
+// WARUM NICHT DIE EXTENSION "Delete User Data": Die war der erste Plan und ist nach einem
+// Blick auf ihre Installationsausgabe verworfen worden:
+//  - Firebase Extensions wird zum 31. März 2027 abgeschaltet. Der Launch ist der
+//    1. Dezember 2026 — die Absicherung wäre vier Monate danach still weggefallen.
+//  - Sie hätte vier sehr breite Rollen bekommen, darunter Storage Admin und Pub/Sub Admin,
+//    für Dienste, die ChessLynx gar nicht benutzt.
+//  - Sie verlangt einen eingerichteten Cloud-Storage-Bucket, den das Projekt sonst nicht
+//    bräuchte.
+// Diese Funktion deckt denselben Fall in ein paar Zeilen ab, mit den Rechten, die die
+// Functions ohnehin haben, und ohne Abschaltdatum.
+//
+// WARUM 1. GENERATION (`firebase-functions/v1`): Auslöser auf das Löschen eines
+// Auth-Kontos gibt es nur dort. Das v2-Gegenstück (`beforeUserDeleted`) ist ein
+// BLOCKIERENDER Auslöser — er läuft VOR der Löschung, kann sie bei einem Fehler verhindern
+// und setzt zusätzlich ein Upgrade auf Identity Platform voraus. Für ein Aufräumen NACH der
+// Löschung ist das die falsche Bauform. Der Rest dieser Datei bleibt bei v2; beide
+// Generationen nebeneinander sind ausdrücklich zulässig.
+//
+// Region bewusst dieselbe wie oben (`REGION`), damit alle Funktionen dieses Projekts an
+// einem Ort liegen.
+
+
+export const elternDatenAufraeumen = functionsV1
+  .region(REGION)
+  .auth.user()
+  .onDelete(async (user) => {
+    const pfad = `eltern/${user.uid}`;
+    try {
+      // recursiveDelete räumt das Dokument UND alles darunter ab (`kinder`,
+      // `einstellungen`, und alles, was später dazukommt). Der flache Weg (`.delete()`)
+      // wäre hier wirkungslos und würde es nicht einmal melden: `eltern/<uid>` ist in
+      // diesem Datenmodell in der Regel gar kein Dokument, sondern nur ein Pfadsegment
+      // über den Subcollections — ein `delete()` darauf ist erfolgreich und löscht nichts.
+      await db.recursiveDelete(db.doc(pfad));
+      console.log(`Kontodaten entfernt: ${pfad}`);
+    } catch (fehler) {
+      // Bewusst nicht weiterwerfen: Ein Fehler hier darf die Kontolöschung selbst nicht
+      // rückgängig machen oder als fehlgeschlagen erscheinen lassen. Übrig gebliebene
+      // Daten fängt `scripts/waisen_pruefen.cjs` vor jedem Release auf — deshalb bleibt
+      // dieses Skript auch mit dieser Funktion sinnvoll.
+      console.error(`Kontodaten konnten nicht entfernt werden (${pfad}):`, fehler);
+    }
+  });

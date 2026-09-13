@@ -25,9 +25,31 @@
 // Dadurch genügt eine einzige `size`-Angabe an der Aufrufstelle, und die Tiere haben
 // trotzdem untereinander plausible Größen — bei den figurenbasierten Mastern war das nicht
 // nötig, weil geschnitzte Schachfiguren ohnehin alle gleich hoch sind.
+//
+// Update 2026-09-13 — DIE TIERE BLINZELN. Seit dem 2026-09-11 entstehen Bewegungen nach
+// der Zustands-Methode: Das Bild-Tool liefert vollständige Bilder, `scripts/rig_master.py`
+// richtet sie deckungsgleich auf den Grundzustand aus und exportiert beide in die App
+// (siehe claude/rig_master_system_2026-09-12.md). Für alle sechs Tiere ist der Zustand
+// "Augen zu" inzwischen freigegeben und liegt unter assets/figuren/lebendig/zustaende/.
+//
+// Wichtig für das Verständnis der Dateien: `chesslynx_<tier>_blinzeln.webp` ist KEINE
+// Augen-Ebene und kein Ausschnitt, sondern das vollständige Tier mit geschlossenen Augen,
+// auf derselben 768er Leinwand, an derselben Stelle, in derselben Größe. Gemessen wurde
+// das vor dem Export: Auf allen sichtbaren Pixeln unterscheiden sich Grund- und
+// Blinzelbild ausschließlich in der Augenpartie (Igel y 374–677, Bär y 260–351, Eule
+// y 339–438, Pferd y 210–299, Schwan y 162–273, Hirsch y 197–406), die Alphakanäle sind
+// identisch. Deshalb genügt es, die beiden Bilder übereinanderzulegen und zu überblenden —
+// ohne jede Positionierungsrechnung (siehe components/ZustandsTier.tsx).
+//
+// Das Grundbild bleibt bewusst `chesslynx_<tier>_lebendig.webp`: Der neue Export
+// `zustaende/chesslynx_<tier>_grund.webp` ist damit auf allen sichtbaren Pixeln identisch
+// (Abweichung 0,00 in RGB und Alpha, gemessen 2026-09-13) — es doppelt einzupacken würde
+// das Bundle nur um rund 1 MB vergrößern.
 
 import { Image } from "react-native";
 import type { ImageSourcePropType } from "react-native";
+
+import { ZustandsTier } from "../components/ZustandsTier";
 
 /** Quest-IDs wie in LuchsRevierKarte.tsx/RootNavigator.tsx. */
 export type QuestTierId = "quest1" | "quest2" | "quest3" | "quest4" | "quest5" | "quest6";
@@ -42,6 +64,13 @@ const pferd = require("../../assets/figuren/lebendig/chesslynx_pferd_lebendig.we
 const schwan = require("../../assets/figuren/lebendig/chesslynx_schwan_lebendig.webp");
 const hirsch = require("../../assets/figuren/lebendig/chesslynx_hirsch_lebendig.webp");
 
+const igelZu = require("../../assets/figuren/lebendig/zustaende/chesslynx_igel_blinzeln.webp");
+const baerZu = require("../../assets/figuren/lebendig/zustaende/chesslynx_baer_blinzeln.webp");
+const euleZu = require("../../assets/figuren/lebendig/zustaende/chesslynx_eule_blinzeln.webp");
+const pferdZu = require("../../assets/figuren/lebendig/zustaende/chesslynx_pferd_blinzeln.webp");
+const schwanZu = require("../../assets/figuren/lebendig/zustaende/chesslynx_schwan_blinzeln.webp");
+const hirschZu = require("../../assets/figuren/lebendig/zustaende/chesslynx_hirsch_blinzeln.webp");
+
 /** Lebendiges Tier je Quest. Alle Bilder: 768×768 RGBA, Tier fußbündig, Seitenverhältnis 1. */
 export const QUEST_TIER_BILD: Record<QuestTierId, ImageSourcePropType> = {
   quest1: igel,
@@ -52,6 +81,16 @@ export const QUEST_TIER_BILD: Record<QuestTierId, ImageSourcePropType> = {
   quest6: hirsch,
 };
 
+/** Zustand "Augen zu", deckungsgleich zum jeweiligen Grundbild oben. */
+export const QUEST_TIER_BLINZELN: Record<QuestTierId, ImageSourcePropType> = {
+  quest1: igelZu,
+  quest2: baerZu,
+  quest3: euleZu,
+  quest4: pferdZu,
+  quest5: schwanZu,
+  quest6: hirschZu,
+};
+
 /** Seitenverhältnis (Höhe/Breite) der Leinwand — bewusst 1, siehe Export-Konvention oben. */
 export const QUEST_TIER_ASPEKT = 1;
 
@@ -59,14 +98,36 @@ export const QUEST_TIER_ASPEKT = 1;
  * Das lebendige Quest-Tier. `size` ist Kantenlänge der quadratischen Leinwand, nicht die
  * Höhe des Tiers — die Tiere füllen die Leinwand absichtlich unterschiedlich hoch aus
  * (Igel ~0,55, Hirsch 1,0), damit die Größenverhältnisse untereinander stimmen.
+ *
+ * `blinzeln`: standardmäßig an. Ausschalten, wo das Bild ohnehin schon in Bewegung ist —
+ * im Verwandlungsmoment etwa würde ein Lidschlag mitten im Lichtblitz nur stören.
  */
-export function QuestTierIcon({ quest, size = 150 }: { quest: QuestTierId; size?: number }) {
+export function QuestTierIcon({
+  quest,
+  size = 150,
+  blinzeln = true,
+}: {
+  quest: QuestTierId;
+  size?: number;
+  blinzeln?: boolean;
+}) {
+  if (!blinzeln) {
+    return (
+      <Image
+        source={QUEST_TIER_BILD[quest]}
+        style={{ width: size, height: size }}
+        resizeMode="contain"
+        {...ANDROID_FIX_PROPS}
+      />
+    );
+  }
+
   return (
-    <Image
-      source={QUEST_TIER_BILD[quest]}
-      style={{ width: size, height: size }}
-      resizeMode="contain"
-      {...ANDROID_FIX_PROPS}
+    <ZustandsTier
+      grund={QUEST_TIER_BILD[quest]}
+      blinzeln={QUEST_TIER_BLINZELN[quest]}
+      breite={size}
+      hoehe={size}
     />
   );
 }

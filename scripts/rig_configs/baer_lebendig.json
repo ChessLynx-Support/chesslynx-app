@@ -95,6 +95,26 @@
       "canvas": 768,
       "margin": 0.03,
       "rel_height": 0.76
+    },
+    {
+      "state": "S0_standing",
+      "file": "assets/figuren/lebendig/zustaende/chesslynx_baer_grund.webp",
+      "canvas": 768,
+      "margin": 0.03,
+      "rel_height": 0.76,
+      "zweck": "Grundzustand für den Zustands-Renderer (gleiche Geometrie wie das Blinzeln)"
+    },
+    {
+      "state": "S0b_blink",
+      "compose": [
+        "S0_standing",
+        "02_lider_zu"
+      ],
+      "file": "assets/figuren/lebendig/zustaende/chesslynx_baer_blinzeln.webp",
+      "canvas": 768,
+      "margin": 0.03,
+      "rel_height": 0.76,
+      "zweck": "Blinzeln — Grundzustand mit aufgelegter Lider-Ebene, deckungsgleich zum Grundzustand"
     }
   ],
   "known_limits": [

@@ -56,21 +56,37 @@
     {
       "id": "L1_winken",
       "file": "Lux/Zustaende/lux_L1_winken.png",
-      "geplant": true,
       "registered_to": "S0_standing",
-      "max_abweichung": 16,
+      "max_abweichung": 200,
       "zweck": "Winken — Begrüßung im Willkommens-Screen",
       "produktion": "Male das hochgeladene Bild des ChessLynx-Charakters neu — als winkende Fassung desselben Moments.\n\nDie rechte Pfote der Figur (im Bild LINKS) ist zum Gruß angehoben: Oberarm dicht am Körper, Unterarm angewinkelt nach oben, die Pfote auf Schulterhöhe.\n\nDas neue Bild MUSS sich vom hochgeladenen sichtbar unterscheiden, und zwar genau an dieser Stelle. Ein Bild, das aussieht wie die Vorlage, ist kein gültiges Ergebnis — dann bitte noch einmal, deutlicher.\n\nPROPORTIONEN — hier scheitern solche Bilder meistens:\nBeim Ändern der Pose neigt man dazu, die ganze Figur neu zu zeichnen und sie dabei fülliger zu machen. Genau das soll nicht passieren.\n- Die Figur behält ihre GESAMTHÖHE. Sie steht genauso hoch im Bild wie in der Vorlage, mit demselben Abstand nach oben und unten.\n- Sie wird NICHT breiter und NICHT fülliger: gleiche Körperbreite, gleiche Kopfgröße, gleiche Gesichtsform, gleiche Bauchform. Kopf, Ohren, Brust, die andere Pfote, Hüfte, Beine und Schwanz behalten Umfang und Lage.\n- Fellfarbe und Helligkeit bleiben exakt wie in der Vorlage — nicht dunkler, nicht satter, nicht kontrastreicher.\n- Glatte Flächen bleiben glatt: Wo die Vorlage weiches, gleichmäßiges Fell zeigt — Bauch, Brust, Kehle —, kommt KEINE zusätzliche Struktur dazu. Keine Schuppen, keine Wellen, keine zusätzlichen Härchen. Die Textur bleibt genau so glatt wie in der Vorlage.\n- Bewegt wird nur die rechte Pfote der Figur (im Bild links), und zwar in einer kleinen, nah am Körper geführten Bewegung.\n- DIE OHREN: Sie behalten ihren Abstand zueinander und ihre Neigung. In der letzten Lieferung standen die Ohrpinsel 16,1 % weiter auseinander als in der Vorlage — sie waren nach außen gekippt. Das ist der auffälligste Fehler, weil beide Bilder im Wechsel gezeigt werden und die Ohren dabei springen würden. Sie bleiben senkrecht und gleich weit auseinander, genau wie in der Vorlage.\n- DIE SITZLINIE: Die Hinterpfoten stehen auf derselben Höhe im Bild wie in der Vorlage. Zuletzt saß die Figur 50 Pixel tiefer und war insgesamt 3,1 % höher.\n- NICHTS WIRD ANGESCHNITTEN. Die Figur berührt keinen der vier Bildränder; unten bleibt ein deutlicher Streifen leer. Im letzten Versuch lagen 482 vollständig deckende Pixel auf der allerletzten Bildzeile — die Hinterpfoten waren abgeschnitten. Lieber die Figur kleiner zeichnen als sie an den Rand laufen lassen.\n- DIE GESAMTBREITE: Die Figur wird nicht breiter. Zuletzt war sie 15,0 % breiter als die Vorlage und die Sitzfläche 12,2 % breiter — die Figur war also insgesamt größer ins Bild gesetzt, nicht nur die Pfote bewegt.\nGegenprobe vor der Ausgabe: Lege dein Ergebnis gedanklich über die Vorlage. Gleiche Höhe, gleiche Breite, gleicher Farbton? Wenn die Figur runder, breiter oder dunkler geworden ist, noch einmal.\n\nGleich bleibt dagegen alles Übrige, so genau wie möglich:\n- Kopfhaltung und Blickrichtung\n- die Augen (Form, Farbe, Pupille, Glanzlicht)\n- Brauen und Wangen\n- Nase, Schnurrhaare und Mund\n- Fellzeichnung\n- Farben, Licht, Schattierung, Detailgrad\n\nFORMAT:\n- PNG mit ECHTEM Alphakanal, Hintergrund tatsächlich transparent. Ein ins Bild gemaltes Karo- oder Schachbrettmuster ist KEIN transparenter Hintergrund und unbrauchbar; eine weiße Fläche ebenso wenig.\n- gleiche Bildgröße wie die Vorlage, quadratisch, nichts angeschnitten\n- kein Boden, keine Kulisse, kein Schlagschatten auf einer Fläche\n- kein Text, keine Zahlen, keine Symbole, kein Wasserzeichen\n\nAls Vorlage dient ausschließlich das hochgeladene Bild, sonst nichts.",
-      "herkunft": "Erster Anlauf am 2026-09-13, 20:59 Uhr: Der Gruß selbst war gut — Pfote auf Schulterhöhe, Ballen sichtbar, freundlich. Die Figur war aber neu gezeichnet: 9,6 % breiter, 3,1 % höher, die Ohrpinsel 16,1 % weiter auseinander, die Sitzlinie 50 px tiefer. Die Sitzbreite stimmte dagegen auf 0,6 % genau. Eine Montage scheidet hier aus: Der erhobene Arm liegt über der Brust, an der Stelle, wo im Master noch das Vorderbein steht — es gäbe zwei Vorderbeine oder eine Lücke im Brustfell. Deshalb neuer Anlauf mit benannten Ohr- und Sitzlinien-Vorgaben. Zweiter Anlauf (21:10 Uhr): Die Ohren wurden besser (Abstand im Verhältnis zur Höhe +4,9 % statt +16,1 %), alles andere schlechter — Figur 15,0 % breiter, Sitzfläche 12,2 % breiter, Silhouettenfläche +23,6 %, und unten angeschnitten: 482 deckende Pixel auf der letzten Bildzeile, die Hinterpfoten abgeschnitten. Verworfen."
+      "herkunft": "Erster Anlauf am 2026-09-13, 20:59 Uhr: Der Gruß selbst war gut — Pfote auf Schulterhöhe, Ballen sichtbar, freundlich. Die Figur war aber neu gezeichnet: 9,6 % breiter, 3,1 % höher, die Ohrpinsel 16,1 % weiter auseinander, die Sitzlinie 50 px tiefer. Die Sitzbreite stimmte dagegen auf 0,6 % genau. Eine Montage scheidet hier aus: Der erhobene Arm liegt über der Brust, an der Stelle, wo im Master noch das Vorderbein steht — es gäbe zwei Vorderbeine oder eine Lücke im Brustfell. Deshalb neuer Anlauf mit benannten Ohr- und Sitzlinien-Vorgaben. Zweiter Anlauf (21:10 Uhr): Die Ohren wurden besser (Abstand im Verhältnis zur Höhe +4,9 % statt +16,1 %), alles andere schlechter — Figur 15,0 % breiter, Sitzfläche 12,2 % breiter, Silhouettenfläche +23,6 %, und unten angeschnitten: 482 deckende Pixel auf der letzten Bildzeile, die Hinterpfoten abgeschnitten. Verworfen. Dritter Anlauf (21:18 Uhr) freigegeben. Messwerte gegen den Master, jeweils im Verhältnis zur Figurenhöhe: Ohrpinsel-Abstand +1,5 % (V1 +16,1 %, V2 +4,9 %), Kopfbreite −0,7 %, Sitzbreite −4,7 %; Figur 3,8 % höher und 8,1 % breiter, wobei die Breite überwiegend vom erhobenen Arm kommt. Nicht angeschnitten (9 auslaufende Pixel auf der letzten Zeile gegenüber 482 deckenden in V2). IoU der Silhouetten nach Höhennormierung 0,848 — der Unterschied ist der Arm. Eine Montage wie beim Blinzeln und Sprechen ist bei dieser Pose ausgeschlossen: Der erhobene Arm bedeckt oben die linke Wange, unten fehlt das Vorderbein; jede erprobte Übernahmefläche tauschte entweder die Wange (Abweichung 27–35) oder die Hinterpfoten (28) mit aus. Deshalb Vollbild-Zustand wie beim Bären-Winken vom 12.09.",
+      "versatz_pruefen": false,
+      "verwendung": "Vollbild-Zustand, kein Differenz-Layer — wird als Ganzes überblendet. Nur als kurze Geste, nie als Dauerzustand neben dem Grundbild.",
+      "freigabe": "freigegeben durch Christian, 2026-09-13 (dritter Anlauf, Vollbild-Zustand)"
     },
     {
-      "id": "L2_zeigen",
-      "file": "Lux/Zustaende/lux_L2_zeigen.png",
-      "geplant": true,
+      "id": "L2_achtung",
+      "file": "Lux/Zustaende/lux_L2_achtung.png",
       "registered_to": "S0_standing",
-      "max_abweichung": 16,
-      "zweck": "Zeigen — verweist auf ein Feld oder eine Figur",
-      "produktion": "Male das hochgeladene Bild des ChessLynx-Charakters neu — als zeigende Fassung desselben Moments.\n\nDie rechte Pfote der Figur (im Bild LINKS) ist nach vorn ausgestreckt und zeigt auf etwas; der Blick geht in dieselbe Richtung. Der Arm bleibt auf Schulterhöhe.\n\nDas neue Bild MUSS sich vom hochgeladenen sichtbar unterscheiden, und zwar genau an dieser Stelle. Ein Bild, das aussieht wie die Vorlage, ist kein gültiges Ergebnis — dann bitte noch einmal, deutlicher.\n\nPROPORTIONEN — hier scheitern solche Bilder meistens:\nBeim Ändern der Pose neigt man dazu, die ganze Figur neu zu zeichnen und sie dabei fülliger zu machen. Genau das soll nicht passieren.\n- Die Figur behält ihre GESAMTHÖHE. Sie steht genauso hoch im Bild wie in der Vorlage, mit demselben Abstand nach oben und unten.\n- Sie wird NICHT breiter und NICHT fülliger: gleiche Körperbreite, gleiche Kopfgröße, gleiche Gesichtsform, gleiche Bauchform. Ohren, Brust, die andere Pfote, Hüfte, Beine und Schwanz behalten Umfang und Lage.\n- Fellfarbe und Helligkeit bleiben exakt wie in der Vorlage — nicht dunkler, nicht satter, nicht kontrastreicher.\n- Glatte Flächen bleiben glatt: Wo die Vorlage weiches, gleichmäßiges Fell zeigt — Bauch, Brust, Kehle —, kommt KEINE zusätzliche Struktur dazu. Keine Schuppen, keine Wellen, keine zusätzlichen Härchen. Die Textur bleibt genau so glatt wie in der Vorlage.\n- Bewegt wird nur die rechte Pfote und die Blickrichtung, und zwar in einer kleinen, nah am Körper geführten Bewegung.\n- DIE OHREN: Sie behalten ihren Abstand zueinander und ihre Neigung. In der letzten Lieferung standen die Ohrpinsel 16,1 % weiter auseinander als in der Vorlage — sie waren nach außen gekippt. Das ist der auffälligste Fehler, weil beide Bilder im Wechsel gezeigt werden und die Ohren dabei springen würden. Sie bleiben senkrecht und gleich weit auseinander, genau wie in der Vorlage.\n- DIE SITZLINIE: Die Hinterpfoten stehen auf derselben Höhe im Bild wie in der Vorlage. Zuletzt saß die Figur 50 Pixel tiefer und war insgesamt 3,1 % höher.\n- NICHTS WIRD ANGESCHNITTEN. Die Figur berührt keinen der vier Bildränder; unten bleibt ein deutlicher Streifen leer. Im letzten Versuch lagen 482 vollständig deckende Pixel auf der allerletzten Bildzeile — die Hinterpfoten waren abgeschnitten. Lieber die Figur kleiner zeichnen als sie an den Rand laufen lassen.\n- DIE GESAMTBREITE: Die Figur wird nicht breiter. Zuletzt war sie 15,0 % breiter als die Vorlage und die Sitzfläche 12,2 % breiter — die Figur war also insgesamt größer ins Bild gesetzt, nicht nur die Pfote bewegt.\nGegenprobe vor der Ausgabe: Lege dein Ergebnis gedanklich über die Vorlage. Gleiche Höhe, gleiche Breite, gleicher Farbton? Wenn die Figur runder, breiter oder dunkler geworden ist, noch einmal.\n\nGleich bleibt dagegen alles Übrige, so genau wie möglich:\n- die Augen (Form, Farbe, Pupille, Glanzlicht)\n- Brauen und Wangen\n- Nase, Schnurrhaare und Mund\n- Fellzeichnung\n- Farben, Licht, Schattierung, Detailgrad\n\nFORMAT:\n- PNG mit ECHTEM Alphakanal, Hintergrund tatsächlich transparent. Ein ins Bild gemaltes Karo- oder Schachbrettmuster ist KEIN transparenter Hintergrund und unbrauchbar; eine weiße Fläche ebenso wenig.\n- gleiche Bildgröße wie die Vorlage, quadratisch, nichts angeschnitten\n- kein Boden, keine Kulisse, kein Schlagschatten auf einer Fläche\n- kein Text, keine Zahlen, keine Symbole, kein Wasserzeichen\n\nAls Vorlage dient ausschließlich das hochgeladene Bild, sonst nichts."
+      "max_abweichung": 200,
+      "zweck": "Pfote gehoben, spricht das Kind direkt an — „Pass auf!\" / „Dich meine ich\"",
+      "produktion": "NICHT NEU BESTELLEN — dieser Zustand ist geliefert und freigegeben.\nDie Lieferung wurde nur maßstäblich eingepasst:\npython scripts/zustand_einpassen.py Grafiken/Lux/V6/chesslynx_lux_assets_png_masterfaithful_revision6/lux_master_reference.png Grafiken/Lux/Zustaende/Quellen/lux_L2_achtung_lieferung.png -o Grafiken/Lux/Zustaende/lux_L2_achtung.png",
+      "herkunft": "Erster Anlauf am 2026-09-13, 21:28 Uhr: Pose und Proportionen waren brauchbar (Ohrpinsel-Abstand −3,5 %, Figur 5,6 % höher), aber die Datei war RGB OHNE Alphakanal — das Karomuster ins Bild gemalt, Felder 15 px, Grau 252/235. Nicht zu retten: 40.315 Pixel des hellen Brust- und Pfotenfells liegen farblich im selben Graubereich, ein automatisches Freistellen schlägt dort Löcher. Dieselbe Fehlerklasse wie beim Adlerinnen-Blinzeln am 12.09. Der Auftragstext beginnt seither mit der Hintergrund-Regel. Zweiter Anlauf (21:41 Uhr) freigegeben — die beste Lux-Lieferung überhaupt: Ohrpinsel-Abstand +1,4 %, Kopfbreite +0,5 %, Sitzbreite +0,2 % (jeweils im Verhältnis zur Figurenhöhe), echtes RGBA, nichts angeschnitten. Die Pose entspricht allerdings nicht dem ursprünglichen Auftrag „zeigt auf etwas\": Die Pfote ist angewinkelt auf Brusthöhe und zeigt auf den Betrachter, der Blick bleibt geradeaus. Deshalb als Ansprache-Zustand übernommen und umbenannt; das Deuten aufs Brett ist ein eigener Zustand (L3_zeigen_brett). Einpassung: Maßstab 0,9819, Sitzbreite danach exakt 1033 wie im Master, Pfotenlinie y=1981, Mitte x=1120,0.",
+      "versatz_pruefen": false,
+      "verwendung": "Vollbild-Zustand, kein Differenz-Layer — wird als Ganzes überblendet. Für Ansprache und Aufmerksamkeit, NICHT zum Deuten auf ein Brettfeld: Die Pfote zeigt auf den Betrachter, der Blick bleibt geradeaus.",
+      "freigabe": "freigegeben durch Christian, 2026-09-13 (zweiter Anlauf, Vollbild-Zustand)"
+    },
+    {
+      "id": "L3_zeigen_brett",
+      "file": "Lux/Zustaende/lux_L3_zeigen_brett.png",
+      "zweck": "Deutet auf ein Feld oder eine Figur — Zughilfen und Hinweise",
+      "verwendung": "Vollbild-Zustand, kein Differenz-Layer — wird als Ganzes überblendet.",
+      "produktion": "NICHT NEU BESTELLEN — dieser Zustand ist geliefert und freigegeben.\nDie Lieferung wurde nur maßstäblich eingepasst:\npython scripts/zustand_einpassen.py Grafiken/Lux/V6/chesslynx_lux_assets_png_masterfaithful_revision6/lux_master_reference.png Grafiken/Lux/Zustaende/Quellen/lux_L3_zeigen_brett_lieferung.png -o Grafiken/Lux/Zustaende/lux_L3_zeigen_brett.png --anker hoehe",
+      "herkunft": "Neu angelegt am 2026-09-13, nachdem die Lieferung vom 21:41 Uhr als Ansprache-Zustand (L2_achtung) übernommen wurde. Sie zeigte auf den Betrachter statt in die Szene; für Zughilfen und Hinweise auf dem Brett braucht es eine gerichtete Geste mit mitgehendem Blick. Der Auftragstext benennt beides ausdrücklich. Geliefert am 2026-09-13, 21:50 Uhr und freigegeben. Geste und Blick stimmen: Pfote schräg nach rechts unten, ein Zeh ausgestreckt, Pupillen nach rechts unten gewendet. Proportionen: Ohrpinsel-Abstand −0,8 %, Kopfbreite −2,8 %, Sitzbreite +3,4 %, Figur 2,1 % höher; echtes RGBA, nichts angeschnitten. Eingepasst mit --anker hoehe: Die Lieferung war im Rumpf 5,6 % breiter, beim Sitz-Anker wären die Ohrspitzen 64 px tiefer gelandet und die Figur beim Überblenden sichtbar geschrumpft. Mit dem Höhen-Anker liegen Ohrspitzen (y=43) und Pfotenlinie (y=1981) exakt auf den Zeilen des Grundzustands, dafür weicht die Sitzbreite um 3,4 % ab. Bekannter Schönheitsfehler: Die Zeigepfote kreuzt vor dem Schwanzansatz; bei 46 pt unauffällig, bei großer Anzeige leicht unruhig.",
+      "max_abweichung": 200,
+      "versatz_pruefen": false,
+      "freigabe": "freigegeben durch Christian, 2026-09-13 (Vollbild-Zustand, Höhen-Anker)"
     }
   ],
   "layers": [
@@ -104,31 +120,24 @@
     },
     {
       "id": "04_winkende_pfote",
-      "from": "S0_standing",
-      "to": "L1_winken",
-      "region": [
-        0,
-        0,
-        2048,
-        2048
-      ],
-      "threshold": 35,
-      "feather": 2.0,
-      "zweck": "winkende Pfote"
+      "zweck": "Winken als vollständiges Bild — Kontur und Pose ändern sich, keine Differenz",
+      "type": "state",
+      "state": "L1_winken",
+      "align_to": "L1_winken"
     },
     {
-      "id": "05_zeigende_pfote",
-      "from": "S0_standing",
-      "to": "L2_zeigen",
-      "region": [
-        0,
-        0,
-        2048,
-        2048
-      ],
-      "threshold": 35,
-      "feather": 2.0,
-      "zweck": "zeigende Pfote"
+      "id": "05_pfote_achtung",
+      "zweck": "Ansprache-Geste als vollständiges Bild",
+      "type": "state",
+      "state": "L2_achtung",
+      "align_to": "L2_achtung"
+    },
+    {
+      "id": "06_pfote_zeigt_brett",
+      "type": "state",
+      "state": "L3_zeigen_brett",
+      "align_to": "L3_zeigen_brett",
+      "zweck": "Deuten aufs Brett als vollständiges Bild"
     }
   ],
   "previews": {
@@ -147,9 +156,13 @@
       "S0_standing",
       "04_winkende_pfote"
     ],
-    "preview_zeigen": [
+    "preview_achtung": [
       "S0_standing",
-      "05_zeigende_pfote"
+      "05_pfote_achtung"
+    ],
+    "preview_zeigen_brett": [
+      "S0_standing",
+      "06_pfote_zeigt_brett"
     ]
   },
   "animation": {
@@ -161,10 +174,16 @@
         "03_mund_offen im Takt der Silben ein-/ausblenden, 90 ms je Wechsel"
       ],
       "winken": [
-        "04_winkende_pfote einblenden, Rotation ±8°, 2 Durchläufe à 360 ms"
+        "Überblendung S0 -> 04_winkende_pfote in 150-200 ms (kurz halten, sonst vergleicht das Auge die Kontur)",
+        "halten 700 ms, zurück in 150 ms",
+        "Nur als kurze Geste, nie als Dauerzustand neben dem Grundbild"
       ],
-      "zeigen": [
-        "Überblendung S0 -> 05_zeigende_pfote (200 ms), halten, zurück (200 ms)"
+      "achtung": [
+        "Überblendung S0 -> 05_pfote_achtung in 150-200 ms, halten 700 ms, zurück in 150 ms",
+        "Nur als kurze Geste zur Ansprache, nie als Dauerzustand"
+      ],
+      "zeigen_brett": [
+        "Überblendung S0 -> 06_pfote_zeigt_brett in 200 ms, halten solange der Hinweis steht, zurück in 200 ms"
       ]
     }
   },
@@ -174,10 +193,50 @@
   "prioritaet": 1,
   "prioritaet_grund": "Markenfigur, in fast jedem Screen sichtbar — einziger Launch-Blocker in dieser Liste",
   "freigabe": {
-    "stufe": "teilweise freigegeben",
+    "stufe": "freigegeben",
     "durch": "Christian",
     "datum": "2026-09-13",
-    "umfang": "Grundzustand, S0b_blink und S1_sprechen (beide Montagen); L1_winken und L2_zeigen offen",
+    "umfang": "Grundzustand, S0b_blink, S1_sprechen, L1_winken, L2_achtung, L3_zeigen_brett — alle Zustände freigegeben",
     "beleg": "Grafiken/Lux/rights.md, Abschnitt E"
-  }
+  },
+  "app_export": [
+    {
+      "state": "S0_standing",
+      "file": "assets/lux/zustaende/lux_grund.webp",
+      "canvas": [
+        660,
+        1060
+      ],
+      "margin": 0.03,
+      "zweck": "Grundzustand für den Zustands-Renderer"
+    },
+    {
+      "state": "S0b_blink",
+      "compose": [
+        "S0_standing",
+        "02_lider_zu"
+      ],
+      "file": "assets/lux/zustaende/lux_blinzeln.webp",
+      "canvas": [
+        660,
+        1060
+      ],
+      "margin": 0.03,
+      "zweck": "Blinzeln — Lider-Ebene über dem Grundzustand"
+    },
+    {
+      "state": "S1_sprechen",
+      "compose": [
+        "S0_standing",
+        "03_mund_offen"
+      ],
+      "file": "assets/lux/zustaende/lux_sprechen.webp",
+      "canvas": [
+        660,
+        1060
+      ],
+      "margin": 0.03,
+      "zweck": "Sprechen — Mund-Ebene über dem Grundzustand"
+    }
+  ]
 }

@@ -402,7 +402,10 @@ export default function Quest1() {
       {screen === "verwandlung" && (
         <Verwandlung
           figur={<BauerMasterGrossIcon size={150} />}
-          tier={<QuestTierIcon quest="quest1" size={150} />}
+          // Blinzeln hier bewusst aus (2026-09-13): Im Verwandlungsmoment läuft bereits der
+          // Lichtblitz samt Schrumpf-Feder — ein Lidschlag mitten hinein würde als Fehler
+          // gelesen. Der Igel blinzelt oben im Vorstellungs-Screen, wo er wartet.
+          tier={<QuestTierIcon quest="quest1" size={150} blinzeln={false} />}
           grossGroesse={150}
           // Zielgröße bewusst identisch zur pieceIcon-Standardgröße auf dem Brett (siehe
           // Board.tsx/pieceMasters.tsx) — die Figur rastet exakt in der Größe ein, die sie

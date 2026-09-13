@@ -86,7 +86,28 @@ if (!fs.existsSync(schluesselPfad)) {
   process.exit(1);
 }
 
-admin.initializeApp({ credential: admin.credential.cert(require(path.resolve(schluesselPfad))) });
+// Welcher Schlüssel tatsächlich benutzt wird, wird bewusst ausgegeben (2026-09-13): Beim
+// ersten Einsatz scheiterte das Skript zweimal mit „insufficient permission", weil im
+// Hintergrund GOOGLE_APPLICATION_CREDENTIALS auf den Google-TTS-Schlüssel zeigte
+// (`tts-export@…`, darf nur Sprachsynthese) — sichtbar war das nirgends, weil das Skript
+// stillschweigend auf die Umgebungsvariable zurückfällt, wenn kein Argument ankommt. Eine
+// leere Shell-Variable als Argument (`"$fbKey"` ohne vorherige Zuweisung) führt zum selben
+// Ergebnis. Die zwei Zeilen hier machen in einer Sekunde sichtbar, woran es liegt.
+const schluesselDaten = require(path.resolve(schluesselPfad));
+console.log(`  Schlüssel:  ${schluesselDaten.client_email}`);
+console.log(`  Projekt:    ${schluesselDaten.project_id}`);
+if (!String(schluesselDaten.client_email || "").startsWith("firebase-adminsdk-")) {
+  console.log(
+    "\n  ACHTUNG: Das ist nicht das von Firebase angelegte Admin-SDK-Dienstkonto.\n" +
+      "  Ein selbst erstelltes Dienstkonto hat in der Regel keinen Zugriff auf Firestore\n" +
+      "  und Authentication — der Lauf wird gleich mit „insufficient permission\" abbrechen.\n" +
+      "  Richtigen Schlüssel holen: Firebase-Konsole → Projekteinstellungen → Dienstkonten\n" +
+      "  → „Neuen privaten Schlüssel generieren\", Datei außerhalb des Projektordners ablegen\n" +
+      "  und ihren Pfad diesem Skript als Argument übergeben."
+  );
+}
+
+admin.initializeApp({ credential: admin.credential.cert(schluesselDaten) });
 const db = admin.firestore();
 const auth = admin.auth();
 
@@ -171,6 +192,15 @@ async function main() {
 }
 
 main().catch((fehler) => {
-  console.error("\nAbbruch:", fehler?.message || fehler, "\n");
+  const text = String(fehler?.message || fehler);
+  console.error("\nAbbruch:", text, "\n");
+  if (/insufficient permission/i.test(text)) {
+    console.error(
+      `  Benutzt wurde: ${schluesselDaten.client_email} (Projekt ${schluesselDaten.project_id})\n` +
+        "  Dieses Dienstkonto darf nicht auf Firestore/Authentication zugreifen.\n" +
+        "  Richtigen Schlüssel holen: Firebase-Konsole → Projekteinstellungen → Dienstkonten\n" +
+        "  → „Neuen privaten Schlüssel generieren\" (Konto beginnt dann mit firebase-adminsdk-).\n"
+    );
+  }
   process.exit(1);
 });
