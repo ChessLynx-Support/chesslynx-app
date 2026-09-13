@@ -114,7 +114,16 @@ export function sprich(zeile: string, optionen?: { onFertig?: () => void }) {
   stelleStimmeBereit();
   Speech.stop();
   const stimme = bevorzugteStimmeIdSynchron() ?? automatischeStimme;
-  Speech.speak(fuerSprachausgabe(zeile), { ...STIMME_OPTIONEN, voice: stimme, onDone: optionen?.onFertig });
+  // `onDone` bewusst gekapselt statt direkt durchgereicht: Je nach Plattform/Version ruft
+  // expo-speech den Callback mit einem Ereignisobjekt auf. `onFertig` in useLuxSprechzeile.ts
+  // hat inzwischen einen optionalen ersten Parameter (`vonEngine`) — ein durchgereichtes
+  // Ereignis würde dort versehentlich als `true` gelesen und die Absicherung gegen zu frühe
+  // Ende-Meldungen aushebeln. Hier wird deshalb garantiert ohne Argumente aufgerufen.
+  Speech.speak(fuerSprachausgabe(zeile), {
+    ...STIMME_OPTIONEN,
+    voice: stimme,
+    onDone: () => optionen?.onFertig?.(),
+  });
 }
 
 /**
@@ -131,6 +140,37 @@ export function fuerSprachausgabe(zeile: string): string {
 
 export function stoppen() {
   Speech.stop();
+}
+
+/**
+ * Meldet, ob die Sprachausgabe GERADE JETZT tatsächlich spricht — direkt aus der
+ * Sprach-Engine, nicht aus einer Schätzung.
+ *
+ * Gerätetest 2026-09-11/13 (Nutzer: "Die automatische Führung beim Turm wirkt abgehackt,
+ * die Sätze werden nicht zuende gesprochen", nach einem ersten Anlauf erneut: "Die Texte
+ * wirken weiterhin abgehackt"): Auf Android melden etliche TTS-Engines ihr `onDone` VIEL zu
+ * früh — teils schon beim Einreihen der Äußerung, teils ausgelöst durch das `Speech.stop()`,
+ * das `sprich()` unmittelbar davor aufruft. Die Folge ist keine reine Anzeigefrage, sondern
+ * ein echter Abschnitt: Auf ein zu frühes `onDone` schaltet die Auto-Weiter-Kette zur
+ * nächsten Zeile, der Schlüsselwechsel räumt auf und ruft `stoppen()` — und schneidet damit
+ * den noch laufenden Satz mitten im Wort ab.
+ *
+ * Der erste Anlauf schätzte die Sprechdauer nur (Mindestdauer pro Zeichen). Das ist
+ * grundsätzlich unzuverlässig: Die tatsächliche Dauer hängt an Engine, Stimme, gewählter
+ * Sprechrate und Satzzeichen. `isSpeakingAsync()` ist stattdessen die Engine-eigene Auskunft
+ * und damit die einzige belastbare Quelle — `useLuxSprechzeile.ts` fragt sie in kurzen
+ * Abständen ab und schaltet erst weiter, wenn die Engine wirklich verstummt ist.
+ *
+ * Bei Fehlern bewusst `false`: Kann die Plattform nicht antworten, soll die Führung nicht
+ * hängen bleiben — das Sicherheitsnetz und die Mindestdauer in `useLuxSprechzeile.ts`
+ * greifen dann weiterhin.
+ */
+export async function sprichtGerade(): Promise<boolean> {
+  try {
+    return await Speech.isSpeakingAsync();
+  } catch {
+    return false;
+  }
 }
 
 // Design-Vorgabe 3.1, Schritt 6 ("Text vorerst hinter ein Flag ... im

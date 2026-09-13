@@ -18,21 +18,36 @@
     {
       "id": "S0b_blink",
       "file": "Figuren/Hirsch/Lebendig/Zustaende/hirsch_S0b_blink.png",
-      "geplant": true,
       "registered_to": "S0_standing",
-      "max_abweichung": 14,
+      "max_abweichung": 2,
       "zweck": "Blinzeln — kleinste Lebendigkeit, überall einsetzbar",
-      "produktion": "Male das hochgeladene Bild des ChessLynx-Charakters neu — als blinzelnde Fassung desselben Moments.\n\nBEIDE Augen sind geschlossen: die Lider gesenkt, als ruhige Bogenlinie sichtbar, die Wimpern zeigen nach unten. Von Augenweiß, Iris und Pupille ist nichts mehr zu sehen. Ein kurzer Lidschlag — kein Zwinkern, kein Zukneifen, kein Lächeln.\n\nDas neue Bild MUSS sich vom hochgeladenen sichtbar unterscheiden, und zwar genau an dieser Stelle. Ein Bild, das aussieht wie die Vorlage, ist kein gültiges Ergebnis — dann bitte noch einmal, deutlicher.\n\nGleich bleibt dagegen alles Übrige, so genau wie möglich:\n- Haltung, Stand, Größe und Position im Bild, Abstand zu allen vier Rändern\n- Kopfhaltung und Blickrichtung\n- Brauen und Wangen\n- Schnabel bzw. Schnauze und Mund\n- Fell- bzw. Federzeichnung\n- Farben, Licht, Schattierung, Detailgrad\n\nFORMAT:\n- PNG mit ECHTEM Alphakanal, Hintergrund tatsächlich transparent. Ein ins Bild gemaltes Karo- oder Schachbrettmuster ist KEIN transparenter Hintergrund und unbrauchbar; eine weiße Fläche ebenso wenig.\n- gleiche Bildgröße wie die Vorlage, quadratisch, nichts angeschnitten\n- kein Boden, keine Kulisse, kein Schlagschatten auf einer Fläche\n- kein Text, keine Zahlen, keine Symbole, kein Wasserzeichen\n\nAls Vorlage dient ausschließlich das hochgeladene Bild, sonst nichts."
+      "produktion": "Montage: Lieferung des Bild-Tools, per Gesichtsausrichtung auf den Master übertragen. NICHT unverändert übernehmen.\npython scripts/zustand_montage.py Grafiken/Figuren/Hirsch/Lebendig/V1/hirsch_lebendig_kandidat_v1.png Grafiken/Figuren/Hirsch/Lebendig/Zustaende/Quellen/hirsch_S0b_blink_lieferung_roh_2026-09-13_1403.png -o Grafiken/Figuren/Hirsch/Lebendig/Zustaende/hirsch_S0b_blink.png --maskenfenster 320 560 420 840",
+      "change_region": [
+        380,
+        270,
+        880,
+        580
+      ],
+      "herkunft": "Zwei Lieferungen (2026-09-13, 14:03 und 14:13 Uhr) hatten die Augen richtig geschlossen, zeichneten aber die ganze Figur neu: V1 5,5 % breiter (IoU 0,938), V2 5,9 % breiter bei 9,0 % mehr Fläche (IoU 0,896), beide mit deutlichen Änderungen an Rumpf und Beinen. Als Idle alle 3-6 Sekunden unbrauchbar. Deshalb Montage aus V1: Ausrichtung am Gesicht (Skalierung 0,98, dy 14, dx -16, Restabweichung außerhalb der Augen 12,89/255), Maske aus der Differenz beider Bilder (zwei Änderungsflächen, 21.488 und 14.144 px), Alphakanal vom Master. Ergebnis: Änderung nur in y 300-557 / x 403-856, mittlere Abweichung außerhalb 0,0037/255. Rohdatei mit C2PA-Nachweis unter Zustaende/Quellen/. Siehe claude/pferd_bildtool_sperre_2026-09-13.md.",
+      "freigabe": "freigegeben durch Christian, 2026-09-13 (Montage)"
     },
     {
       "id": "S1_nicken",
       "file": "Figuren/Hirsch/Lebendig/Zustaende/hirsch_S1_nicken.png",
-      "geplant": true,
       "registered_to": "S0_standing",
-      "max_abweichung": 14,
+      "max_abweichung": 2,
       "zweck": "Nicken — würdevolle Zustimmung des Königs",
-      "produktion": "Male das hochgeladene Bild des ChessLynx-Charakters neu — als nickende Fassung desselben Moments.\n\nDer Kopf mit Geweih ist deutlich NACH UNTEN geneigt, etwa 20°, wie bei einem würdevollen Nicken — das Kinn kommt zur Brust.\n\nWICHTIG, Neigen ist nicht Drehen:\n- NEIGEN (gewollt): Der Kopf kippt nach vorn/unten. Die Schnauze zeigt tiefer, das Geweih neigt sich mit.\n- DREHEN (nicht gewollt): Der Kopf dreht sich zur Seite. Das ist NICHT gemeint — der Hirsch schaut weiter nach vorn.\n- Zu wenig Neigung ist der häufigste Fehler. Ist die Kopfhaltung am Ende fast wie in der Vorlage, noch einmal, deutlicher.\n\nDas neue Bild MUSS sich vom hochgeladenen sichtbar unterscheiden, und zwar genau an dieser Stelle. Ein Bild, das aussieht wie die Vorlage, ist kein gültiges Ergebnis — dann bitte noch einmal, deutlicher.\n\nPROPORTIONEN — hier scheitern solche Bilder meistens:\nBeim Ändern der Pose neigt man dazu, die ganze Figur neu zu zeichnen und sie dabei fülliger zu machen. Genau das soll nicht passieren.\n- Die Figur behält ihre GESAMTHÖHE. Sie steht genauso hoch im Bild wie in der Vorlage, mit demselben Abstand nach oben und unten.\n- Sie wird NICHT breiter und NICHT fülliger: gleiche Körperbreite, gleiche Kopfgröße, gleiche Gesichtsform, gleiche Bauchform. Hals, Rumpf und Beine behalten Umfang und Lage.\n- Fellfarbe und Helligkeit bleiben exakt wie in der Vorlage — nicht dunkler, nicht satter, nicht kontrastreicher.\n- Glatte Flächen bleiben glatt: Wo die Vorlage gleichmäßiges, weiches Fell oder Gefieder zeigt — Bauch, Brust, Kehle —, kommt KEINE zusätzliche Struktur dazu. Keine Schuppen, keine Wellen, keine gezeichneten Federreihen, keine zusätzlichen Härchen. Die Textur bleibt genau so glatt wie in der Vorlage.\n- Bewegt wird nur Kopf und Geweih, und zwar in einer kleinen, nah am Körper geführten Bewegung.\nGegenprobe vor der Ausgabe: Lege dein Ergebnis gedanklich über die Vorlage. Gleiche Höhe, gleiche Breite, gleicher Farbton? Wenn die Figur runder, breiter oder dunkler geworden ist, noch einmal.\n\nGleich bleibt dagegen alles Übrige, so genau wie möglich:\n- Haltung, Stand, Größe und Position im Bild, Abstand zu allen vier Rändern\n- die Augen (Form, Farbe, Pupille, Glanzlicht)\n- Brauen und Wangen\n- Schnabel bzw. Schnauze und Mund\n- Fell- bzw. Federzeichnung\n- Farben, Licht, Schattierung, Detailgrad\n\nFORMAT:\n- PNG mit ECHTEM Alphakanal, Hintergrund tatsächlich transparent. Ein ins Bild gemaltes Karo- oder Schachbrettmuster ist KEIN transparenter Hintergrund und unbrauchbar; eine weiße Fläche ebenso wenig.\n- gleiche Bildgröße wie die Vorlage, quadratisch, nichts angeschnitten\n- kein Boden, keine Kulisse, kein Schlagschatten auf einer Fläche\n- kein Text, keine Zahlen, keine Symbole, kein Wasserzeichen\n\nAls Vorlage dient ausschließlich das hochgeladene Bild, sonst nichts.",
-      "verwendung": "Vollbild-Zustand, kein Differenz-Layer — Kopfbewegungen übertragen sich auf den Körper."
+      "produktion": "NICHT über das Bild-Tool. Geometrisch aus dem Master gerechnet:\npython scripts/zustand_kopfsenken.py Grafiken/Figuren/Hirsch/Lebendig/V1/hirsch_lebendig_kandidat_v1.png -o Grafiken/Figuren/Hirsch/Lebendig/Zustaende/hirsch_S1_nicken.png --senkung 65 --rampe 500 790 --neigung 0.05",
+      "verwendung": "Differenz-Ebene möglich, weil der Körper unterhalb der Rampe bitgleich bleibt.",
+      "change_region": [
+        0,
+        0,
+        1254,
+        840
+      ],
+      "herkunft": "Die Lieferung des Bild-Tools vom 2026-09-13, 14:06 Uhr wurde verworfen: Die Figur war 8,4 % breiter als der Master, verändert waren auch Rumpf (47.558 px) und Beine (40.382 px), während das eigentliche Nicken nur 19 px maß (Nasenspiegel y=462 → 481). Stattdessen mit scripts/zustand_kopfsenken.py gerechnet — dasselbe Verfahren wie beim Pferd. Unterhalb y=790 ist das Bild bitgleich zum Master (mittlere Abweichung 0,005/255, maximal 1). Siehe claude/pferd_bildtool_sperre_2026-09-13.md.",
+      "freigabe": "freigegeben durch Christian, 2026-09-13 (65-px-Fassung)",
+      "versatz_pruefen": false
     }
   ],
   "layers": [
@@ -41,10 +56,10 @@
       "from": "S0_standing",
       "to": "S0b_blink",
       "region": [
-        0,
-        0,
-        2048,
-        2048
+        380,
+        270,
+        880,
+        580
       ],
       "threshold": 40,
       "feather": 2.0,
@@ -57,12 +72,12 @@
       "region": [
         0,
         0,
-        2048,
-        2048
+        1254,
+        840
       ],
       "threshold": 35,
       "feather": 2.0,
-      "zweck": "Nicken — würdevolle Zustimmung des Königs"
+      "zweck": "Nicken — gesenkter Kopf als eigene Ebene über dem Grundzustand"
     }
   ],
   "previews": {
@@ -84,7 +99,8 @@
         "02_lider_zu EIN 3 Frames (~120 ms), Intervall 3-6 s, leicht zufällig"
       ],
       "nicken": [
-        "Überblendung S0 -> 03_nicken (180 ms), halten 300 ms, zurück (180 ms)"
+        "Überblendung S0 -> 03_nicken (180 ms), halten 300 ms, zurück (180 ms)",
+        "nicht gleichzeitig mit 02_lider_zu auslösen"
       ]
     }
   },
@@ -99,5 +115,14 @@
   ],
   "known_limits": [
     "Die relative Höhe ist fest eingebacken (gemeinsame 768er-Leinwand), damit an der Aufrufstelle eine einzige size-Angabe genügt — siehe src/lib/questTiere.tsx."
-  ]
+  ],
+  "freigabe": {
+    "stufe": "freigegeben",
+    "durch": "Christian",
+    "datum": "2026-09-13",
+    "umfang": "Grundzustand, S0b_blink (Montage) und S1_nicken (gerechnet) — alle Zustände freigegeben",
+    "beleg": "Grafiken/Figuren/Hirsch/rights.md, Abschnitt E"
+  },
+  "prioritaet": 3,
+  "prioritaet_grund": "Quest-Tier, Saga-Karte — Launch 1.0"
 }

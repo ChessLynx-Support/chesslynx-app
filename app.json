@@ -19,8 +19,7 @@
       "assets/hintergrund/questkulisse_q?.webp",
       "assets/hintergrund/waldkulisse_oben.webp",
       "assets/hintergrund/waldkulisse_unten.webp",
-      "assets/hintergrund/waldkulisse_oben_q1.webp",
-      "assets/hintergrund/waldkulisse_unten_q1.webp",
+      "assets/lottie/*.json",
       "assets/lux/chesslynx_lux_hero.webp",
       "assets/lux/intro/*.mp4",
       "assets/sounds/*.wav",
@@ -33,7 +32,10 @@
     ],
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.chesslynx.app"
+      "bundleIdentifier": "com.chesslynx.app",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.chesslynx.app",
@@ -41,7 +43,11 @@
         "foregroundImage": "./assets/brand/chesslynx_icon_android_foreground.png",
         "backgroundColor": "#F7F1E4"
       },
-      "permissions": [],
+      "permissions": [
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
+      ],
       "blockedPermissions": [
         "android.permission.RECORD_AUDIO",
         "android.permission.MODIFY_AUDIO_SETTINGS",

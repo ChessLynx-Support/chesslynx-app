@@ -80,7 +80,7 @@ import { Funkeln } from "../components/Funkeln";
 import { LuxHeroIcon, LuxAtem, LuxEckIcon, LUX_HERO_ASPECT_RATIO } from "../lib/luxAssets";
 import { useLuxSprechzeile } from "../lib/useLuxSprechzeile";
 import { useUntertitelAktiv } from "../lib/untertitelEinstellung";
-import { sprich } from "../lib/luxStimme";
+import { sprich, sprichtGerade } from "../lib/luxStimme";
 import { LuxSprechblase } from "../components/LuxSprechblase";
 import {
   LeeresBrettMitAllenTieren,
@@ -213,20 +213,58 @@ export function WillkommensSequenz({ navigation }: any) {
     sprich(zeile, onFertig ? { onFertig } : undefined);
   }
 
-  // Wie spreche(), wartet aber zusätzlich auf das ECHTE Sprechende (expo-speechs onDone)
-  // statt sofort weiterzumachen — mit Sicherheitsnetz (`timeoutMs`), falls onDone auf einem
-  // Gerät ausnahmsweise nicht zuverlässig feuert, damit die Sequenz nie unbegrenzt hängen
-  // bleibt. Siehe starteLanden() für die Verwendung.
-  function sprecheUndWarte(zeile: string, timeoutMs = 6000): Promise<void> {
+  // Wie spreche(), wartet aber zusätzlich auf das ECHTE Sprechende statt sofort
+  // weiterzumachen — mit Sicherheitsnetz (`timeoutMs`), damit die Sequenz nie unbegrenzt
+  // hängen bleibt. Siehe starteLanden() für die Verwendung.
+  //
+  // Gerätetest 2026-09-13 (Nutzer: "Die Texte wirken weiterhin abgehackt"): Bisher hing das
+  // Weiterschalten allein an expo-speechs `onDone`. Etliche Android-TTS-Engines melden das
+  // aber VIEL zu früh (siehe ausführlich in lib/luxStimme.ts bei `sprichtGerade`), und weil
+  // der jeweils nächste `sprich()`-Aufruf mit `Speech.stop()` beginnt, schnitt das
+  // verfrühte Weiterschalten den laufenden Satz mitten im Wort ab — genau der hörbare
+  // Effekt. Jetzt wird stattdessen die Engine selbst gefragt: Fertig ist eine Zeile, wenn
+  // die Engine erst "spricht" und danach "spricht nicht mehr" gemeldet hat. `onDone` zählt
+  // nur noch als Hinweis für den Fall, dass eine Plattform gar keine Auskunft gibt (etwa
+  // manche Web-Umgebungen) — dort bleibt es beim bisherigen Verhalten.
+  //
+  // Bewusst dieselbe Logik wie in lib/useLuxSprechzeile.ts, aber nicht geteilt: Dieser
+  // Screen steuert seine Sprechkette manuell (siehe Datei-Kopfkommentar), der Hook dagegen
+  // pro Zeilenschlüssel mit eigener Generationszählung. Eine gemeinsame Abstraktion müsste
+  // beides abdecken und wäre schwerer zu lesen als diese knappe Fassung.
+  const PRUEF_TAKT_MS = 200;
+  const START_GEDULD_MS = 3000;
+  function sprecheUndWarte(zeile: string, timeoutMs = 8000): Promise<void> {
     return new Promise<void>((resolve) => {
       let erledigt = false;
+      let hatGesprochen = false;
+      let onDoneGemeldet = false;
+      const start = Date.now();
       const fertig = () => {
         if (erledigt) return;
         erledigt = true;
+        clearInterval(takt);
+        clearTimeout(netz);
         resolve();
       };
-      spreche(zeile, fertig);
-      setTimeout(fertig, timeoutMs);
+      const netz = setTimeout(fertig, timeoutMs);
+      const takt = setInterval(() => {
+        if (erledigt) return;
+        sprichtGerade().then((spricht) => {
+          if (erledigt) return;
+          if (spricht) {
+            hatGesprochen = true;
+            return;
+          }
+          // Engine hat gesprochen und ist jetzt still — das ist das echte Ende.
+          if (hatGesprochen) return fertig();
+          // Engine meldet gar nichts: Erst nach der Geduldsfrist (die Stimme braucht beim
+          // ersten Satz spürbar Anlauf) auf `onDone` zurückfallen.
+          if (onDoneGemeldet && Date.now() - start >= START_GEDULD_MS) fertig();
+        });
+      }, PRUEF_TAKT_MS);
+      spreche(zeile, () => {
+        onDoneGemeldet = true;
+      });
     });
   }
 
@@ -453,7 +491,24 @@ export function WillkommensSequenz({ navigation }: any) {
                   eigenen, bereits `collapsable={false}` gesicherten Vollflächen-Wrapper
                   mit (siehe dortige Datei), die zusätzliche Hülle hier war überflüssig und
                   ist ersatzlos entfernt. */}
-              <WaldHintergrund variante={1} baender />
+              {/* Gerätetest 2026-09-13 (Nutzer: "alter Hintergrund in Szene 0"): stand hier
+                  bis dahin als `baender`-Fassung, die als einzige Aufrufstelle der App noch
+                  `waldkulisse_oben_q1/unten_q1.webp` zog — zwei Bänder, geschnitten aus dem
+                  ALTEN, helleren Karten-Master, während die Quests seit demselben Tag die
+                  neu aus `luchsrevier_wisentfeste.webp` erzeugten `questkulisse_q*.webp`
+                  zeigen. Ergebnis: die Begrüßungsszene fiel sichtbar aus der Reihe (helle
+                  Brücke, breiter Fluss, anderer Farbraum).
+                  Behoben ohne neue Assets, indem hier dieselbe Vollflächen-Kulisse wie in
+                  Quest 1 verwendet wird (`baender` entfällt): Die Willkommenssequenz führt
+                  ohnehin unmittelbar auf Quest 1 hin, der Übergang dorthin wird dadurch
+                  nahtlos statt zu einem Stilbruch. Die Band-Geometrie hatte hier keinen
+                  eigenen Zweck — sie stammt aus der Zeit, als die Kulissen nur als
+                  querformatige Ausschnitte vorlagen und ein Hochkant-Bildschirm aus zwei
+                  überlappenden Bändern gefüllt werden musste; `questkulisse_q1.webp` ist
+                  bereits hochkant (1024x2150) genau dafür erzeugt. Die Flugziele von Beat 4
+                  (VERSTECK_ZIEL_FX/FY) sind reine Bildschirmanteile und damit vom
+                  Hintergrundbild unabhängig. */}
+              <WaldHintergrund variante={1} />
 
               {phase === "begruessung" && (
                 <View style={styles.begruessungWrap} collapsable={false}>

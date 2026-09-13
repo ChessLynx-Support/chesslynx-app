@@ -102,25 +102,31 @@ const KULISSE_JE_QUEST: Record<number, ReturnType<typeof require>> = {
   6: require("../../assets/hintergrund/questkulisse_q6.webp"),
 };
 
-// Die Willkommens-Sequenz behält ihre vom Nutzer abgenommene Wald-Szene mit den beiden
-// Quest-1-Bändern (die Tiere fliegen dort gezielt in die Waldränder oben/unten) — daher
-// `baender`. Nur dafür bleiben die zwei Quest-1-Band-Dateien eingebunden.
-const OBEN_Q1 = require("../../assets/hintergrund/waldkulisse_oben_q1.webp");
-const UNTEN_Q1 = require("../../assets/hintergrund/waldkulisse_unten_q1.webp");
+// Gerätetest 2026-09-13 (Nutzer: "alter Hintergrund in Szene 0"): Hier standen bis dahin
+// zusätzlich `OBEN_Q1`/`UNTEN_Q1` und ein `baender`-Prop, das ausschließlich die
+// Willkommens-Sequenz benutzte. Beides ist ersatzlos entfallen — die Sequenz zeigt jetzt
+// dieselbe Vollflächen-Kulisse wie Quest 1 (Begründung ausführlich dort, im JSX-Kommentar
+// über `<WaldHintergrund variante={1} />`). Damit gibt es nur noch zwei Fälle:
+//   - mit `variante`: die hochkant erzeugte Quest-Kulisse aus KULISSE_JE_QUEST (neuer Master)
+//   - ohne `variante`: die beiden Standard-Bänder unten (Bonuskapitel, Schlossvorplatz)
+// OFFENER PUNKT: `waldkulisse_oben/unten.webp` (der Fall ohne `variante`) stammen weiterhin
+// aus dem alten, helleren Karten-Master — dieselbe Stilabweichung, die in Szene 0 aufgefallen
+// ist, wartet also noch in den sechs Bonuskapiteln und auf dem Schlossvorplatz. Sobald dafür
+// eine hochkante Kulisse aus `luchsrevier_wisentfeste.webp` erzeugt ist, kann auch dieser
+// Zweig auf ein einzelnes Vollflächenbild umgestellt und der Band-Code ganz entfallen.
 
 export function WaldHintergrund({
   variante,
-  baender = false,
-}: { variante?: 1 | 2 | 3 | 4 | 5 | 6; baender?: boolean } = {}) {
-  if (variante && !baender) {
+}: { variante?: 1 | 2 | 3 | 4 | 5 | 6 } = {}) {
+  if (variante) {
     return (
       <View style={styles.wrap} collapsable={false} pointerEvents="none">
         <Image source={KULISSE_JE_QUEST[variante]} style={styles.ganz} resizeMode="cover" />
       </View>
     );
   }
-  const oben = baender && variante === 1 ? OBEN_Q1 : obenStandard;
-  const unten = baender && variante === 1 ? UNTEN_Q1 : untenStandard;
+  const oben = obenStandard;
+  const unten = untenStandard;
   return (
     // Bugfix, fünfte Iteration (Nutzer-Feedback 2026-09-08, nach der vierten Iteration:
     // "jetzt heller Bereich unten, kein vollständiger Hintergrund" — die vierte Iteration

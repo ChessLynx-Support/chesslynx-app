@@ -85,11 +85,12 @@ import {
   View,
   type LayoutChangeEvent,
 } from "react-native";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useIsFocused } from "@react-navigation/native";
 import Svg, { Circle, Defs, G, Image as SvgBild, LinearGradient, Mask, Path, RadialGradient, Rect, Stop } from "react-native-svg";
 import { loadBonusFortschrittLocal, loadQuestFortschrittLocal } from "../lib/storage";
 import { pruefeSchlosstorStatus } from "../lib/gate";
 import { SCHILDKROETE_ASPEKT, SCHILDKROETE_BILD } from "../lib/schildkroete";
+import { AmbientLoop } from "./AmbientLoop";
 
 const hintergrund = require("../../assets/hintergrund/luchsrevier_wisentfeste.webp");
 // Paket 3 (2026-09-11): Oberland-Kartenstück mit der Steinbrücke, siehe Datei-Kopfkommentar.
@@ -210,59 +211,115 @@ export type WegmarkenEintrag = {
   aspekt: number; // Höhe/Breite der Originalgrafik
 };
 
+// Paket 11d (2026-09-13) — vier dezente Umgebungsschleifen (Lottie, siehe AmbientLoop.tsx).
+// Sie sind Hintergrundleben, keine Information: `pointerEvents="none"`, kein Ton, und sie
+// liegen im JSX VOR den Wegmarken und vor dem Nebelband — dadurch legt sich der Nebel auch
+// über sie, statt dass eine Schleife mitten im vernebelten Teil unnatürlich klar blinkt.
+//
+// Die Plätze sind an der Landschaft ausgesucht und gegen die Wegmarken geprüft (nächste
+// Wegmarke ist das Pferd bei 110/410, gut zwei Kartenbreiten von den Glühwürmchen entfernt):
+// Wald am linken Rand, Baumwipfel rechts neben der Burg, der Fluss unter der oberen
+// Steinbrücke, Blumenwiese links unten. Koordinaten als Anteil von Kartenbreite/-höhe, wie
+// bei den Wegmarken auch.
+//
+// Die versetzten Startverzögerungen sind wichtig: Laufen mehrere Schleifen im Gleichtakt,
+// fällt die Wiederholung sofort als "Maschine" auf.
+const AMBIENT_SCHLEIFEN = [
+  {
+    name: "baum",
+    quelle: require("../../assets/lottie/chesslynx-tree-sway.json"),
+    fx: 0.09,
+    fy: 0.35,
+    groesseFrac: 0.15,
+    verzoegerungMs: 0,
+    tempo: 0.8,
+    deckkraft: 0.75,
+  },
+  {
+    name: "wasser",
+    quelle: require("../../assets/lottie/chesslynx-water-shimmer.json"),
+    fx: 0.62,
+    fy: 0.55,
+    groesseFrac: 0.15,
+    verzoegerungMs: 1300,
+    tempo: 0.9,
+    deckkraft: 0.7,
+  },
+  {
+    name: "vogel",
+    quelle: require("../../assets/lottie/chesslynx-bird-flyaway.json"),
+    fx: 0.85,
+    fy: 0.22,
+    groesseFrac: 0.16,
+    verzoegerungMs: 2600,
+    tempo: 1,
+    deckkraft: 0.8,
+  },
+  {
+    name: "gluehwuermchen",
+    quelle: require("../../assets/lottie/chesslynx-firefly-twinkle.json"),
+    fx: 0.13,
+    fy: 0.8,
+    groesseFrac: 0.14,
+    verzoegerungMs: 3900,
+    tempo: 0.9,
+    deckkraft: 0.65,
+  },
+] as const;
+
 export const WEGMARKEN: WegmarkenEintrag[] = [
   {
     quest: "quest1",
-    bild: require("../../assets/figuren/chesslynx_hedgehog_pawn_light_export_gross.webp"),
+    bild: require("../../assets/figuren/lebendig/chesslynx_igel_lebendig_wegmarke.webp"),
     fx: 150 / REFERENZ_BREITE,
     // 2026-09-13: 16 px tiefer — auf der neuen Karte stand der Igel bei y=590 am Bachufer
     // (gemessene Farbe dort 106/207/201, also Wasser), jetzt mittig auf dem Sandweg.
     fy: 606 / REFERENZ_HOEHE,
-    breiteFrac: 46 / REFERENZ_BREITE,
-    aspekt: 466 / 274,
+    breiteFrac: 45 / REFERENZ_BREITE,
+    aspekt: 397 / 227,
   },
   {
     quest: "quest2",
-    bild: require("../../assets/figuren/chesslynx_bear_rook_light_export_gross.webp"),
+    bild: require("../../assets/figuren/lebendig/chesslynx_baer_lebendig_wegmarke.webp"),
     fx: 255 / REFERENZ_BREITE,
     // 2026-09-13: 14 px höher, damit der Bär mittig auf dem Weg steht statt am unteren Rand.
     fy: 566 / REFERENZ_HOEHE,
     breiteFrac: 50 / REFERENZ_BREITE,
-    aspekt: 656 / 322,
+    aspekt: 547 / 267,
   },
   {
     quest: "quest3",
-    bild: require("../../assets/figuren/chesslynx_owl_bishop_light_export_gross.webp"),
+    bild: require("../../assets/figuren/lebendig/chesslynx_eule_lebendig_wegmarke.webp"),
     // 2026-09-13: 20 px nach links und 25 px tiefer, auf den Weg. Abstand zum Pferd
     // gemessen 19 px — die Silhouetten berühren sich nicht.
     fx: 175 / REFERENZ_BREITE,
     fy: 475 / REFERENZ_HOEHE,
-    breiteFrac: 46 / REFERENZ_BREITE,
-    aspekt: 636 / 272,
+    breiteFrac: 56 / REFERENZ_BREITE,
+    aspekt: 476 / 247,
   },
   {
     quest: "quest4",
-    bild: require("../../assets/figuren/chesslynx_horse_knight_light_export_gross.webp"),
+    bild: require("../../assets/figuren/lebendig/chesslynx_pferd_lebendig_wegmarke.webp"),
     fx: 110 / REFERENZ_BREITE,
     fy: 410 / REFERENZ_HOEHE,
-    breiteFrac: 50 / REFERENZ_BREITE,
-    aspekt: 620 / 315,
+    breiteFrac: 61 / REFERENZ_BREITE,
+    aspekt: 671 / 414,
   },
   {
     quest: "quest5",
-    bild: require("../../assets/figuren/chesslynx_swan_queen_light_export_gross.webp"),
+    bild: require("../../assets/figuren/lebendig/chesslynx_schwan_lebendig_wegmarke.webp"),
     fx: 120 / REFERENZ_BREITE,
     fy: 300 / REFERENZ_HOEHE,
-    breiteFrac: 48 / REFERENZ_BREITE,
-    aspekt: 711 / 328,
+    breiteFrac: 61 / REFERENZ_BREITE,
+    aspekt: 606 / 355,
   },
   {
     quest: "quest6",
-    bild: require("../../assets/figuren/chesslynx_deer_king_light_export_gross.webp"),
+    bild: require("../../assets/figuren/lebendig/chesslynx_hirsch_lebendig_wegmarke.webp"),
     fx: 245 / REFERENZ_BREITE,
     fy: 230 / REFERENZ_HOEHE,
-    breiteFrac: 48 / REFERENZ_BREITE,
-    aspekt: 770 / 372,
+    breiteFrac: 52 / REFERENZ_BREITE,
+    aspekt: 721 / 375,
   },
 ];
 
@@ -391,6 +448,10 @@ export function LuchsRevierKarte({
   onSteinbrueckeWartet,
   breiteVorgabe,
 }: Props) {
+  // Schleifen laufen nur, solange die Karte wirklich vorn ist — vier gleichzeitig laufende
+  // Lottie-Ansichten kosten auf Android sonst auch dann Leistung, wenn ein Quest-Screen
+  // darüber liegt (siehe Android-Speicherverdacht in status_content_produktion.md).
+  const karteSichtbar = useIsFocused();
   const [gemesseneBreite, setBreite] = useState(0);
   const breite = breiteVorgabe && breiteVorgabe > 0 ? breiteVorgabe : gemesseneBreite;
   const [status, setStatus] = useState<Record<QuestId, WegmarkeStatus> | null>(null);
@@ -562,6 +623,22 @@ export function LuchsRevierKarte({
       )}
       {breite > 0 && (
         <ImageBackground source={hintergrund} style={{ width: breite, height: hoehe }} resizeMode="cover">
+          {AMBIENT_SCHLEIFEN.map((s) => {
+            const seite = s.groesseFrac * breite;
+            return (
+              <AmbientLoop
+                key={s.name}
+                quelle={s.quelle}
+                groesse={seite}
+                position={{ left: s.fx * breite - seite / 2, top: s.fy * hoehe - seite / 2 }}
+                verzoegerungMs={s.verzoegerungMs}
+                tempo={s.tempo}
+                deckkraft={s.deckkraft}
+                pausiert={!karteSichtbar}
+              />
+            );
+          })}
+
           <Pressable
             onPress={onSelectSchlossvorplatz}
             accessibilityLabel="Zum Schlossvorplatz"

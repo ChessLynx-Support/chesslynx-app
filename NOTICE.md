@@ -74,6 +74,27 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 ```
 
+## Animationsdarstellung (lottie-react-native)
+
+Die Umgebungsanimationen auf der Luchsrevier-Karte werden von **lottie-react-native**
+dargestellt (Airbnb bzw. die heutige Community-Maintainer-Gruppe).
+
+- **Lizenz:** Apache License, Version 2.0
+- **Lizenztext:** https://www.apache.org/licenses/LICENSE-2.0
+- **Quelle:** https://github.com/lottie-react-native/lottie-react-native
+- **Verwendung:** unverändert als Abhängigkeit eingebunden (`package.json`,
+  `lottie-react-native`), kein Fork, keine Änderung am Bibliothekscode.
+
+**Hinweis zu den Animationsdateien selbst:** Die vier Bodymovin-Dateien unter
+`assets/lottie/` (Baumwiegen, Glühwürmchen, Wasserglanz, Vogelauffliegen) sind
+Eigenerzeugnisse von ChessLynx in den Markenfarben — kein Fremdmaterial, keine
+LottieFiles-Downloads, damit auch keine fremden Lizenzbedingungen.
+
+**Zu beachten (Apache 2.0):** Die Lizenz verlangt, dass Lizenztext und Urheberrechts-
+hinweis bei der Weitergabe mitgeliefert werden, und dass Änderungen am Bibliothekscode
+kenntlich gemacht werden. Beides ist erfüllt: Die Bibliothek wird unverändert verwendet,
+der Hinweis steht hier und in `src/screens/Credits.tsx`.
+
 ## Wo diese Hinweise in der App erscheinen
 
 - **In-App:** `src/screens/Credits.tsx`, erreichbar über einen "Lizenzen"-Link auf dem

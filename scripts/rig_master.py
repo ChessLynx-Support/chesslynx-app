@@ -306,8 +306,16 @@ def rig_bauen(cfg: dict, ktx: Kontext) -> dict:
         abw = mittlere_abweichung(zustaende[ref], zustaende[z["id"]], maske)
         registrierung[z["id"]] = {"gegen": ref, "versatz_px": [dx, dy], "mittlere_abweichung": round(abw, 3)}
         grenze = z.get("max_abweichung", 2.0)
-        status = "ok" if abs(dx) <= 6 and abs(dy) <= 6 and abw <= grenze else "PRÜFEN"
-        ktx.sag(f"  Registrierung {z['id']} gegen {ref}: Versatz {dx},{dy} px, Abweichung {abw:.2f}/255 → {status}")
+        # Bei Zuständen, die geometrisch aus dem Master abgeleitet sind (zustand_kopfsenken.py),
+        # ist der Versatz per Konstruktion null. Die Kreuzkorrelation findet dort trotzdem
+        # gelegentlich ein falsches Maximum, weil der gesenkte Kopf mehrere ähnlich gute
+        # Überlagerungen zulässt. Die Farbabweichung bleibt in diesen Fällen das verlässliche Maß.
+        versatz_pruefen = z.get("versatz_pruefen", True)
+        versatz_ok = (abs(dx) <= 6 and abs(dy) <= 6) if versatz_pruefen else True
+        status = "ok" if versatz_ok and abw <= grenze else "PRÜFEN"
+        zusatz = "" if versatz_pruefen else "  (Versatz nicht bewertet, Zustand ist abgeleitet)"
+        ktx.sag(f"  Registrierung {z['id']} gegen {ref}: Versatz {dx},{dy} px, "
+                f"Abweichung {abw:.2f}/255 → {status}{zusatz}")
 
     # 3) Abgeleitete Ebenen
     ebenen: dict[str, Image.Image] = {}
@@ -697,6 +705,145 @@ def standard_pfade(script: Path) -> tuple[Path, Path]:
     return projekt / "Grafiken", repo
 
 
+# --------------------------------------------------------------------------------------
+# Auftragstexte fürs Bild-Tool
+# --------------------------------------------------------------------------------------
+
+AUFTRAGSDATEI = "auftragstexte_bildtool.md"
+
+
+def auftragstexte(dateien: list[Path], ktx: "Kontext") -> tuple[str, int]:
+    """Copy-&-Paste-Vorlage fürs Bild-Tool: je offenem Zustand ein Block mit dem
+    hochzuladenden Master, dem Auftragstext und dem Ablageort.
+
+    Die Konfigurationsdateien selbst gehören NICHT ins Bild-Tool — sie steuern dieses
+    Skript. Diese Datei ist die einzige Fassung, aus der bestellt wird; sie wird nach
+    jedem build/check automatisch neu geschrieben, damit eine Prompt-Änderung in der
+    Konfiguration niemals unbemerkt liegen bleibt (Festlegung Christian, 2026-09-13).
+
+    Reihenfolge: nach dem Feld `prioritaet` der Konfiguration (kleiner = wichtiger),
+    bei Gleichstand alphabetisch. Fertige Figuren stehen als kurze Liste am Ende, damit
+    oben nur steht, was noch zu tun ist (Festlegung Christian, 2026-09-13).
+    """
+    from datetime import datetime
+
+    geladen = []
+    for f in dateien:
+        cfg = json.loads(f.read_text(encoding="utf-8"))
+        offen = [
+            z for z in cfg["states"]
+            if z.get("geplant") or not (z.get("file") and pfad(ktx, z["file"]).exists())
+        ]
+        fertig = [z for z in cfg["states"] if z not in offen and z.get("file")]
+        geladen.append((cfg.get("prioritaet", 5), cfg.get("display_name", cfg["character"]),
+                        cfg, offen, fertig))
+    geladen.sort(key=lambda e: (e[0], e[1]))
+    mit_offen = [e for e in geladen if e[3]]
+    offen_gesamt = sum(len(e[3]) for e in geladen)
+
+    zeilen = [
+        "# Auftragstexte fürs Bild-Tool",
+        "",
+        f"**Stand: {datetime.now().strftime('%Y-%m-%d %H:%M')} — {offen_gesamt} offene Zustände.** "
+        "Steht oben eine ältere Uhrzeit oder eine andere Zahl, ist es eine veraltete Kopie; "
+        "die gültige Fassung liegt unter `Grafiken\\auftragstexte_bildtool.md`.",
+        "",
+        "Automatisch erzeugt aus `scripts/rig_configs/*.json` durch `scripts/rig_master.py`. "
+        "Nicht von Hand bearbeiten; Änderungen gehören in die Konfiguration.",
+        "",
+        "Je Zustand eine eigene Anfrage. Hochladen: **nur das genannte Vorlagenbild**, sonst nichts.",
+        "Den Textblock unverändert einfügen. Das Ergebnis unter dem angegebenen Namen ablegen.",
+        "",
+        f"## Offen ({offen_gesamt})",
+        "",
+        "Nach Priorität. Fertige Figuren stehen am Ende dieser Datei.",
+        "",
+    ]
+    for prio, name, cfg, offen, _ in mit_offen:
+        ids = ", ".join(f"`{z['id']}`" for z in offen)
+        grund = cfg.get("prioritaet_grund", "")
+        zeilen.append(f"{prio}. **{name}** — {ids}  ")
+        if grund:
+            zeilen.append(f"   *{grund}*  ")
+    zeilen.append("")
+
+    for prio, name, cfg, offen, _ in mit_offen:
+        vorlage = next((z.get("file") for z in cfg["states"] if not z.get("geplant")), "")
+        zeilen += [f"## {name}", ""]
+        for z in offen:
+            quelle = z.get("vorlage") or vorlage
+            ablage = z.get("lieferung_nach") or z["file"]
+            zeilen += [
+                f"### {z['id']} — {z.get('zweck', '')}",
+                "",
+                f"**Hochladen:** `{quelle}`  ",
+                f"**Ergebnis ablegen als:** `{ablage}`",
+                "",
+            ]
+            if z.get("lieferung_nach"):
+                # Die Lieferung ist hier Rohstoff, nicht der fertige Zustand: Ein Skript
+                # setzt sie in den Master ein. Ohne diesen Hinweis legt man sie versehentlich
+                # direkt als Zustandsbild ab.
+                zeilen += [
+                    f"> Rohlieferung. Der fertige Zustand `{z['file']}` entsteht daraus "
+                    "durch das in `produktion` genannte Skript — die Lieferung NICHT direkt "
+                    "als Zustandsbild ablegen.",
+                    "",
+                ]
+            zeilen += [
+                "```",
+                z.get("produktion", "").strip(),
+                "```",
+                "",
+            ]
+            if z.get("produktion_alternativ"):
+                zeilen += [
+                    "**Ausweichfassung** — nur nehmen, wenn der Text oben gesperrt wird:",
+                    "",
+                    "```",
+                    z["produktion_alternativ"].strip(),
+                    "```",
+                    "",
+                ]
+
+    zeilen += ["---", "", "## Erledigt", "",
+               "Nur zum Nachschlagen — hier ist nichts mehr zu bestellen.", ""]
+    for prio, name, cfg, offen, fertig in geladen:
+        if not fertig:
+            continue
+        stand = "fertig" if not offen else f"{len(offen)} offen"
+        zeilen.append(f"**{name}** ({stand})  ")
+        for z in fertig:
+            frei = z.get("freigabe", "")
+            zeilen.append(f"- `{z['id']}` — `{z['file']}`" + (f" · {frei}" if frei else "") + "  ")
+        zeilen.append("")
+    zeilen.append(f"Offen insgesamt: {offen_gesamt} Zustandsbilder.")
+    return "\n".join(zeilen) + "\n", offen_gesamt
+
+
+def auftragstexte_nachziehen(konfig_ordner: Path, ktx: "Kontext") -> None:
+    """Schreibt die Auftragsdatei neu — nach jedem build/check, ohne eigenen Aufruf."""
+    if ktx.dry_run:
+        return
+    dateien = sorted(konfig_ordner.glob("*.json"))
+    if not dateien:
+        return
+    text, offen = auftragstexte(dateien, ktx)
+    ziel = ktx.grafiken / AUFTRAGSDATEI
+    vorher = ziel.read_text(encoding="utf-8") if ziel.exists() else ""
+    if vorher == text:
+        return
+    ziel.write_text(text, encoding="utf-8")
+    ktx.sag(f"  Auftragstexte nachgezogen: {ziel}  ({offen} offen)")
+    # Im Ordner der Chat-Anhänge liegt oft eine ältere Kopie derselben Datei. Sie wird
+    # mitgezogen, damit nicht versehentlich aus einer veralteten Fassung bestellt wird
+    # (passiert am 2026-09-13).
+    zweit = ktx.grafiken.parent / "Claude outputs" / AUFTRAGSDATEI
+    if zweit.parent.is_dir():
+        zweit.write_text(text, encoding="utf-8")
+        ktx.sag(f"  Zweitkopie aktualisiert: {zweit}")
+
+
 def main(argv: list[str] | None = None) -> int:
     g_std, r_std = standard_pfade(Path(__file__))
     p = argparse.ArgumentParser(description="ChessLynx Rig-Master")
@@ -719,62 +866,19 @@ def main(argv: list[str] | None = None) -> int:
         print(f"{ziel}  {bericht}")
         return 0
 
+    # Ein Ordner gilt für jeden Befehl als "alle Konfigurationen darin" — nicht nur für
+    # build-all. Sonst scheitert `check scripts/rig_configs` an einem IsADirectoryError.
     dateien = (
-        sorted(Path(args.ziel).glob("*.json")) if args.befehl == "build-all" else [Path(args.ziel)]
+        sorted(Path(args.ziel).glob("*.json"))
+        if args.befehl == "build-all" or Path(args.ziel).is_dir()
+        else [Path(args.ziel)]
     )
     if args.befehl == "prompts":
-        # Fertige Copy-&-Paste-Vorlage fürs Bild-Tool: je offenem Zustand ein Block mit
-        # dem hochzuladenden Master, dem Auftragstext und dem Ablageort. Die JSON selbst
-        # gehört NICHT ins Bild-Tool — sie ist Konfiguration für dieses Skript.
         dateien = sorted(Path(args.ziel).glob("*.json")) if Path(args.ziel).is_dir() else [Path(args.ziel)]
-        zeilen = [
-            "# Auftragstexte fürs Bild-Tool",
-            "",
-            "Je Zustand eine eigene Anfrage. Hochladen: **nur das genannte Vorlagenbild**, sonst nichts.",
-            "Den Textblock unverändert einfügen. Das Ergebnis unter dem angegebenen Namen ablegen.",
-            "",
-        ]
-        offen_gesamt = 0
-        for f in dateien:
-            cfg = json.loads(f.read_text(encoding="utf-8"))
-            vorlage = next((z.get("file") for z in cfg["states"] if not z.get("geplant")), "")
-            fehlend = [
-                z for z in cfg["states"]
-                if z.get("geplant") or not (z.get("file") and pfad(ktx, z["file"]).exists())
-            ]
-            if not fehlend:
-                continue
-            zeilen += [f"## {cfg.get('display_name', cfg['character'])}", ""]
-            for z in fehlend:
-                offen_gesamt += 1
-                quelle = z.get("vorlage") or vorlage
-                zeilen += [
-                    f"### {z['id']} — {z.get('zweck', '')}",
-                    "",
-                    f"**Hochladen:** `{quelle}`  ",
-                    f"**Ergebnis ablegen als:** `{z['file']}`",
-                    "",
-                    "```",
-                    z.get("produktion", "").strip(),
-                    "```",
-                    "",
-                ]
-                if z.get("produktion_alternativ"):
-                    zeilen += [
-                        "**Ausweichfassung** — nur nehmen, wenn der Text oben gesperrt wird:",
-                        "",
-                        "```",
-                        z["produktion_alternativ"].strip(),
-                        "```",
-                        "",
-                    ]
-        zeilen.append(f"Offen insgesamt: {offen_gesamt} Zustandsbilder.")
-        text = "\n".join(zeilen)
-        if args.out:
-            Path(args.out).write_text(text + "\n", encoding="utf-8")
-            print(f"geschrieben: {args.out}  ({offen_gesamt} Aufträge)")
-        else:
-            print(text)
+        text, offen_gesamt = auftragstexte(dateien, ktx)
+        ziel = Path(args.out) if args.out else ktx.grafiken / AUFTRAGSDATEI
+        ziel.write_text(text, encoding="utf-8")
+        print(f"geschrieben: {ziel}  ({offen_gesamt} Aufträge)")
         return 0
 
     if args.befehl == "todo":
@@ -807,6 +911,11 @@ def main(argv: list[str] | None = None) -> int:
             if not pruefen(cfg, ktx):
                 ktx.sag("  → Eingangsprüfung nicht bestanden, Paket wird trotzdem gebaut (Werte siehe Manifest)")
             rig_bauen(cfg, ktx)
+
+    # Prompt-Änderungen in den Konfigurationen schlagen sofort auf die Auftragsdatei
+    # durch — sonst bestellt man aus einer veralteten Fassung.
+    ordner = Path(args.ziel) if Path(args.ziel).is_dir() else Path(args.ziel).parent
+    auftragstexte_nachziehen(ordner, ktx)
     return 1 if fehler else 0
 
 

@@ -49,6 +49,14 @@ export function Credits({ navigation }: any) {
       </Text>
       <Text style={styles.link}>github.com/jhlywa/chess.js</Text>
 
+      <Text style={styles.sectionTitle}>Animationen</Text>
+      <Text style={styles.body}>
+        Die kleinen Bewegungen auf der Karte werden von der Bibliothek Lottie React Native
+        dargestellt, lizenziert unter der Apache-Lizenz 2.0. Die Animationen selbst stammen
+        von ChessLynx.
+      </Text>
+      <Text style={styles.link}>apache.org/licenses/LICENSE-2.0</Text>
+
       <Text style={styles.footnote}>
         Vollständige Lizenztexte: siehe NOTICE.md im Projekt-Repository.
       </Text>

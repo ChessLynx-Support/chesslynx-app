@@ -40,9 +40,41 @@
 // aufräumt.
 
 import { useEffect, useRef, useState } from "react";
-import { sprich, stoppen } from "./luxStimme";
+import { sprich, sprichtGerade, stoppen } from "./luxStimme";
 
 const ERINNERUNG_MS = 8000;
+
+// Gerätetest 2026-09-13 (Nutzer: "Die automatische Führung beim Turm wirkt abgehackt, die
+// Sätze werden nicht zu Ende gesprochen"): Manche Android-TTS-Engines melden `onDone`
+// verfrüht — teils schon, wenn die Äußerung nur in die Warteschlange gestellt wurde, teils
+// ausgelöst durch das `Speech.stop()`, das `sprich()` unmittelbar davor aufruft. Der Hook
+// hielt die Zeile daraufhin für fertig, schaltete weiter — und der Aufräumschritt des
+// Schlüsselwechsels rief `stoppen()`, was den noch laufenden Satz mitten im Wort abschnitt.
+//
+// ERSTER ANLAUF (verworfen als alleinige Lösung): eine geschätzte Mindest-Sprechdauer pro
+// Zeichen. Nutzer-Rückmeldung nach dem Test: "Die Texte wirken weiterhin abgehackt" — die
+// Schätzung war zu knapp, und sie kann grundsätzlich nicht stimmen, weil die tatsächliche
+// Dauer an Engine, Stimme, Sprechrate und Satzzeichen hängt.
+//
+// JETZIGE LÖSUNG: nicht schätzen, sondern die Engine fragen. `sprichtGerade()`
+// (= `Speech.isSpeakingAsync()`, gekapselt in luxStimme.ts) wird im Takt von
+// PRUEF_INTERVALL_MS abgefragt; als fertig gilt eine Zeile erst, wenn die Engine erst
+// "spricht" und dann "spricht nicht mehr" gemeldet hat. Ein verfrühtes `onDone` kann damit
+// gar nicht mehr weiterschalten.
+const PRUEF_INTERVALL_MS = 200;
+// Wie lange auf das erste "ich spreche jetzt" gewartet wird. Zwischen `Speech.speak()` und
+// dem hörbaren Beginn liegt gerade beim ersten Satz einer Sitzung spürbar Zeit (Engine lädt
+// die Stimme). Meldet die Plattform bis dahin gar nichts (manche Web-Umgebungen können
+// `isSpeakingAsync` nicht beantworten), wird die Abfrage eingestellt und es übernehmen
+// wieder `onDone` + Mindestdauer + Sicherheitsnetz wie zuvor.
+const START_GEDULD_MS = 3000;
+// Nur noch Rückfallebene für den Fall, dass die Engine-Abfrage nichts liefert: Untergrenze
+// für die plausible Sprechdauer, bevor ein `onDone` als echtes Ende gewertet wird. 60 ms pro
+// Zeichen entspricht knapp 17 Zeichen pro Sekunde — langsamer als jede normale Vorlesestimme
+// spricht niemand, schneller bei `rate: 0.95` (siehe STIMME_OPTIONEN in stimmeAuswahl.ts)
+// aber auch nicht. Ein von der Engine bestätigtes Ende umgeht diese Untergrenze bewusst
+// (Parameter `vonEngine` unten) — dort ist nichts mehr zu schätzen.
+const MINDEST_MS_PRO_ZEICHEN = 60;
 // Pause zwischen dem Ende einer Zeile und dem automatischen Weiterschalten (siehe unten).
 const ZEILEN_PAUSE_MS = 600;
 
@@ -65,6 +97,9 @@ export function useLuxSprechzeile(
 
   const erinnerungTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sicherheitsnetz = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Laufende Engine-Abfrage (siehe PRUEF_INTERVALL_MS oben) — in einer Ref, damit sowohl der
+  // nächste Sprechvorgang als auch der Effekt-Cleanup sie zuverlässig beenden.
+  const pruefung = useRef<ReturnType<typeof setInterval> | null>(null);
   const zeileRef = useRef(zeile);
   const onFertigRef = useRef(onFertig);
   const erinnerungAktivRef = useRef(erinnerungAktiv);
@@ -122,6 +157,7 @@ export function useLuxSprechzeile(
     // Zeile als fertig. Kommt das echte Ende früher, verfällt das Netz; kommt es später,
     // wird es über `gemeldet` ignoriert (kein doppeltes Weiter).
     let gemeldet = false;
+    const startZeit = Date.now();
     const erledigt = () => {
       if (eigeneGeneration !== generation.current) return;
       if (onFertigRef.current) {
@@ -142,17 +178,72 @@ export function useLuxSprechzeile(
       }, ERINNERUNG_MS);
     };
     if (sicherheitsnetz.current) clearTimeout(sicherheitsnetz.current);
+    if (pruefung.current) clearInterval(pruefung.current);
     // Eigener Griff je Zeile: ein verspätetes Ende einer ÄLTEREN Zeile darf nur deren eigenes
-    // Netz löschen, nie das der aktuellen.
-    const eigenesNetz = setTimeout(() => zeileFertig(), text.length * 130 + 3000);
+    // Netz bzw. deren eigene Abfrage beenden, nie die der aktuellen.
+    let eigenePruefung: ReturnType<typeof setInterval> | null = null;
+    const eigenesNetz = setTimeout(() => zeileFertig(true), text.length * 130 + 3000);
     sicherheitsnetz.current = eigenesNetz;
-    const zeileFertig = () => {
+
+    // `vonEngine`: Das Ende wurde von der Sprach-Engine selbst bestätigt (Abfrage unten) oder
+    // liegt so weit zurück, dass nichts mehr zu prüfen ist (Sicherheitsnetz). Dann entfällt
+    // die geschätzte Mindestdauer — sie ist nur die Rückfallebene für ein `onDone`, dem nicht
+    // zu trauen ist.
+    const zeileFertig = (vonEngine = false) => {
       if (gemeldet) return;
       gemeldet = true;
       clearTimeout(eigenesNetz);
+      if (eigenePruefung) clearInterval(eigenePruefung);
+      // Verfrühtes `onDone` abfangen (siehe MINDEST_MS_PRO_ZEICHEN): kam die Meldung, bevor
+      // der Text überhaupt gesprochen sein kann, wird der Rest der Mindestdauer abgewartet,
+      // statt sofort weiterzuschalten. Der Timer liegt in derselben Ref wie das
+      // Sicherheitsnetz — beim Schlüsselwechsel oder Unmount räumt der Cleanup ihn mit auf.
+      const verstrichen = Date.now() - startZeit;
+      const mindestens = text.length * MINDEST_MS_PRO_ZEICHEN;
+      if (!vonEngine && verstrichen < mindestens) {
+        sicherheitsnetz.current = setTimeout(() => {
+          if (eigeneGeneration !== generation.current) return;
+          erledigt();
+        }, mindestens - verstrichen);
+        return;
+      }
       erledigt();
     };
-    sprich(text, { onFertig: zeileFertig });
+    // Bewusst als eigener, argumentloser Aufruf: `zeileFertig` hätte sonst das erste
+    // Argument aus expo-speech bekommen und `vonEngine` fälschlich als "bestätigt" gelesen.
+    sprich(text, { onFertig: () => zeileFertig(false) });
+
+    // Engine-Abfrage (siehe PRUEF_INTERVALL_MS oben): Eine Zeile gilt erst dann als
+    // gesprochen, wenn die Engine erst "spricht" und danach "spricht nicht mehr" gemeldet
+    // hat. Solange sie noch spricht, wird nicht weitergeschaltet — und damit auch nichts
+    // abgeschnitten, denn abgeschnitten wird nur durch das `stoppen()` beim Weiterschalten.
+    let hatGesprochen = false;
+    eigenePruefung = setInterval(() => {
+      if (gemeldet || eigeneGeneration !== generation.current) {
+        if (eigenePruefung) clearInterval(eigenePruefung);
+        return;
+      }
+      sprichtGerade().then((spricht) => {
+        // Zwischen Abfrage und Antwort kann eine neue Zeile begonnen haben — dann ist diese
+        // Antwort über eine fremde Äußerung und darf nichts auslösen.
+        if (gemeldet || eigeneGeneration !== generation.current) return;
+        if (spricht) {
+          hatGesprochen = true;
+          return;
+        }
+        if (!hatGesprochen) {
+          // Noch nicht angefangen (Engine lädt die Stimme) — weiter warten, aber nicht ewig:
+          // Nach der Geduldsfrist ist die Auskunft offenbar nicht zu gebrauchen, dann wieder
+          // `onDone` + Mindestdauer + Sicherheitsnetz übernehmen lassen.
+          if (Date.now() - startZeit >= START_GEDULD_MS && eigenePruefung) {
+            clearInterval(eigenePruefung);
+          }
+          return;
+        }
+        zeileFertig(true);
+      });
+    }, PRUEF_INTERVALL_MS);
+    pruefung.current = eigenePruefung;
   };
 
   useEffect(() => {
@@ -165,6 +256,7 @@ export function useLuxSprechzeile(
       stoppen();
       if (erinnerungTimer.current) clearTimeout(erinnerungTimer.current);
       if (sicherheitsnetz.current) clearTimeout(sicherheitsnetz.current);
+      if (pruefung.current) clearInterval(pruefung.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [schluessel]);
