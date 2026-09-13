@@ -36,6 +36,10 @@
     },
     "android": {
       "package": "com.chesslynx.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/brand/chesslynx_icon_android_foreground.png",
+        "backgroundColor": "#F7F1E4"
+      },
       "permissions": [],
       "blockedPermissions": [
         "android.permission.RECORD_AUDIO",
