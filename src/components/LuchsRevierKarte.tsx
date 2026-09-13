@@ -213,7 +213,7 @@ export type WegmarkenEintrag = {
 export const WEGMARKEN: WegmarkenEintrag[] = [
   {
     quest: "quest1",
-    bild: require("../../assets/figuren/chesslynx_hedgehog_pawn_light_export_gross.png"),
+    bild: require("../../assets/figuren/chesslynx_hedgehog_pawn_light_export_gross.webp"),
     fx: 150 / REFERENZ_BREITE,
     // 2026-09-13: 16 px tiefer — auf der neuen Karte stand der Igel bei y=590 am Bachufer
     // (gemessene Farbe dort 106/207/201, also Wasser), jetzt mittig auf dem Sandweg.
@@ -223,7 +223,7 @@ export const WEGMARKEN: WegmarkenEintrag[] = [
   },
   {
     quest: "quest2",
-    bild: require("../../assets/figuren/chesslynx_bear_rook_light_export_gross.png"),
+    bild: require("../../assets/figuren/chesslynx_bear_rook_light_export_gross.webp"),
     fx: 255 / REFERENZ_BREITE,
     // 2026-09-13: 14 px höher, damit der Bär mittig auf dem Weg steht statt am unteren Rand.
     fy: 566 / REFERENZ_HOEHE,
@@ -232,7 +232,7 @@ export const WEGMARKEN: WegmarkenEintrag[] = [
   },
   {
     quest: "quest3",
-    bild: require("../../assets/figuren/chesslynx_owl_bishop_light_export_gross.png"),
+    bild: require("../../assets/figuren/chesslynx_owl_bishop_light_export_gross.webp"),
     // 2026-09-13: 20 px nach links und 25 px tiefer, auf den Weg. Abstand zum Pferd
     // gemessen 19 px — die Silhouetten berühren sich nicht.
     fx: 175 / REFERENZ_BREITE,
@@ -242,7 +242,7 @@ export const WEGMARKEN: WegmarkenEintrag[] = [
   },
   {
     quest: "quest4",
-    bild: require("../../assets/figuren/chesslynx_horse_knight_light_export_gross.png"),
+    bild: require("../../assets/figuren/chesslynx_horse_knight_light_export_gross.webp"),
     fx: 110 / REFERENZ_BREITE,
     fy: 410 / REFERENZ_HOEHE,
     breiteFrac: 50 / REFERENZ_BREITE,
@@ -250,7 +250,7 @@ export const WEGMARKEN: WegmarkenEintrag[] = [
   },
   {
     quest: "quest5",
-    bild: require("../../assets/figuren/chesslynx_swan_queen_light_export_gross.png"),
+    bild: require("../../assets/figuren/chesslynx_swan_queen_light_export_gross.webp"),
     fx: 120 / REFERENZ_BREITE,
     fy: 300 / REFERENZ_HOEHE,
     breiteFrac: 48 / REFERENZ_BREITE,
@@ -258,7 +258,7 @@ export const WEGMARKEN: WegmarkenEintrag[] = [
   },
   {
     quest: "quest6",
-    bild: require("../../assets/figuren/chesslynx_deer_king_light_export_gross.png"),
+    bild: require("../../assets/figuren/chesslynx_deer_king_light_export_gross.webp"),
     fx: 245 / REFERENZ_BREITE,
     fy: 230 / REFERENZ_HOEHE,
     breiteFrac: 48 / REFERENZ_BREITE,

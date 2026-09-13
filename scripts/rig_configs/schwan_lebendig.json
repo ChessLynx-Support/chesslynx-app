@@ -34,11 +34,11 @@
     {
       "id": "S1_fluegel",
       "file": "Figuren/Schwan/Lebendig/Zustaende/schwan_S1_fluegel.png",
-      "geplant": true,
-      "registered_to": "S0_standing",
-      "max_abweichung": 14,
       "zweck": "Flügelheben — Eleganz-Geste der Dame",
-      "produktion": "Male das hochgeladene Bild des ChessLynx-Charakters neu — als Fassung mit gehobenen Flügeln.\n\nBeide Flügel sind vom Körper abgehoben und leicht gespreizt, die Schwungfedern sichtbar — nur so weit, wie es im bisherigen Bildausschnitt Platz hat.\n\nDas neue Bild MUSS sich vom hochgeladenen sichtbar unterscheiden, und zwar genau an dieser Stelle. Ein Bild, das aussieht wie die Vorlage, ist kein gültiges Ergebnis — dann bitte noch einmal, deutlicher.\n\nPROPORTIONEN — hier scheitern solche Bilder meistens:\nBeim Ändern der Pose neigt man dazu, die ganze Figur neu zu zeichnen und sie dabei fülliger zu machen. Genau das soll nicht passieren.\n- Die Figur behält ihre GESAMTHÖHE. Sie steht genauso hoch im Bild wie in der Vorlage, mit demselben Abstand nach oben und unten.\n- Sie wird NICHT breiter und NICHT fülliger: gleiche Körperbreite, gleiche Kopfgröße, gleiche Gesichtsform, gleiche Bauchform. Hals, Kopf, Schnabel, Rumpf und beide Beine behalten Umfang und Lage.\n- Fellfarbe und Helligkeit bleiben exakt wie in der Vorlage — nicht dunkler, nicht satter, nicht kontrastreicher.\n- Glatte Flächen bleiben glatt: Wo die Vorlage gleichmäßiges, weiches Fell oder Gefieder zeigt — Bauch, Brust, Kehle —, kommt KEINE zusätzliche Struktur dazu. Keine Schuppen, keine Wellen, keine gezeichneten Federreihen, keine zusätzlichen Härchen. Die Textur bleibt genau so glatt wie in der Vorlage.\n- Bewegt wird nur die beiden Flügel, und zwar in einer kleinen, nah am Körper geführten Bewegung.\nGegenprobe vor der Ausgabe: Lege dein Ergebnis gedanklich über die Vorlage. Gleiche Höhe, gleiche Breite, gleicher Farbton? Wenn die Figur runder, breiter oder dunkler geworden ist, noch einmal.\n\nGleich bleibt dagegen alles Übrige, so genau wie möglich:\n- Kopfhaltung und Blickrichtung\n- die Augen (Form, Farbe, Pupille, Glanzlicht)\n- Brauen und Wangen\n- Schnabel bzw. Schnauze und Mund\n- Fell- bzw. Federzeichnung\n- Farben, Licht, Schattierung, Detailgrad\n\nFORMAT:\n- PNG mit ECHTEM Alphakanal, Hintergrund tatsächlich transparent. Ein ins Bild gemaltes Karo- oder Schachbrettmuster ist KEIN transparenter Hintergrund und unbrauchbar; eine weiße Fläche ebenso wenig.\n- gleiche Bildgröße wie die Vorlage, quadratisch, nichts angeschnitten\n- kein Boden, keine Kulisse, kein Schlagschatten auf einer Fläche\n- kein Text, keine Zahlen, keine Symbole, kein Wasserzeichen\n\nAls Vorlage dient ausschließlich das hochgeladene Bild, sonst nichts."
+      "produktion": "Male das hochgeladene Bild des ChessLynx-Charakters neu — als Fassung mit gehobenen Flügeln.\n\nBeide Flügel sind vom Körper abgehoben und leicht gespreizt, die Schwungfedern sichtbar — nur so weit, wie es im bisherigen Bildausschnitt Platz hat.\n\nDas neue Bild MUSS sich vom hochgeladenen sichtbar unterscheiden, und zwar genau an dieser Stelle. Ein Bild, das aussieht wie die Vorlage, ist kein gültiges Ergebnis — dann bitte noch einmal, deutlicher.\n\nPROPORTIONEN — hier scheitern solche Bilder meistens:\nBeim Ändern der Pose neigt man dazu, die ganze Figur neu zu zeichnen und sie dabei fülliger zu machen. Genau das soll nicht passieren.\n- Die Figur behält ihre GESAMTHÖHE. Sie steht genauso hoch im Bild wie in der Vorlage, mit demselben Abstand nach oben und unten.\n- Sie wird NICHT breiter und NICHT fülliger: gleiche Körperbreite, gleiche Kopfgröße, gleiche Gesichtsform, gleiche Bauchform. Hals, Kopf, Schnabel, Rumpf und beide Beine behalten Umfang und Lage.\n- Fellfarbe und Helligkeit bleiben exakt wie in der Vorlage — nicht dunkler, nicht satter, nicht kontrastreicher.\n- Glatte Flächen bleiben glatt: Wo die Vorlage gleichmäßiges, weiches Fell oder Gefieder zeigt — Bauch, Brust, Kehle —, kommt KEINE zusätzliche Struktur dazu. Keine Schuppen, keine Wellen, keine gezeichneten Federreihen, keine zusätzlichen Härchen. Die Textur bleibt genau so glatt wie in der Vorlage.\n- Bewegt wird nur die beiden Flügel, und zwar in einer kleinen, nah am Körper geführten Bewegung.\nGegenprobe vor der Ausgabe: Lege dein Ergebnis gedanklich über die Vorlage. Gleiche Höhe, gleiche Breite, gleicher Farbton? Wenn die Figur runder, breiter oder dunkler geworden ist, noch einmal.\n\nGleich bleibt dagegen alles Übrige, so genau wie möglich:\n- Kopfhaltung und Blickrichtung\n- die Augen (Form, Farbe, Pupille, Glanzlicht)\n- Brauen und Wangen\n- Schnabel bzw. Schnauze und Mund\n- Fell- bzw. Federzeichnung\n- Farben, Licht, Schattierung, Detailgrad\n\nFORMAT:\n- PNG mit ECHTEM Alphakanal, Hintergrund tatsächlich transparent. Ein ins Bild gemaltes Karo- oder Schachbrettmuster ist KEIN transparenter Hintergrund und unbrauchbar; eine weiße Fläche ebenso wenig.\n- gleiche Bildgröße wie die Vorlage, quadratisch, nichts angeschnitten\n- kein Boden, keine Kulisse, kein Schlagschatten auf einer Fläche\n- kein Text, keine Zahlen, keine Symbole, kein Wasserzeichen\n\nAls Vorlage dient ausschließlich das hochgeladene Bild, sonst nichts.",
+      "freigabe": "freigegeben durch Christian, 2026-09-13 (ChatGPT-Export 13:34)",
+      "herkunft": "Beauftragt war ein leichtes Lüften der Flügel, geliefert wurde ein volles Flügelspiel: Breite 1.177 statt 686 px, Fläche +66 %, Silhouetten-Überlappung 55,5 %. Bewusst übernommen, weil die HÖHE mit 1.173 gegenüber 1.172 px praktisch identisch ist und der Körper sich exakt deckt — die Abweichung sind ausschließlich die Flügel. Der App-Export normiert auf die Höhe, der Schwan steht also unverändert; nur die Flügel greifen zur Seite aus (357 statt 208 px Zeichnungsbreite auf der 450er Leinwand). Zum Pferd bleiben 110 Referenzpixel.",
+      "verwendung": "Vollbild-Zustand, kein Differenz-Layer."
     }
   ],
   "layers": [
@@ -58,17 +58,10 @@
     },
     {
       "id": "03_fluegel",
-      "from": "S0_standing",
-      "to": "S1_fluegel",
-      "region": [
-        0,
-        0,
-        2048,
-        2048
-      ],
-      "threshold": 35,
-      "feather": 2.0,
-      "zweck": "Flügelheben — Eleganz-Geste der Dame"
+      "type": "state",
+      "state": "S1_fluegel",
+      "align_to": "S1_fluegel",
+      "zweck": "Flügelheben als vollständiger Zustand — die Flügel verlassen die Silhouette, eine Differenzmaske wäre sinnlos"
     }
   ],
   "previews": {
@@ -80,7 +73,6 @@
       "02_lider_zu"
     ],
     "preview_fluegel": [
-      "S0_standing",
       "03_fluegel"
     ]
   },
@@ -90,7 +82,9 @@
         "02_lider_zu EIN 3 Frames (~120 ms), Intervall 3-6 s, leicht zufällig"
       ],
       "fluegel": [
-        "03_fluegel einblenden (240 ms), halten 500 ms, ausblenden (240 ms)"
+        "Überblendung S0 -> 03_fluegel in 150-200 ms",
+        "halten 700 ms, zurück in 150 ms",
+        "Nur als kurze Geste — eine große Bewegung, die als Dauerzustand zu viel wäre"
       ]
     }
   },
@@ -104,13 +98,14 @@
     }
   ],
   "known_limits": [
-    "Die relative Höhe ist fest eingebacken (gemeinsame 768er-Leinwand), damit an der Aufrufstelle eine einzige size-Angabe genügt — siehe src/lib/questTiere.tsx."
+    "Die relative Höhe ist fest eingebacken (gemeinsame 768er-Leinwand), damit an der Aufrufstelle eine einzige size-Angabe genügt — siehe src/lib/questTiere.tsx.",
+    "S1_fluegel ist ein Vollbild-Zustand mit deutlich breiterer Silhouette (+66 % Fläche). Höhe und Fußpunkt stimmen exakt, die Leinwand fasst die Flügel (357 von 722 nutzbaren px). Deshalb kurze Überblendung statt langsamer Blende."
   ],
   "freigabe": {
-    "stufe": "teilweise freigegeben",
+    "stufe": "APPROVED FOR PRODUCTION",
     "durch": "Christian",
     "datum": "2026-09-13",
-    "umfang": "Grundzustand (lebendige Fassung, 2026-09-11) und S0b_blink (2026-09-13); S1_fluegel offen",
+    "umfang": "Grundzustand (2026-09-11), S0b_blink und S1_fluegel (2026-09-13) — vollständig",
     "beleg": "Grafiken/Figuren/Schwan/rights.md, Abschnitt E"
   }
 }

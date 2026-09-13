@@ -759,6 +759,15 @@ def main(argv: list[str] | None = None) -> int:
                     "```",
                     "",
                 ]
+                if z.get("produktion_alternativ"):
+                    zeilen += [
+                        "**Ausweichfassung** — nur nehmen, wenn der Text oben gesperrt wird:",
+                        "",
+                        "```",
+                        z["produktion_alternativ"].strip(),
+                        "```",
+                        "",
+                    ]
         zeilen.append(f"Offen insgesamt: {offen_gesamt} Zustandsbilder.")
         text = "\n".join(zeilen)
         if args.out:
