@@ -71,7 +71,23 @@ const SCREEN_SCRIPTS: Record<Exclude<ScreenId, 2>, string[]> = {
   // Update (2026-09-10, siehe Quest2.tsx-Kommentar zur selben Änderung): "Hallo! Ich
   // bin's wieder, Lux." ersatzlos gestrichen.
   1: [
-    "Das ist ein Schwan.",
+    // Gerätetest 2026-09-13 (Nutzer: "Der Text wirkt sehr generisch. Wir sollten hier eine
+    // kleine Vorstellung der Figuren spendieren ... 2-3 Haupteigenschaften, die ihn mit der
+    // Figur verbinden, um so die Verwandlung schon einmal einzuleiten."): Aus der einen
+    // Namenszeile sind drei geworden — Name, Wesen, Gangart. Gleichlautend in allen sechs
+    // Quests umgesetzt, ausführliche Begründung in quest1/Quest1.tsx.
+    //
+    // ZWEI REGELN für diese Zeilen:
+    //  1. KEIN FIGURENNAME — "Dame" fällt erst im Verwandlungsmoment unten (Namensregel,
+    //     projektwissen.md). Die Eigenschaften deuten die Figur nur an.
+    //  2. KEINE REGEL ERKLÄREN — die Gangart wird als Bild angedeutet, nicht beigebracht;
+    //     das ist Aufgabe der Brett-Screens. Sonst steht dieselbe Information zweimal.
+    //
+    // Ohne Code-Änderung: `autoWeiter` blättert die neuen Zeilen nach dem Sprechende von
+    // selbst weiter, `isLastLine` hält die Tipp-Aufforderung als einzige tap-gesteuerte Zeile.
+    "Das ist der Schwan.",
+    "Er ist elegant und sehr stolz.",
+    "Er kommt überall hin: geradeaus, schräg, in jede Richtung.",
     // Update (2026-09-08, Task #109, siehe claude/vorgemerkt_quest_tempo_und_
     // automatikvorfuehrung.md Punkt 3): löst "Tipp irgendwo hin, um weiterzumachen" ab —
     // fordert jetzt konkret dazu auf, GENAU den (jetzt sichtbar pulsierenden) Schwan

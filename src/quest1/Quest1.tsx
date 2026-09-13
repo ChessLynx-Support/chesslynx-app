@@ -110,7 +110,27 @@ const SCREEN_SCRIPTS: Record<Exclude<ScreenId, 2>, string[]> = {
     // Screen unmittelbar vorausgeht (bei jedem App-Start, nicht mehr nur einmalig hier) —
     // eine erneute Begrüßung wäre weiterhin überflüssig, siehe dortiger Datei-Kopfkommentar
     // zur Doppler-Vermeidung.
-    "Das ist ein kleiner Igel.",
+    // Gerätetest 2026-09-13 (Nutzer: "Der Text wirkt sehr generisch. Wir sollten hier eine
+    // kleine Vorstellung der Figuren spendieren ... 2-3 Haupteigenschaften, die er mit dem
+    // Bauern verbindet, um so die Verwandlung schon einmal einzuleiten."): Aus der einen
+    // Namenszeile sind drei geworden — Name, Wesen, Gangart.
+    //
+    // ZWEI REGELN für diese Zeilen (gelten gleichlautend in allen sechs Quests):
+    //  1. KEIN FIGURENNAME. "Bauer" fällt erst im Verwandlungsmoment unten (Namensregel,
+    //     projektwissen.md). Die Eigenschaften deuten die Figur an und lösen damit genau die
+    //     Erwartung aus, die die Verwandlungszeile eine Sekunde später einlöst.
+    //  2. KEINE REGEL ERKLÄREN. "Kleine Schritte nach vorn, nie zurück" ist ein Bild, keine
+    //     Zugregel — die kommt auf den Brett-Screens. Sonst steht dieselbe Information
+    //     zweimal in der Quest.
+    // "nie zurück" ist beim Igel bewusst gesetzt: der spätere Aufhänger für die
+    // Bauernumwandlung.
+    //
+    // Die zwei neuen Zeilen brauchen keine Code-Änderung: `autoWeiter` gilt für Screen 1,
+    // sie blättern also nach dem Sprechende von selbst weiter, und `isLastLine` hält die
+    // Tipp-Aufforderung unten weiterhin als einzige tap-gesteuerte Zeile fest.
+    "Das ist der Igel.",
+    "Er ist der Kleinste hier im Wald. Und der Mutigste.",
+    "Er macht immer nur kleine Schritte nach vorn, nie zurück.",
     // Bugfix (Nutzer-Feedback 2026-09-08, "ergibt keinen Sinn"): "Tipp irgendwo hin" war
     // unnötig vage für ein Kind, das gerade erst lernt, wie diese Tipp-Interaktion
     // überhaupt funktioniert — die Zeile sagte nicht, WAS als Nächstes passiert. Erst durch
