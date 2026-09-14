@@ -76,8 +76,6 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  Animated,
-  Easing,
   Image,
   ImageBackground,
   Pressable,
@@ -96,6 +94,9 @@ import { AmbientLoop } from "./AmbientLoop";
 const hintergrund = require("../../assets/hintergrund/luchsrevier_wisentfeste.webp");
 // Paket 3 (2026-09-11): Oberland-Kartenstück mit der Steinbrücke, siehe Datei-Kopfkommentar.
 const oberland = require("../../assets/hintergrund/luchsrevier_oberland.webp");
+// Dieselbe Schleife wie in AMBIENT_SCHLEIFEN weiter unten — hier zusätzlich als Markierung
+// der nächsten Wegmarke (siehe Kommentar in `Wegmarke`).
+const gluehwuermchen = require("../../assets/lottie/chesslynx-firefly-twinkle.json");
 // Seitenverhältnis Höhe/Breite des Oberland-Stücks (1658×519px) — gleiche Breite wie die
 // bisherige Karte, deshalb schließen beide bei jeder Bildschirmbreite nahtlos aneinander an.
 export const OBERLAND_ASPECT = 519 / 1658;
@@ -190,13 +191,18 @@ const SAGE = "#8FA888";
 // Datei-Kopfkommentar, Abschnitt "Zustände je Wegmarke".
 const GESPERRT_OPACITY = 0.55;
 
-// Zentrumsfarben der weichen "Lichtungen", die die Nebelmaske (siehe baueNebelKlarungen unten)
-// in das Höhenband schneidet — als Grauwert interpretiert (0 = komplett schwarz = Nebel an
-// dieser Stelle vollständig unsichtbar, 255 = komplett weiß = Nebel bleibt in voller
-// Bandstärke sichtbar). Ein RadialGradient blendet von diesem Zentrum weich nach Weiß aus.
-const NEBEL_KLARUNG_VOLL = "#000000"; // erledigte Wegmarke: komplett frei
-const NEBEL_KLARUNG_NAECHSTES = "#8A8A8A"; // als nächstes dran: nur angelichtet ("schwache Aufhellung")
-const NEBEL_KLARUNG_BURGTOR = "#CFCFCF"; // Burgtor: dauerhaft nur leicht gelichtet, unabhängig vom
+// Zielwerte der weichen "Lichtungen", die die Nebelmaske (siehe baueNebelKlarungen unten) in
+// das Höhenband schneidet: die NEBELDICHTE im Zentrum der Lichtung, 0 = an dieser Stelle
+// bleibt kein Nebel, 1 = voller Nebel. Ein RadialGradient blendet von diesem Zentrum weich
+// zur Umgebung aus.
+//
+// Update 2026-09-14: Bis hierher waren das Graustufen-FARBEN, und der Verlauf endete außen
+// immer bei Weiß. Warum das nicht stimmte, steht bei `klarungsFarben()` weiter unten — eine
+// Lichtung muss gegen ihre Umgebung gerechnet werden, sonst legt sie dort, wo ohnehin kein
+// Nebel liegt, welchen dazu. Genau das war die helle Scheibe um die nächste Wegmarke.
+const NEBEL_KLARUNG_VOLL = 0; // erledigte Wegmarke: komplett frei
+const NEBEL_KLARUNG_NAECHSTES = 0.54; // als nächstes dran: nur angelichtet ("schwache Aufhellung")
+const NEBEL_KLARUNG_BURGTOR = 0.81; // Burgtor: dauerhaft nur leicht gelichtet, unabhängig vom
 // Fortschritt — siehe projektwissen_verlauf.md ("das Schloss trägt einen dauerhaften, bewusst
 // lückenhaften Wolken-/Nebelschleier … sodass es hindurchschimmert statt verdeckt zu sein").
 
@@ -325,7 +331,7 @@ export const WEGMARKEN: WegmarkenEintrag[] = [
 // width:54px; height:54px }`, hier auf Mittelpunkt umgerechnet: 236+27, 52+27).
 const BURGTOR = { fx: 263 / REFERENZ_BREITE, fy: 79 / REFERENZ_HOEHE, durchmesserFrac: 54 / REFERENZ_BREITE };
 
-type Klarung = { cx: number; cy: number; r: number; zentrum: string };
+type Klarung = { cx: number; cy: number; r: number; zentrum: number };
 
 // Baut die Liste weicher "Lichtungen", die die Nebelmaske in das Höhenband schneidet — analog
 // zur `fortschritt-fog-mask` im alten SVG-Design-Canvas (siehe Datei-Kopfkommentar): volle
@@ -361,6 +367,48 @@ function baueNebelVerlauf(
   });
   stufen.reverse();
   return [{ offset: 0, wert: 1 }, ...stufen, { offset: 1, wert: 0 }];
+}
+
+/** Nebeldichte des senkrechten Verlaufs an einer Stelle (0 = oben, 1 = unten). */
+function nebelWertBei(verlauf: { offset: number; wert: number }[], offset: number): number {
+  if (verlauf.length === 0) return 0;
+  const o = Math.max(0, Math.min(1, offset));
+  for (let i = 1; i < verlauf.length; i++) {
+    const a = verlauf[i - 1];
+    const b = verlauf[i];
+    if (o <= b.offset) {
+      const spanne = b.offset - a.offset;
+      const t = spanne <= 0 ? 0 : (o - a.offset) / spanne;
+      return a.wert + (b.wert - a.wert) * t;
+    }
+  }
+  return verlauf[verlauf.length - 1].wert;
+}
+
+/**
+ * Die beiden Stopp-Farben einer Lichtung: innen und außen.
+ *
+ * Gerätetest 2026-09-14 (Nutzer: "Der weiße Kreis und der Ring wirken nicht gut … wird
+ * aufgrund des Nebels, der grüßenden Geste etc nicht benötigt"). Um die nächste Wegmarke
+ * lag eine helle Scheibe mit erkennbarem Rand. Ursache: Die Lichtungen wurden als Kreise
+ * ÜBER den senkrechten Verlauf in die Maske gemalt und haben ihn dabei ersetzt, nicht
+ * abgeschwächt — außen immer mit Weiß, also mit vollem Nebel. Am unteren Kartenrand, wo der
+ * Verlauf ohnehin bei 0 steht ("praktisch klar am Lichtungs-Eingang"), hat die Lichtung dort
+ * also Nebel HINZUGEFÜGT statt weggenommen, und ihr weißer Rand am meisten.
+ *
+ * Jetzt wird gegen die Umgebung gerechnet: außen genau der Wert, der dort ohnehin gilt —
+ * damit ist der Rand unsichtbar —, innen das Minimum aus Zielwert und Umgebung. Eine
+ * Lichtung kann dadurch nur noch Nebel wegnehmen, nie welchen dazulegen. Wo kein Nebel
+ * liegt, ist sie unsichtbar; wo dichter Nebel liegt, wirkt sie wie zuvor.
+ */
+function klarungsFarben(
+  k: Klarung,
+  verlauf: { offset: number; wert: number }[],
+  gesamtHoehe: number,
+  yVersatz: number
+): [string, string] {
+  const aussen = nebelWertBei(verlauf, (yVersatz + k.cy) / gesamtHoehe);
+  return [grauwert(Math.min(k.zentrum, aussen)), grauwert(aussen)];
 }
 
 function baueNebelKlarungen(
@@ -575,8 +623,7 @@ export function LuchsRevierKarte({
             hoehe={turtleBreite * SCHILDKROETE_ASPEKT}
             zustand={steinbruecke}
             onPress={steinbruecke === "gesperrt" ? undefined : onSelectSteinbruecke}
-            ringMitteY={0.62}
-            ringFaktor={2.1}
+            pausiert={!karteSichtbar}
           />
           {/* Nebel wie auf der Karte darunter, aber vertikal gespiegelt: so trifft die
               Unterkante dieses Stücks genau auf dieselbe Nebelzeile (Oberkante des
@@ -596,12 +643,17 @@ export function LuchsRevierKarte({
             pointerEvents="none"
           >
             <Defs>
-              {oberlandKlarungen.map((k, i) => (
-                <RadialGradient key={i} id={`oberlandKlarung-${i}`} cx="50%" cy="50%" r="50%">
-                  <Stop offset="0%" stopColor={k.zentrum} stopOpacity={1} />
-                  <Stop offset="100%" stopColor="#FFFFFF" stopOpacity={1} />
-                </RadialGradient>
-              ))}
+              {oberlandKlarungen.map((k, i) => {
+                // Die Lichtungen des Oberlands liegen bereits in Gesamtkoordinaten (y=0 ist
+                // der obere Rand des Oberlands), deshalb kein Versatz.
+                const [innen, aussen] = klarungsFarben(k, nebelVerlauf, nebelGesamtHoehe, 0);
+                return (
+                  <RadialGradient key={i} id={`oberlandKlarung-${i}`} cx="50%" cy="50%" r="50%">
+                    <Stop offset="0%" stopColor={innen} stopOpacity={1} />
+                    <Stop offset="100%" stopColor={aussen} stopOpacity={1} />
+                  </RadialGradient>
+                );
+              })}
               {/* Senkrechter Dichteverlauf in Koordinaten der GESAMTEN Karte (Oberland +
                   Karte), damit beide Hälften dieselbe Kurve sehen und an der Naht nichts
                   springt. Siehe baueNebelVerlauf. */}
@@ -685,6 +737,7 @@ export function LuchsRevierKarte({
                 // nächste grüßt); die Schildkröte weiter oben ist weiterhin ein Standbild.
                 tier={w.quest}
                 gruesst={zustand === "naechstes"}
+                pausiert={!karteSichtbar}
                 left={w.fx * breite}
                 top={w.fy * hoehe}
                 breite={bildBreite}
@@ -707,12 +760,17 @@ export function LuchsRevierKarte({
             pointerEvents="none"
           >
             <Defs>
-              {nebelKlarungen.map((k, i) => (
-                <RadialGradient key={i} id={`nebelKlarung-${i}`} cx="50%" cy="50%" r="50%">
-                  <Stop offset="0%" stopColor={k.zentrum} stopOpacity={1} />
-                  <Stop offset="100%" stopColor="#FFFFFF" stopOpacity={1} />
-                </RadialGradient>
-              ))}
+              {nebelKlarungen.map((k, i) => {
+                // Die Lichtungen der Karte werden in Kartenkoordinaten gebaut — für den
+                // senkrechten Verlauf zählt die Gesamthöhe, also um die Oberlandhöhe versetzt.
+                const [innen, aussen] = klarungsFarben(k, nebelVerlauf, nebelGesamtHoehe, oberlandHoehe);
+                return (
+                  <RadialGradient key={i} id={`nebelKlarung-${i}`} cx="50%" cy="50%" r="50%">
+                    <Stop offset="0%" stopColor={innen} stopOpacity={1} />
+                    <Stop offset="100%" stopColor={aussen} stopOpacity={1} />
+                  </RadialGradient>
+                );
+              })}
               {/* Derselbe Verlauf wie im Oberland, nur um die Oberlandhöhe nach oben
                   versetzt, weil dieses SVG bei y=0 erst unterhalb davon beginnt. */}
               <LinearGradient
@@ -760,8 +818,7 @@ function Wegmarke({
   hoehe,
   zustand,
   onPress,
-  ringMitteY,
-  ringFaktor = 1.55,
+  pausiert = false,
 }: {
   /** Standbild — für Wegmarken ohne Zustandsfamilie (Schildkröte). */
   bild?: ReturnType<typeof require>;
@@ -769,22 +826,27 @@ function Wegmarke({
   tier?: QuestId;
   /** Nur für `tier`: Das Tier, das als nächstes dran ist, grüßt in ruhigen Abständen. */
   gruesst?: boolean;
+  /** Glühwürmchen anhalten, solange die Karte nicht sichtbar ist. */
+  pausiert?: boolean;
   left: number;
   top: number;
   breite: number;
   hoehe: number;
   zustand: WegmarkeStatus;
   onPress?: () => void;
-  // Gerätetest 2026-09-11 ("goldener Ring wirkt etwas verschoben" bei der Schildkröte):
-  // Mittelpunkt des Puls-Rings als Anteil der Bildhöhe (Standard 1 = am Fußpunkt, wie bei den
-  // Quest-Tieren). Die hohe, schmale Schildkröte bekommt den Ring um den Körper statt um die
-  // Füße, sonst sitzt er optisch zu tief.
-  ringMitteY?: number;
-  ringFaktor?: number;
 }) {
-  const puls = usePulsAnimation(zustand === "naechstes");
-  const ringGroesse = breite * ringFaktor;
-  const ringY = hoehe * (ringMitteY ?? 1);
+  // Update 2026-09-14 (Nutzer: "aufgrund des Nebels, der grüßenden Geste etc wird der Ring
+  // und die Scheibe nicht benötigt … einzige Alternative wäre ein sehr dezentes Leuchten,
+  // vielleicht in der Art wie Glühwürmchen"): Der goldene Puls-Ring ist entfallen. Er war
+  // ein exakter Kreis mit 3 px Kontur — die Formensprache eines Bedienelements, am unteren
+  // Kartenrand zudem angeschnitten, sodass er als Bogen erschien.
+  //
+  // An seiner Stelle ziehen Glühwürmchen um die nächste Wegmarke. Es ist dieselbe
+  // Lottie-Schleife, die schon als Umgebungsleben auf der Karte liegt (AMBIENT_SCHLEIFEN
+  // oben) — kein neues Asset, keine neue Formensprache, und sie sagt dasselbe: hier ist
+  // etwas los. Zusammen mit der Lichtung im Nebel und der grüßenden Geste des Tieres reicht
+  // das dreifach.
+  const gluehwuermchenGroesse = breite * 1.7;
 
   return (
     <Pressable
@@ -794,20 +856,19 @@ function Wegmarke({
       style={[styles.wegmarke, { left: left - breite / 2, top: top - hoehe, width: breite, height: hoehe }]}
     >
       {zustand === "naechstes" && (
-        <Animated.View
-          pointerEvents="none"
-          style={[
-            styles.pulsRing,
-            {
-              width: ringGroesse,
-              height: ringGroesse,
-              borderRadius: ringGroesse / 2,
-              left: breite / 2 - ringGroesse / 2,
-              top: ringY - ringGroesse / 2,
-              opacity: puls.opacity,
-              transform: [{ scale: puls.scale }],
-            },
-          ]}
+        <AmbientLoop
+          quelle={gluehwuermchen}
+          groesse={gluehwuermchenGroesse}
+          position={{
+            left: breite / 2 - gluehwuermchenGroesse / 2,
+            // Auf Höhe des Körpers, nicht der Füße: Dort fallen die Lichtpunkte gegen die
+            // Silhouette auf, unten würden sie im Schatten und im Weg untergehen.
+            top: hoehe * 0.45 - gluehwuermchenGroesse / 2,
+          }}
+          verzoegerungMs={0}
+          tempo={0.85}
+          deckkraft={0.9}
+          pausiert={pausiert}
         />
       )}
       <View
@@ -853,38 +914,11 @@ function Wegmarke({
   );
 }
 
-// Sanftes, endlos wiederholtes Pulsieren (Skalierung + Deckkraft) für den Gold-Ring der
-// "als nächstes dran"-Wegmarke — bewusst core `Animated` statt reanimated, gleiche
-// Stilkonsistenz-Begründung wie in FortschrittsRing.tsx/Funkeln.tsx.
-function usePulsAnimation(aktiv: boolean) {
-  const wert = useRef(new Animated.Value(0)).current;
-  const schleifeRef = useRef<Animated.CompositeAnimation | null>(null);
-
-  useEffect(() => {
-    if (aktiv) {
-      wert.setValue(0);
-      schleifeRef.current = Animated.loop(
-        Animated.timing(wert, { toValue: 1, duration: 1400, easing: Easing.inOut(Easing.ease), useNativeDriver: true })
-      );
-      schleifeRef.current.start();
-    } else {
-      schleifeRef.current?.stop();
-      wert.setValue(0);
-    }
-    return () => schleifeRef.current?.stop();
-  }, [aktiv]);
-
-  return {
-    scale: wert.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1.15] }),
-    opacity: wert.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0.55, 0.22, 0.55] }),
-  };
-}
 
 const styles = StyleSheet.create({
   wrap: { width: "100%" },
   burgtor: { position: "absolute", borderWidth: 2.5, borderColor: GOLD, borderStyle: "dashed" },
   wegmarke: { position: "absolute", alignItems: "center", justifyContent: "flex-end" },
-  pulsRing: { position: "absolute", borderWidth: 3, borderColor: GOLD, backgroundColor: "transparent" },
   schatten: {
     position: "absolute",
     borderRadius: 999,

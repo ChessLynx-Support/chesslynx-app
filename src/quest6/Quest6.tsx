@@ -163,7 +163,7 @@ const SCREEN_SCRIPTS: Record<Exclude<ScreenId, 2 | 5>, string[]> = {
     // Ohne Code-Änderung: `autoWeiter` blättert die neuen Zeilen nach dem Sprechende von
     // selbst weiter, `isLastLine` hält die Tipp-Aufforderung als einzige tap-gesteuerte Zeile.
     "Das ist der Hirsch.",
-    "Er ist der Wichtigste im ganzen Wald.",
+    "Er ist der Wichtigste in unserem ganzen Wald.",
     "Er geht ruhig und langsam, immer nur einen Schritt. Alle anderen passen auf ihn auf.",
     // Update (2026-09-08, Task #110, siehe claude/vorgemerkt_quest_tempo_und_
     // automatikvorfuehrung.md Punkt 3): löst "Tipp irgendwo hin, um weiterzumachen" ab —

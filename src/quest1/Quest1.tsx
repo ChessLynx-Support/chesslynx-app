@@ -63,6 +63,8 @@ import { useLuxSprechzeile } from "../lib/useLuxSprechzeile";
 // unten (interaktiv/uebung/fertig) rotieren jetzt durch mehrere kindgerechte Varianten,
 // statt bei jeder 8-Sekunden-Erinnerung bzw. in jedem Abenteuer identisch zu klingen.
 import { luxVariante, INTERAKTIV_HINWEIS_VARIANTEN, UEBUNG_HINWEIS_VARIANTEN, FERTIG_LOB_VARIANTEN } from "../lib/luxVarianten";
+// Zweisprachige Texte (DE+EN-Simultanlaunch) — siehe lib/sprache.ts.
+import { t } from "../lib/sprache";
 import { useUntertitelAktiv } from "../lib/untertitelEinstellung";
 import { Verwandlung } from "../lib/Verwandlung";
 // Feier-Animation für "Quest abgeschlossen" — analog für Quest2–6 (siehe dortige Dateien).
@@ -128,9 +130,9 @@ const SCREEN_SCRIPTS: Record<Exclude<ScreenId, 2>, string[]> = {
     // Die zwei neuen Zeilen brauchen keine Code-Änderung: `autoWeiter` gilt für Screen 1,
     // sie blättern also nach dem Sprechende von selbst weiter, und `isLastLine` hält die
     // Tipp-Aufforderung unten weiterhin als einzige tap-gesteuerte Zeile fest.
-    "Das ist der Igel.",
-    "Er ist der Kleinste hier im Wald. Und der Mutigste.",
-    "Er macht immer nur kleine Schritte nach vorn, nie zurück.",
+    t("Das ist der Igel.", "This is the hedgehog."),
+    t("Er ist klein. Und trotzdem der Mutigste in unserem Wald.", "He's small. And still the bravest in our forest."),
+    t("Er macht immer nur kleine Schritte nach vorn, nie zurück.", "He only ever takes small steps forward, never back."),
     // Bugfix (Nutzer-Feedback 2026-09-08, "ergibt keinen Sinn"): "Tipp irgendwo hin" war
     // unnötig vage für ein Kind, das gerade erst lernt, wie diese Tipp-Interaktion
     // überhaupt funktioniert — die Zeile sagte nicht, WAS als Nächstes passiert. Erst durch
@@ -139,9 +141,9 @@ const SCREEN_SCRIPTS: Record<Exclude<ScreenId, 2>, string[]> = {
     // den (jetzt sanft pulsierenden, siehe Screen-1-Aufrufstelle unten) Igel anzutippen,
     // statt vage "weiterzutippen" — deckt sich mit der Einschränkung des Tipp-Bereichs dort
     // von der ganzen Fläche auf genau das Tier.
-    "Tippe den Igel an, um die Verwandlung zur Schachfigur zu sehen.",
+    t("Tippe den Igel an, um die Verwandlung zur Schachfigur zu sehen.", "Tap the hedgehog to see him turn into a chess piece."),
   ],
-  verwandlung: ["Und jetzt die Verwandlung: Aus dem Igel wird ein Bauer!"],
+  verwandlung: [t("Und jetzt die Verwandlung: Aus dem Igel wird ein Bauer!", "And now watch closely: the hedgehog turns into a pawn!")],
   4: [
     // Update (2026-09-07, Nutzer-Feedback): einmalig (nur in Quest 1) erklärt Lux vor der
     // ersten Blockade-Aufgabe das allgemeine Prinzip, dass Figuren den Zugweg blockieren
@@ -154,9 +156,9 @@ const SCREEN_SCRIPTS: Record<Exclude<ScreenId, 2>, string[]> = {
     // die neue TTS-Anbindung (useLuxSprechzeile unten) ohnehin zu lang für eine einzelne
     // gesprochene Zeile. Aufgeteilt in zwei kurze Sätze, Kausalsatz gestrichen statt in
     // Bildsprache übersetzt (die Blockade selbst ist gleich sichtbar).
-    "Manchmal steht eine Figur auf dem Weg.",
+    t("Manchmal steht eine Figur auf dem Weg.", "Sometimes another piece is in the way."),
     "Dann kommt keine andere Figur daran vorbei.",
-    "Der Bauer kann nicht geradeaus über eine andere Figur springen.",
+    t("Der Bauer kann nicht geradeaus über eine andere Figur springen.", "The pawn can't jump straight over another piece."),
     "Versuch es ruhig einmal aus.",
   ],
   // Update (2026-09-10, Kurztest-Feedback: "sollte wirklich davon gesprochen werden, dass
@@ -170,9 +172,9 @@ const SCREEN_SCRIPTS: Record<Exclude<ScreenId, 2>, string[]> = {
   // führt den Fachbegriff ein, Quest 2–6 verwenden danach nur noch "schlagen". Die
   // Zugaufforderung steht bewusst als letzte Zeile (das Brett ist sofort antippbar).
   5: [
-    "Da drüben ist eine gegnerische Figur aufgetaucht.",
-    "Wir fangen sie ein – in der Schachwelt sagt man dazu: schlagen.",
-    "Schlag sie – zieh schräg nach vorne dorthin!",
+    t("Da drüben ist eine gegnerische Figur aufgetaucht.", "A piece from the other side has turned up over there."),
+    t("Wir fangen sie ein – in der Schachwelt sagt man dazu: schlagen.", "We're going to catch it. In chess that's called capturing."),
+    t("Schlag sie – zieh schräg nach vorne dorthin!", "Capture it: move diagonally forward onto that square!"),
   ],
   // Sprach-Harmonie-Review (2026-09-09): zweite Zeile war hier bisher die einzige der
   // sechs Abenteuer-Abschluss-Zeilen ohne den Rückkehr-Hinweis ("Tippe, um zurück zur
@@ -183,7 +185,7 @@ const SCREEN_SCRIPTS: Record<Exclude<ScreenId, 2>, string[]> = {
   // hintereinander spielt, überall gleich anfühlen (nicht: "beim ersten Mal geht's von
   // allein weiter, danach nicht mehr" — das wäre eher verwirrend als hilfreich).
   // Paket 1 (2026-09-11, Audit C.2): Ich-/Wir-Perspektive statt Lux in der dritten Person.
-  7: ["Wir haben ein neues Gebiet entdeckt!", "Wunderbar gemacht! Tippe, um zurück zur Karte zu gehen."],
+  7: [t("Wir haben ein neues Gebiet entdeckt!", "We've found a new part of the forest!"), t("Wunderbar gemacht! Tippe, um zurück zur Karte zu gehen.", "Beautifully done! Tap to go back to the map.")],
 };
 
 // Neu (2026-09-08, siehe Kommentar bei SCREEN_SCRIPTS oben und claude/quest_review_
@@ -212,10 +214,10 @@ const SCREEN_SCRIPTS: Record<Exclude<ScreenId, 2>, string[]> = {
 // Folgezug (Übungsphase unten) ist automatisch auf ein Feld begrenzt, ganz ohne eigene
 // App-Logik dafür.
 const PHASE_LINES: Record<QuestPhase, string[]> = {
-  vorfuehrung: ["Beim ersten Zug darf der Bauer ein oder zwei Felder nach vorne gehen.", "Schau mal, so zieht der Bauer!"],
-  interaktiv: ["Jetzt bist du dran!", "Tipp auf ein leuchtendes Feld."],
-  uebung: ["Kannst du das noch ein paar Mal?"],
-  fertig: ["Super, das kannst du schon richtig gut!"],
+  vorfuehrung: [t("Beim ersten Zug darf der Bauer ein oder zwei Felder nach vorne gehen.", "On its very first move, the pawn may go forward one square or two."), t("Schau mal, so zieht der Bauer!", "Look, this is how the pawn moves!")],
+  interaktiv: [t("Jetzt bist du dran!", "Now it's your turn!"), t("Tipp auf ein leuchtendes Feld.", "Tap a glowing square.")],
+  uebung: [t("Kannst du das noch ein paar Mal?", "Can you do that a few more times?")],
+  fertig: [t("Super, das kannst du schon richtig gut!", "Great! You're really good at this already!")],
 };
 
 // Startfeld des Übungs-Bauern in allen Quest1-FENs. Bis 2026-09-08 zeigte Quest 1 hier
@@ -390,7 +392,7 @@ export default function Quest1() {
             onPress={() => advanceOrGo("verwandlung")}
             disabled={!isLastLine}
             hitSlop={{ top: 24, left: 24, right: 24, bottom: 24 }}
-            accessibilityLabel="Den Igel antippen, um die Verwandlung zu sehen"
+            accessibilityLabel=t("Den Igel antippen, um die Verwandlung zu sehen", "Tap the hedgehog to see him change")
           >
             <LuxAtem dauer={900} betrag={1.08}>
               {/* Update 2026-09-14: Sobald der Igel antippbar ist, WINKT er in ruhigen
