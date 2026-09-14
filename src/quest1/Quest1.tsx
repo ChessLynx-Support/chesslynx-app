@@ -105,7 +105,13 @@ type ScreenId = 1 | "verwandlung" | 2 | 4 | 5 | 7;
 // Vorstellung auf dem leeren Brett) ist ersatzlos entfallen — diese Aufgabe übernimmt jetzt
 // vollständig `screens/WillkommensSequenz.tsx`, die VOR jedem Antippen eines Quest-Markers
 // läuft.
-const SCREEN_SCRIPTS: Record<Exclude<ScreenId, 2>, string[]> = {
+// FUNKTION statt Konstante (2026-09-14): `t()` liest die Sprache im Moment des Aufrufs. Als
+// Modulkonstante würde diese Liste beim Import ausgewertet — also bevor `ladeSprache()` in
+// App.tsx die im Eltern-Bereich gewählte Sprache kennt — und bliebe danach auf der
+// Gerätesprache stehen. Als Funktion wird sie bei jedem Rendern neu gebildet und folgt der
+// Umschaltung sofort. Dasselbe Muster gilt für alle übrigen Quest-Screens.
+function screenScripts(): Record<Exclude<ScreenId, 2>, string[]> {
+  return {
   1: [
     // Update (2026-09-09, siehe ScreenId-Kommentar oben): "Lux hat sich in Screen 0 bereits
     // gemeldet" gilt jetzt entsprechend für die neue WillkommensSequenz.tsx, die diesem
@@ -157,9 +163,9 @@ const SCREEN_SCRIPTS: Record<Exclude<ScreenId, 2>, string[]> = {
     // gesprochene Zeile. Aufgeteilt in zwei kurze Sätze, Kausalsatz gestrichen statt in
     // Bildsprache übersetzt (die Blockade selbst ist gleich sichtbar).
     t("Manchmal steht eine Figur auf dem Weg.", "Sometimes another piece is in the way."),
-    "Dann kommt keine andere Figur daran vorbei.",
+    t("Dann kommt keine andere Figur daran vorbei.", "Then no other piece can get past."),
     t("Der Bauer kann nicht geradeaus über eine andere Figur springen.", "The pawn can't jump straight over another piece."),
-    "Versuch es ruhig einmal aus.",
+    t("Versuch es ruhig einmal aus.", "Go ahead and try it."),
   ],
   // Update (2026-09-10, Kurztest-Feedback: "sollte wirklich davon gesprochen werden, dass
   // eine gegnerische Figur auftaucht, die wir fangen wollen — nicht von begrüßen, das
@@ -186,7 +192,8 @@ const SCREEN_SCRIPTS: Record<Exclude<ScreenId, 2>, string[]> = {
   // allein weiter, danach nicht mehr" — das wäre eher verwirrend als hilfreich).
   // Paket 1 (2026-09-11, Audit C.2): Ich-/Wir-Perspektive statt Lux in der dritten Person.
   7: [t("Wir haben ein neues Gebiet entdeckt!", "We've found a new part of the forest!"), t("Wunderbar gemacht! Tippe, um zurück zur Karte zu gehen.", "Beautifully done! Tap to go back to the map.")],
-};
+  };
+}
 
 // Neu (2026-09-08, siehe Kommentar bei SCREEN_SCRIPTS oben und claude/quest_review_
 // automatik_vollbrett_vorschlag.md Abschnitt 5): Screen 2s Zeilen sind jetzt an die von
@@ -213,12 +220,15 @@ const SCREEN_SCRIPTS: Record<Exclude<ScreenId, 2>, string[]> = {
 // chess.js erlaubt den Doppelschritt ohnehin nur von der Startreihe aus, jeder
 // Folgezug (Übungsphase unten) ist automatisch auf ein Feld begrenzt, ganz ohne eigene
 // App-Logik dafür.
-const PHASE_LINES: Record<QuestPhase, string[]> = {
+// Siehe Kommentar bei screenScripts() — aus demselben Grund eine Funktion.
+function phaseLines(): Record<QuestPhase, string[]> {
+  return {
   vorfuehrung: [t("Beim ersten Zug darf der Bauer ein oder zwei Felder nach vorne gehen.", "On its very first move, the pawn may go forward one square or two."), t("Schau mal, so zieht der Bauer!", "Look, this is how the pawn moves!")],
   interaktiv: [t("Jetzt bist du dran!", "Now it's your turn!"), t("Tipp auf ein leuchtendes Feld.", "Tap a glowing square.")],
   uebung: [t("Kannst du das noch ein paar Mal?", "Can you do that a few more times?")],
   fertig: [t("Super, das kannst du schon richtig gut!", "Great! You're really good at this already!")],
-};
+  };
+}
 
 // Startfeld des Übungs-Bauern in allen Quest1-FENs. Bis 2026-09-08 zeigte Quest 1 hier
 // als einzige der sechs Quests ein kleines 3×3-Ausschnittsfenster (e/d/f-Linie x Reihen
@@ -243,10 +253,21 @@ export default function Quest1() {
   // zum Startzustand von QuestMoveScreen (autoDemo unten), wird nie zurückgesetzt, da
   // Screen 2 in diesem linearen Ablauf immer nur einmal durchlaufen wird.
   const [movePhase, setMovePhase] = useState<QuestPhase>("vorfuehrung");
+  // Gerätetest 2026-09-14 (Nutzer: "die Verwandlung wird abgebrochen, nach 'now watch
+  // closely' wird schon übergeblendet"): Die Verwandlungs-Animation lief bisher los, sobald
+  // ihr Screen erschien — also gleichzeitig mit Lux' Ankündigung. Nach ~1,9 s war sie durch
+  // und schaltete auf Screen 2 weiter, was den noch laufenden Satz (englisch ~3,5 s)
+  // abschnitt. Ankündigung und angekündigtes Ereignis fielen damit zusammen.
+  //
+  // Jetzt hält dieser Zustand die Sequenz zurück, bis Lux die Zeile zu Ende gesprochen hat
+  // (siehe `onFertig` beim Sprechzeilen-Hook weiter unten und `starten` an <Verwandlung>).
+  // Er kann nicht hängen bleiben: Der Hook meldet das Ende in jedem Fall, notfalls über sein
+  // Sicherheitsnetz, selbst wenn die Sprachausgabe ganz ausfällt.
+  const [verwandlungBereit, setVerwandlungBereit] = useState(false);
 
   // Screen 2 hat keinen eigenen SCREEN_SCRIPTS-Eintrag mehr (siehe dortiger Kommentar) —
   // seine Zeilen kommen stattdessen aus PHASE_LINES, abhängig von movePhase.
-  const lines = screen === 2 ? PHASE_LINES[movePhase] : SCREEN_SCRIPTS[screen];
+  const lines = screen === 2 ? phaseLines()[movePhase] : screenScripts()[screen];
   const isLastLine = lineIndex === lines.length - 1;
 
   function advanceOrGo(next: ScreenId) {
@@ -310,7 +331,15 @@ export default function Quest1() {
   const { wiederholen, aktuelleZeile } = useLuxSprechzeile(
     zeilenSchluessel,
     zeileZuSprechen,
-    autoWeiter && !isLastLine ? () => setLineIndex((i) => i + 1) : undefined,
+    // Auf dem Verwandlungs-Screen bedeutet "Zeile fertig gesprochen" nicht "nächste Zeile",
+    // sondern "jetzt darf die Verwandlung beginnen" (siehe verwandlungBereit oben). Dass hier
+    // überhaupt ein onFertig steht, schaltet nebenbei die 8-Sekunden-Erinnerung ab — die wäre
+    // auf diesem Screen ohnehin sinnlos, weil das Kind nichts tun soll außer zuzusehen.
+    screen === "verwandlung"
+      ? () => setVerwandlungBereit(true)
+      : autoWeiter && !isLastLine
+        ? () => setLineIndex((i) => i + 1)
+        : undefined,
     { onErinnerung: () => { erinnerungenRef.current += 1; } }
   );
   // Echter Eltern-Dashboard-Schalter statt der früheren ZEIGE_UNTERTITEL-Konstante,
@@ -335,7 +364,7 @@ export default function Quest1() {
         style={styles.luxCorner}
         onPress={wiederholen}
         hitSlop={{ top: 12, left: 12, right: 12, bottom: 12 }}
-        accessibilityLabel="Lux, tippen zum Wiederholen"
+        accessibilityLabel={t("Lux, tippen zum Wiederholen", "Lux, tap to hear it again")}
       >
         <LuxEckIcon size={52} />
       </Pressable>
@@ -392,7 +421,7 @@ export default function Quest1() {
             onPress={() => advanceOrGo("verwandlung")}
             disabled={!isLastLine}
             hitSlop={{ top: 24, left: 24, right: 24, bottom: 24 }}
-            accessibilityLabel=t("Den Igel antippen, um die Verwandlung zu sehen", "Tap the hedgehog to see him change")
+            accessibilityLabel={t("Den Igel antippen, um die Verwandlung zu sehen", "Tap the hedgehog to see him change")}
           >
             <LuxAtem dauer={900} betrag={1.08}>
               {/* Update 2026-09-14: Sobald der Igel antippbar ist, WINKT er in ruhigen
@@ -424,6 +453,9 @@ export default function Quest1() {
           // Board.tsx/pieceMasters.tsx) — die Figur rastet exakt in der Größe ein, die sie
           // im nächsten Screen ohnehin hat.
           kleinGroesse={34}
+          // Erst losreißen, wenn Lux zu Ende gesprochen hat (siehe verwandlungBereit oben).
+          // Bis dahin steht der Igel ruhig da, während die Ankündigung läuft.
+          starten={verwandlungBereit}
           onDone={() => {
             setLineIndex(0);
             setScreen(2);

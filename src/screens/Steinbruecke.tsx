@@ -239,5 +239,5 @@ const styles = StyleSheet.create({
   kachelGedrueckt: { transform: [{ scale: 0.96 }] },
   kachelVernebelt: { borderColor: "rgba(255,255,255,0.7)", borderStyle: "dashed" },
   kachelBild: { width: 120, height: 120 },
-  nebelSchleier: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(255,255,255,0.45)" },
+  nebelSchleier: { ...StyleSheet.absoluteFill, backgroundColor: "rgba(255,255,255,0.45)" },
 });

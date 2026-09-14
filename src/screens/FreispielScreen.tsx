@@ -423,7 +423,7 @@ const styles = StyleSheet.create({
   nebelWolkeB: { width: 26, height: 20, bottom: 2, right: 2 },
   nebelWolkeC: { width: 22, height: 18, top: 14, left: 16 },
 
-  feierHintergrund: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(74,64,56,0.55)" },
+  feierHintergrund: { ...StyleSheet.absoluteFill, backgroundColor: "rgba(74,64,56,0.55)" },
   feierMitte: { flex: 1, alignItems: "center", justifyContent: "center" },
   feierKarte: {
     width: 160,

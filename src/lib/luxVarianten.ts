@@ -1,3 +1,6 @@
+// Zweisprachige Texte — siehe lib/sprache.ts.
+import { t } from "./sprache";
+
 // Sprach-Harmonie-Review (Nutzerauftrag 2026-09-09: "prüfe alle Sprachteile von Lux
 // nochmal auf Harmonie zur Story ... Die Sprachführung soll die Kinder wirklich an die
 // Hand nehmen, aber zugleich nicht störend wirken"). Ausgangsbefund: KEINE der sechs
@@ -36,11 +39,23 @@ const zaehler = new Map<string, number>();
  * useLuxSprechzeile.ts — dort als `() => luxVariante(...)` übergeben, damit der Zähler
  * nur bei echten Sprechvorgängen weiterläuft, nicht bei jedem Komponenten-Rerender).
  */
-export function luxVariante(pool: readonly string[], schluessel: string): string {
+/** Eine Variante: entweder ein fester Satz oder ein Paar [deutsch, englisch]. */
+export type Variante = string | readonly [string, string];
+
+export function luxVariante(pool: readonly Variante[], schluessel: string): string {
   if (pool.length === 0) return "";
   const n = zaehler.get(schluessel) ?? 0;
   zaehler.set(schluessel, n + 1);
-  return pool[n % pool.length];
+  const gewaehlt = pool[n % pool.length];
+  // Das Sprachpaar wird ERST HIER aufgelöst, nicht schon beim Anlegen des Pools. Grund
+  // (2026-09-14): Die Pools unten sind Modulkonstanten und würden beim Import ausgewertet —
+  // also bevor `ladeSprache()` in App.tsx die im Eltern-Bereich gewählte Sprache kennt. Sie
+  // blieben dann für den Rest der Sitzung auf der Gerätesprache stehen. Als Paare gespeichert
+  // und hier aufgelöst folgen sie der Umschaltung sofort, und sämtliche Aufrufstellen in den
+  // sechs Quests bleiben unverändert.
+  // Einfache Strings sind weiterhin erlaubt: Pools, die noch nicht übersetzt sind (etwa der
+  // Quest-6-eigene und der KidHome-Gruß), funktionieren unverändert weiter.
+  return typeof gewaehlt === "string" ? gewaehlt : t(gewaehlt[0], gewaehlt[1]);
 }
 
 // Gemeinsame Varianten-Pools für die drei über Quest1–Quest6 hinweg wortidentischen
@@ -54,22 +69,22 @@ export function luxVariante(pool: readonly string[], schluessel: string): string
 // definiert deshalb dort einen eigenen, gleich langen Pool statt diesen zu importieren —
 // der Rotations-Fortschritt bleibt trotzdem gemeinsam, da beide denselben Schlüssel
 // "interaktiv-hinweis" verwenden.
-export const INTERAKTIV_HINWEIS_VARIANTEN = [
-  "Tipp auf ein leuchtendes Feld.",
-  "Schau, wo es leuchtet. Dort darfst du hin.",
-  "Trau dich, tipp einfach auf das leuchtende Feld!",
+export const INTERAKTIV_HINWEIS_VARIANTEN: readonly Variante[] = [
+  ["Tipp auf ein leuchtendes Feld.", "Tap a glowing square."],
+  ["Schau, wo es leuchtet. Dort darfst du hin.", "Look where it's glowing. That's where you may go."],
+  ["Trau dich, tipp einfach auf das leuchtende Feld!", "Go on, just tap the glowing square!"],
 ];
 
-export const UEBUNG_HINWEIS_VARIANTEN = [
-  "Kannst du das noch ein paar Mal?",
-  "Weiter so! Versuch's gleich noch einmal!",
-  "Du wirst schon richtig sicher darin. Nochmal?",
-  "Prima! Probier es noch ein paarmal aus.",
+export const UEBUNG_HINWEIS_VARIANTEN: readonly Variante[] = [
+  ["Kannst du das noch ein paar Mal?", "Can you do that a few more times?"],
+  ["Weiter so! Versuch's gleich noch einmal!", "Keep going! Have another try right away!"],
+  ["Du wirst schon richtig sicher darin. Nochmal?", "You're getting really sure of this. Once more?"],
+  ["Prima! Probier es noch ein paarmal aus.", "Lovely! Try it a few more times."],
 ];
 
-export const FERTIG_LOB_VARIANTEN = [
-  "Super, das kannst du schon richtig gut!",
-  "Klasse gemacht! Du wirst richtig gut darin!",
-  "Toll! Das hast du wunderbar hinbekommen.",
-  "Du machst das schon wie ein kleiner Schach-Profi!",
+export const FERTIG_LOB_VARIANTEN: readonly Variante[] = [
+  ["Super, das kannst du schon richtig gut!", "Great! You're really good at this already!"],
+  ["Klasse gemacht! Du wirst richtig gut darin!", "Well done! You're getting really good at this!"],
+  ["Toll! Das hast du wunderbar hinbekommen.", "Brilliant! You did that beautifully."],
+  ["Du machst das schon wie ein kleiner Schach-Profi!", "You're doing this like a proper little chess player!"],
 ];

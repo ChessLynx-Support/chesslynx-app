@@ -40,7 +40,7 @@
 // aufräumt.
 
 import { useEffect, useRef, useState } from "react";
-import { sprich, sprichtGerade, stoppen } from "./luxStimme";
+import { ENGINE_ABFRAGE_VERLAESSLICH, sprich, sprichtGerade, stoppen } from "./luxStimme";
 
 const ERINNERUNG_MS = 8000;
 
@@ -67,7 +67,20 @@ const PRUEF_INTERVALL_MS = 200;
 // die Stimme). Meldet die Plattform bis dahin gar nichts (manche Web-Umgebungen können
 // `isSpeakingAsync` nicht beantworten), wird die Abfrage eingestellt und es übernehmen
 // wieder `onDone` + Mindestdauer + Sicherheitsnetz wie zuvor.
-const START_GEDULD_MS = 3000;
+// 2026-09-14 von 3 s auf 5 s erhöht: Im Browser braucht die erste Äußerung einer Stimme
+// spürbar länger bis zum hörbaren Beginn, und das Aufgeben führt zurück zu genau der
+// unzuverlässigen `onDone`-Ebene, die dieser Mechanismus ersetzen soll. Gegen ein echtes
+// Hängenbleiben schützt weiterhin das Sicherheitsnetz weiter unten, nicht diese Frist.
+const START_GEDULD_MS = 5000;
+// Wie lange nach `Speech.stop()` ein gemeldetes "ich spreche" noch von der ABGEBROCHENEN
+// vorherigen Äußerung stammen kann (siehe die ausführliche Begründung bei der Abfrage
+// unten). Innerhalb dieser Frist zählt ein "spricht" nur dann als Beginn der neuen Zeile,
+// wenn er durch `onStart` bestätigt ist oder dazwischen eine Sprechpause gemessen wurde.
+const ABBRUCH_NACHHALL_MS = 700;
+// So viele Messungen in Folge müssen "spricht nicht" ergeben, bevor eine Zeile als beendet
+// gilt. Zwei statt einer: Eine einzelne Messlücke mitten im Satz (im Browser zwischen zwei
+// Satzteilen beobachtbar) darf nicht als Satzende durchgehen. Kostet im Normalfall 200 ms.
+const LEER_MESSUNGEN_FUER_ENDE = 2;
 // Nur noch Rückfallebene für den Fall, dass die Engine-Abfrage nichts liefert: Untergrenze
 // für die plausible Sprechdauer, bevor ein `onDone` als echtes Ende gewertet wird. 60 ms pro
 // Zeichen entspricht knapp 17 Zeichen pro Sekunde — langsamer als jede normale Vorlesestimme
@@ -209,15 +222,76 @@ export function useLuxSprechzeile(
       }
       erledigt();
     };
-    // Bewusst als eigener, argumentloser Aufruf: `zeileFertig` hätte sonst das erste
-    // Argument aus expo-speech bekommen und `vonEngine` fälschlich als "bestätigt" gelesen.
-    sprich(text, { onFertig: () => zeileFertig(false) });
-
     // Engine-Abfrage (siehe PRUEF_INTERVALL_MS oben): Eine Zeile gilt erst dann als
     // gesprochen, wenn die Engine erst "spricht" und danach "spricht nicht mehr" gemeldet
     // hat. Solange sie noch spricht, wird nicht weitergeschaltet — und damit auch nichts
     // abgeschnitten, denn abgeschnitten wird nur durch das `stoppen()` beim Weiterschalten.
+    //
+    // WEB-VORSCHAU 2026-09-14 (Nutzer: "Die Texte in der Vorschau sind zu schnell und werden
+    // abgehackt"): Genau diese Abfrage lieferte sich im Browser ein Wettrennen mit dem
+    // `Speech.stop()`, das `sprich()` unmittelbar vor jedem `Speech.speak()` aufruft. Nativ
+    // ist der Abbruch praktisch sofort wirksam; im Browser (`speechSynthesis.cancel()`) läuft
+    // er asynchron ab, während die NEUE Äußerung erst nach ~100-500 ms hörbar beginnt:
+    //   200 ms: `speaking` meldet true — aber das ist die abgebrochene VORHERIGE Zeile.
+    //           Der Hook merkte sich "diese Zeile hat begonnen".
+    //   400 ms: der Abbruch ist durch, die neue Zeile hat noch nicht angefangen, also false.
+    //           Der Hook las das als "fertig gesprochen" und schaltete weiter.
+    // Die gerade erst begonnene Zeile wurde daraufhin vom `stoppen()` des Schlüsselwechsels
+    // wieder abgeschnitten — auf jedem Screen aufs Neue, und das Weiterschalten wirkte
+    // entsprechend gehetzt. Beides ist dieselbe Ursache.
+    //
+    // ERSTER ANLAUF, der NICHT gereicht hat (Nutzer am 2026-09-14: "Stimme brechen immer noch
+    // ab bevor die erste Aufgabe von Q1 gestartet werden"): Die Abfrage wurde gegen den
+    // Nachhall des Abbruchs abgesichert — `onStart` als eindeutiger Beginn, eine Karenzzeit,
+    // zwei Leermessungen für das Ende. Das konnte im Browser gar nicht helfen, denn JEDE
+    // dieser Stufen wertet weiterhin `window.speechSynthesis.speaking` aus, und genau dieser
+    // Wert ist dort das Problem (Beleg: node_modules/expo-speech/build/ExponentSpeech.web.js,
+    // `isSpeaking()` gibt ihn unverändert zurück). Er kann mitten in einer laufenden Äußerung
+    // `false` melden — zwei Messungen später galt die Zeile als beendet, und das Weiterschalten
+    // schnitt sie ab.
+    //
+    // JETZIGE LÖSUNG: im Browser wird die Abfrage gar nicht erst gestartet. Dort ist `onDone`
+    // das `end`-Ereignis genau dieser Äußerung und damit die verlässliche Quelle; die Stufen
+    // unten gelten nur noch nativ, wo es umgekehrt ist. Siehe ENGINE_ABFRAGE_VERLAESSLICH in
+    // luxStimme.ts — dort steht die Begründung für beide Plattformen an einer Stelle.
+    //
+    // Die drei Stufen der nativen Abfrage:
+    //  1. `onStart` (unten an `sprich()` übergeben) ist die eindeutige Auskunft "DIESE
+    //     Äußerung beginnt jetzt". Sie kann nicht von der abgebrochenen vorherigen stammen,
+    //     deren Beginn längst zurückliegt.
+    //  2. Falls eine Plattform kein `onStart` meldet: Ein "spricht" innerhalb von
+    //     ABBRUCH_NACHHALL_MS zählt nur als Beginn, wenn dazwischen mindestens einmal eine
+    //     Sprechpause gemessen wurde (`leerGesehen`) — also nach einer steigenden Flanke, die
+    //     nur die neue Äußerung ausgelöst haben kann. Danach ist ein "spricht" ohnehin
+    //     zweifelsfrei die neue Zeile.
+    //  3. Für das Ende zählen LEER_MESSUNGEN_FUER_ENDE aufeinanderfolgende Messungen, nicht
+    //     eine einzelne.
     let hatGesprochen = false;
+    let leerGesehen = false;
+    let leerFolge = 0;
+
+    // Bewusst als eigene, argumentlose Aufrufe: `zeileFertig` hätte sonst das erste Argument
+    // aus expo-speech bekommen und `vonEngine` fälschlich als "bestätigt" gelesen.
+    sprich(text, {
+      onStart: () => {
+        if (eigeneGeneration !== generation.current) return;
+        hatGesprochen = true;
+        leerFolge = 0;
+      },
+      // Im Browser ist dieses `onDone` das `end`-Ereignis genau dieser Äußerung und damit
+      // bestätigt (`vonEngine: true`) — die geschätzte Mindestdauer entfällt, es ist nichts
+      // mehr zu schätzen. Nativ bleibt es die unzuverlässige Meldung, die abgesichert wird.
+      onFertig: () => zeileFertig(!ENGINE_ABFRAGE_VERLAESSLICH),
+    });
+
+    // Im Browser gar nicht erst abfragen (siehe die lange Begründung oben): Dort liefert die
+    // Abfrage `window.speechSynthesis.speaking` zurück, und dieser Wert ist nach dem
+    // `Speech.stop()` vor jeder Zeile nicht brauchbar. `onDone` oben übernimmt.
+    if (!ENGINE_ABFRAGE_VERLAESSLICH) {
+      pruefung.current = null;
+      return;
+    }
+
     eigenePruefung = setInterval(() => {
       if (gemeldet || eigeneGeneration !== generation.current) {
         if (eigenePruefung) clearInterval(eigenePruefung);
@@ -228,9 +302,15 @@ export function useLuxSprechzeile(
         // Antwort über eine fremde Äußerung und darf nichts auslösen.
         if (gemeldet || eigeneGeneration !== generation.current) return;
         if (spricht) {
-          hatGesprochen = true;
+          leerFolge = 0;
+          // Siehe Stufe 2 oben: im Nachhall des Abbruchs nur mit gemessener Sprechpause.
+          if (leerGesehen || Date.now() - startZeit >= ABBRUCH_NACHHALL_MS) {
+            hatGesprochen = true;
+          }
           return;
         }
+        leerGesehen = true;
+        leerFolge++;
         if (!hatGesprochen) {
           // Noch nicht angefangen (Engine lädt die Stimme) — weiter warten, aber nicht ewig:
           // Nach der Geduldsfrist ist die Auskunft offenbar nicht zu gebrauchen, dann wieder
@@ -240,6 +320,7 @@ export function useLuxSprechzeile(
           }
           return;
         }
+        if (leerFolge < LEER_MESSUNGEN_FUER_ENDE) return;
         zeileFertig(true);
       });
     }, PRUEF_INTERVALL_MS);

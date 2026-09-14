@@ -88,6 +88,9 @@ import {
   berechneBrettMasse,
 } from "../components/LeeresBrettMitAllenTieren";
 import { WEGMARKEN, MAP_ASPECT } from "../components/LuchsRevierKarte";
+// Die Wegmarken-Tiere kommen seit dem 2026-09-14 aus der Zustandsfamilie statt aus einem
+// Standbild-Feld `bild` (siehe lib/questTiere.tsx und `Wegmarke` in LuchsRevierKarte.tsx).
+import { QuestTierWegmarke } from "../lib/questTiere";
 import { setWillkommenGesehen } from "../lib/storage";
 
 const hintergrundKarte = require("../../assets/hintergrund/luchsrevier_wisentfeste.webp");
@@ -464,7 +467,7 @@ export function WillkommensSequenz({ navigation }: any) {
                 Größenvorgabe vom Elternteil fällt auf seine reine Inhaltsgröße zurück).
                 Bisherige Theorie (Android-View-Flattening, siehe ältere Kommentare/
                 mehrere `collapsable={false}`-Runden) hat das NICHT behoben. Tatsächliche
-                Ursache: `StyleSheet.absoluteFillObject` (position:absolute + inset 0 auf
+                Ursache: `StyleSheet.absoluteFill` (position:absolute + inset 0 auf
                 allen vier Seiten) verlässt sich darauf, dass Android die Höhe aus den
                 Inset-Werten relativ zum Elternteil selbst herleitet — bei einem erst NACH
                 dem ersten Layout der Bühne neu eingehängten absolut positionierten Kind
@@ -486,7 +489,7 @@ export function WillkommensSequenz({ navigation }: any) {
               ]}
             >
               {/* Bugfix: die zuvor hier zusätzlich verpackende, rein layoutlose View
-                  (`<View style={StyleSheet.absoluteFillObject}>`) war genau eine weitere
+                  (`<View style={StyleSheet.absoluteFill}>`) war genau eine weitere
                   wegoptimierbare Ebene ohne eigenen Zweck — WaldHintergrund bringt seinen
                   eigenen, bereits `collapsable={false}` gesicherten Vollflächen-Wrapper
                   mit (siehe dortige Datei), die zusätzliche Hülle hier war überflüssig und
@@ -533,7 +536,7 @@ export function WillkommensSequenz({ navigation }: any) {
               )}
 
               {phase === "verstecken" && (
-                <View style={StyleSheet.absoluteFillObject} pointerEvents="none" collapsable={false}>
+                <View style={StyleSheet.absoluteFill} pointerEvents="none" collapsable={false}>
                   {TIERE.map(({ reihe, spalte, Icon }, i) => {
                     const startX = brettLeft + spalte * brettZellgroesse + brettZellgroesse / 2;
                     const startY = brettTop + reihe * brettZellgroesse + brettZellgroesse / 2;
@@ -579,7 +582,7 @@ export function WillkommensSequenz({ navigation }: any) {
 
             {/* Karten-Szene: Karte-leer (Beat 5), Landen (Beat 6) */}
             {/* Bugfix, dritte Runde (siehe ausführlicher Kommentar am Wald-Szene-Wrapper
-                oben): dieselbe Umstellung von inset-basiertem `StyleSheet.absoluteFillObject`
+                oben): dieselbe Umstellung von inset-basiertem `StyleSheet.absoluteFill`
                 auf feste, gemessene Pixelmaße — dieser Wrapper zeigte den Bug zwar nicht
                 (ImageBackground selbst setzt ohnehin explizite width/height, siehe unten),
                 aber aus Konsistenz- und Robustheitsgründen hier ebenfalls umgestellt, statt
@@ -648,16 +651,20 @@ export function WillkommensSequenz({ navigation }: any) {
                             ]}
                           />
                         )}
-                        <Animated.Image
-                          source={w.bild}
-                          resizeMode="contain"
+                        <Animated.View
                           {...ANDROID_FIX_PROPS}
                           style={{
                             width: bildBreite,
                             height: bildHoehe,
+                            // Wie in LuchsRevierKarte.tsx (styles.wegmarke): Das Tier steht am
+                            // unteren Rand seiner Box, damit die Füße auf dem Weg aufsetzen.
+                            alignItems: "center",
+                            justifyContent: "flex-end",
                             opacity: nebelRueckfall.interpolate({ inputRange: [0, 1], outputRange: [1, NEBEL_GEDIMMT] }),
                           }}
-                        />
+                        >
+                          <QuestTierWegmarke quest={w.quest} breite={bildBreite} blinzeln={false} />
+                        </Animated.View>
                       </Animated.View>
                     );
                   })}
@@ -667,9 +674,9 @@ export function WillkommensSequenz({ navigation }: any) {
                     GENAU einer weichen Lichtung um den Igel, siehe Datei-Kopfkommentar. */}
                 <Animated.View
                   pointerEvents="none"
-                  style={[StyleSheet.absoluteFillObject, { opacity: nebelGesamtdeckung }]}
+                  style={[StyleSheet.absoluteFill, { opacity: nebelGesamtdeckung }]}
                 >
-                  <Svg width={buehneBreite} height={kartenHoehe} style={StyleSheet.absoluteFillObject}>
+                  <Svg width={buehneBreite} height={kartenHoehe} style={StyleSheet.absoluteFill}>
                     <Defs>
                       <RadialGradient id="klarungIgelWillkommen" cx="50%" cy="50%" r="50%">
                         <Stop offset="0%" stopColor={NEBEL_KLARUNG_NAECHSTES} stopOpacity={1} />

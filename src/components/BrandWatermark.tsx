@@ -61,7 +61,12 @@ export function BrandWatermark({ onPress }: Props) {
             <Image source={LOGO} style={styles.logo} resizeMode="contain" />
           </Pressable>
         ) : (
-          <Image source={LOGO} style={styles.logo} resizeMode="contain" pointerEvents="none" />
+          // RN 0.86: `pointerEvents` gibt es nur noch auf View. Die umhüllende View hält
+          // das Wasserzeichen weiterhin von jeder Berührung fern — wichtig, weil es als
+          // oberste Ebene (elevation/zIndex 999) über dem Bildschirminhalt liegt.
+          <View pointerEvents="none">
+            <Image source={LOGO} style={styles.logo} resizeMode="contain" />
+          </View>
         )}
       </View>
     </View>

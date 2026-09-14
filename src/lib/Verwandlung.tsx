@@ -63,21 +63,54 @@ import type { ReactNode } from "react";
 import Svg, { Circle, Defs, RadialGradient, Stop } from "react-native-svg";
 import { Funkeln } from "../components/Funkeln";
 
-// Zeitpunkt (ms), an dem die Figur laut Sequenz unten eingerastet ist und das Funkeln
-// einsetzen soll: Ankündigung (300ms) + Anticipation (140ms) + größter Teil der
-// Schrumpf-Feder (~460ms) ≈ 900ms. Mit lebendigem Tier kommt der Blitz (160+200ms)
-// dazwischen.
-const FUNKELN_START_MS = 900;
-const BLITZ_AUF_MS = 160;
-const BLITZ_AB_MS = 200;
-/** Moment des Bildtauschs: Ankündigung + Anticipation + Aufblenden des Blitzes. */
-const TAUSCH_MS = 300 + 140 + BLITZ_AUF_MS;
+// Update (2026-09-14, Nutzer nach dem Web-Test: "die Verwandlung wird abgebrochen, nach
+// 'now watch closely' wird schon übergeblendet. Diesen Moment sollten wir nicht abbrechen
+// und er sollte wirklich schön sein"). Zwei getrennte Ursachen, beide hier behoben:
+//
+//  1. DIE SEQUENZ WUSSTE NICHTS VON LUX' STIMME. Sie lief los, sobald der Screen erschien,
+//     und war nach ~1,9 s durch — `onDone()` schaltete weiter, und der Schlüsselwechsel rief
+//     `stoppen()`, mitten in einem Satz, der (englisch) rund 3,5 s braucht. Die Ankündigung
+//     lief also gleichzeitig mit dem Ereignis, das sie ankündigt, und wurde dann abgeschnitten.
+//     → Neue Prop `starten`: Die Quest lässt die Sequenz erst los, wenn Lux seine Zeile zu
+//     Ende gesprochen hat (siehe Quest1.tsx). Erst Ankündigung, dann Verwandlung.
+//
+//  2. DER MOMENT WAR ZU SCHNELL für das, was er erzählen soll. Die Zeiten unten sind
+//     deshalb neu gesetzt — mit Ruhe vor dem Beginn, einem länger aufblühenden Licht, einem
+//     kurz gehaltenen Atem, einem Blitz, der oben STEHENBLEIBT (vorher schaltete er ohne
+//     Halten von Auf- auf Abblenden, und genau darunter wird das Bild getauscht), einer
+//     weicher auslaufenden Feder und einem echten Nachklang, in dem die fertige Figur
+//     einfach dasteht, bevor der Screen wechselt.
+//
+// Alle Zeiten stehen bewusst als benannte Konstanten beieinander, und die beiden
+// Zeitpunkte darunter (Bildtausch, Funkeln) werden daraus BERECHNET. Vorher waren sie von
+// Hand geschätzt ("≈ 900ms") — jede Änderung an der Sequenz ließ sie stillschweigend
+// verrutschen, und ein verrutschter Tausch ist genau das sichtbare Umschalten, das der
+// Blitz verbergen soll.
+/** Atempause, bevor überhaupt etwas passiert — der Blick kommt beim Tier zur Ruhe. */
+const RUHE_MS = 350;
+/** Das warme Licht blüht auf: "gleich passiert etwas". */
+const ANKUENDIGUNG_MS = 600;
+/** Anticipation: das Tier holt Luft … */
+const ATEM_MS = 260;
+/** … und hält sie einen Moment. Ohne dieses Halten wirkt die Bewegung mechanisch. */
+const ATEM_HALTEN_MS = 140;
+const BLITZ_AUF_MS = 220;
+/** Der Blitz steht auf voller Deckkraft still — darunter wird das Bild getauscht. */
+const BLITZ_HALTEN_MS = 140;
+const BLITZ_AB_MS = 320;
+/** Richtwert für Ring und Lichtschein; die Schrumpf-Feder läuft parallel dazu aus. */
+const SCHRUMPFEN_MS = 620;
+/** Nachklang: die fertige Figur steht einfach da, das Funkeln klingt aus. */
+const NACHKLANG_MS = 700;
+/** Der Lichtschein verblasst, danach `onDone()`. */
+const AUSKLANG_MS = 500;
 
 export function Verwandlung({
   figur,
   tier,
   grossGroesse = 140,
   kleinGroesse = 34,
+  starten = true,
   onDone,
 }: {
   /** Die große Master-Illustration, bereits auf `grossGroesse` skaliert (z. B. <BauerMasterGrossIcon size={140} />). */
@@ -92,6 +125,18 @@ export function Verwandlung({
   grossGroesse?: number;
   /** Zielgröße nach der Verwandlung — standardmäßig identisch zur pieceIcon-Standardgröße auf dem Brett (34px, siehe Board.tsx/pieceMasters.tsx), damit die Figur exakt in der Größe einrastet, die sie im nächsten Screen ohnehin hat. */
   kleinGroesse?: number;
+  /**
+   * Erst wenn dies `true` wird, läuft die Sequenz los. Solange es `false` ist, steht das
+   * Tier unverändert und unbeleuchtet da (2026-09-14, siehe Datei-Kommentar oben).
+   *
+   * Gedacht für genau einen Zweck: Die Quest übergibt hier, ob Lux seine Ankündigung
+   * ("Und jetzt die Verwandlung: Aus dem Igel wird ein Bauer!") zu Ende gesprochen hat.
+   * Vorher lief beides gleichzeitig, und der Satz wurde vom Screenwechsel abgeschnitten.
+   *
+   * Voreinstellung `true`, damit Aufrufstellen ohne Sprachausgabe unverändert
+   * weiterfunktionieren.
+   */
+  starten?: boolean;
   onDone: () => void;
 }) {
   const zielSkalierung = kleinGroesse / grossGroesse;
@@ -106,7 +151,7 @@ export function Verwandlung({
   const landung = useRef(new Animated.Value(0)).current;
   const [zeigeFunkeln, setZeigeFunkeln] = useState(false);
   // Solange `tier` gesetzt ist, startet die Animation mit dem lebendigen Tier; der Wechsel
-  // auf die Figur passiert unter dem Lichtblitz (siehe TAUSCH_MS).
+  // auf die Figur passiert unter dem Lichtblitz (siehe tauschAb im Effekt oben).
   const [zeigeFigur, setZeigeFigur] = useState(!tier);
   // Update (2026-09-10, siehe Datei-Kommentar oben): die frühere antippbare
   // "ueberspringen()"-Funktion (Opus-Review 2026-09-07, Abschnitt 3.3) ist entfallen —
@@ -116,31 +161,56 @@ export function Verwandlung({
   const fertig = useRef(false);
 
   useEffect(() => {
-    const blitzDauer = tier ? BLITZ_AUF_MS + BLITZ_AB_MS : 0;
-    const funkelnTimer = setTimeout(() => setZeigeFunkeln(true), FUNKELN_START_MS + blitzDauer);
-    const tauschTimer = tier ? setTimeout(() => setZeigeFigur(true), TAUSCH_MS) : undefined;
+    // Solange die Quest nicht freigibt (= Lux spricht noch), passiert gar nichts: Das Tier
+    // steht unverändert und unbeleuchtet da. Siehe Prop `starten` oben.
+    if (!starten) return;
+
+    // Die beiden Zeitpunkte aus denselben Konstanten gerechnet, aus denen auch die Sequenz
+    // unten gebaut wird — damit sie nicht auseinanderlaufen können.
+    const bisBlitz = RUHE_MS + ANKUENDIGUNG_MS + ATEM_MS + ATEM_HALTEN_MS;
+    // Der Tausch liegt am ANFANG der Blitz-Haltephase: Der Blitz steht dann still auf voller
+    // Deckkraft, das Bild darunter kann unmöglich durchscheinen.
+    const tauschAb = bisBlitz + BLITZ_AUF_MS;
+    const blitzGesamt = tier ? BLITZ_AUF_MS + BLITZ_HALTEN_MS + BLITZ_AB_MS : 0;
+    // Das Funkeln setzt ein, kurz bevor die Feder ausgelaufen ist — dann ist die Figur
+    // sichtbar eingerastet.
+    const funkelnAb = bisBlitz + blitzGesamt + SCHRUMPFEN_MS * 0.8;
+
+    const funkelnTimer = setTimeout(() => setZeigeFunkeln(true), funkelnAb);
+    const tauschTimer = tier ? setTimeout(() => setZeigeFigur(true), tauschAb) : undefined;
 
     const sequenz = Animated.sequence([
-      // 1. Ankündigung: warmes Licht blendet auf
+      // 0. Ruhe: Der Screen ist gerade erschienen und Lux hat eben zu Ende gesprochen.
+      // Ein Moment, in dem nichts passiert, macht aus dem Folgenden ein Ereignis.
+      Animated.delay(RUHE_MS),
+      // 1. Ankündigung: warmes Licht blüht auf
       Animated.parallel([
-        Animated.timing(glowOpacity, { toValue: 1, duration: 250, useNativeDriver: true }),
+        Animated.timing(glowOpacity, {
+          toValue: 1,
+          duration: ANKUENDIGUNG_MS * 0.8,
+          useNativeDriver: true,
+        }),
         Animated.timing(glowSkalierung, {
           toValue: 1.15,
-          duration: 300,
+          duration: ANKUENDIGUNG_MS,
           easing: Easing.out(Easing.cubic),
           useNativeDriver: true,
         }),
       ]),
-      // 2. Anticipation: kurzer Aufwärts-Puff, bevor die Figur schrumpft
+      // 2. Anticipation: das Tier holt Luft, bevor es schrumpft …
       Animated.timing(figurSkalierung, {
         toValue: 1.07,
-        duration: 140,
+        duration: ATEM_MS,
         easing: Easing.out(Easing.quad),
         useNativeDriver: true,
       }),
-      // 2b. Lichtblitz (nur mit lebendigem Tier): das Bild wird im hellsten Moment
-      // getauscht (siehe tauschTimer oben), sodass der Wechsel Tier → Figur nicht als
-      // hartes Umschalten, sondern als Verwandlung gelesen wird.
+      // … und hält sie kurz. Ein Animationsprinzip, kein Geschmackswert: Ohne diesen
+      // Stillstand geht die Aufwärtsbewegung ohne Zäsur in die Abwärtsbewegung über und
+      // liest sich als ein einziger mechanischer Tween.
+      Animated.delay(ATEM_HALTEN_MS),
+      // 2b. Lichtblitz (nur mit lebendigem Tier): aufblenden, STEHENBLEIBEN, abblenden. Im
+      // Stillstand wird das Bild getauscht (siehe tauschTimer oben), sodass der Wechsel
+      // Tier → Figur nicht als hartes Umschalten, sondern als Verwandlung gelesen wird.
       ...(tier
         ? [
             Animated.timing(blitzOpacity, {
@@ -149,6 +219,7 @@ export function Verwandlung({
               easing: Easing.out(Easing.quad),
               useNativeDriver: true,
             }),
+            Animated.delay(BLITZ_HALTEN_MS),
             Animated.timing(blitzOpacity, {
               toValue: 0,
               duration: BLITZ_AB_MS,
@@ -157,44 +228,49 @@ export function Verwandlung({
             }),
           ]
         : []),
-      // 3. Schrumpfen: Feder-Bewegung + leichtes Wackeln + Magie-Ring + mitschrumpfender Lichtschein
+      // 3. Schrumpfen: Feder-Bewegung + leichtes Wackeln + Lichtsaum + mitschrumpfender
+      // Lichtschein. Die Feder läuft jetzt weicher aus (mehr Reibung, weniger Spannung) —
+      // die Figur setzt sich, statt einzuschnappen.
       Animated.parallel([
         Animated.spring(figurSkalierung, {
           toValue: zielSkalierung,
-          friction: 6,
-          tension: 40,
+          friction: 7,
+          tension: 30,
           useNativeDriver: true,
         }),
         Animated.sequence([
-          Animated.timing(wackeln, { toValue: 1, duration: 150, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
-          Animated.timing(wackeln, { toValue: -1, duration: 150, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
-          Animated.timing(wackeln, { toValue: 0, duration: 160, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+          Animated.timing(wackeln, { toValue: 1, duration: 180, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+          Animated.timing(wackeln, { toValue: -1, duration: 180, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+          Animated.timing(wackeln, { toValue: 0, duration: 200, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
         ]),
         Animated.sequence([
           Animated.parallel([
-            Animated.timing(ringOpacity, { toValue: 1, duration: 140, useNativeDriver: true }),
+            Animated.timing(ringOpacity, { toValue: 1, duration: 160, useNativeDriver: true }),
             Animated.timing(ringSkalierung, {
-              toValue: 1.5,
-              duration: 460,
+              toValue: 1.6,
+              duration: SCHRUMPFEN_MS,
               easing: Easing.out(Easing.cubic),
               useNativeDriver: true,
             }),
           ]),
-          Animated.timing(ringOpacity, { toValue: 0, duration: 220, useNativeDriver: true }),
+          Animated.timing(ringOpacity, { toValue: 0, duration: 260, useNativeDriver: true }),
         ]),
         Animated.timing(glowSkalierung, {
           toValue: 0.55,
-          duration: 460,
+          duration: SCHRUMPFEN_MS,
           easing: Easing.inOut(Easing.quad),
           useNativeDriver: true,
         }),
         // Kleine Landung: die geschrumpfte Figur setzt am Ende sichtbar auf, statt in der
         // Luft stehen zu bleiben.
-        Animated.spring(landung, { toValue: 1, friction: 5, tension: 60, useNativeDriver: true }),
+        Animated.spring(landung, { toValue: 1, friction: 6, tension: 50, useNativeDriver: true }),
       ]),
-      Animated.delay(250),
+      // 4. Nachklang: Die fertige Figur steht einfach da, das Funkeln klingt aus. Das ist
+      // der Moment, für den die ganze Sequenz da ist — vorher waren dafür 250 ms
+      // vorgesehen, in denen niemand etwas ansehen kann.
+      Animated.delay(NACHKLANG_MS),
       // 5. Ausklang
-      Animated.timing(glowOpacity, { toValue: 0, duration: 300, useNativeDriver: true }),
+      Animated.timing(glowOpacity, { toValue: 0, duration: AUSKLANG_MS, useNativeDriver: true }),
     ]);
 
     sequenz.start(({ finished }) => {
@@ -209,7 +285,7 @@ export function Verwandlung({
       if (tauschTimer) clearTimeout(tauschTimer);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [starten]);
 
   const drehung = wackeln.interpolate({ inputRange: [-1, 1], outputRange: ["-6deg", "6deg"] });
   const absetzen = landung.interpolate({ inputRange: [0, 1], outputRange: [0, grossGroesse * 0.06] });
@@ -316,7 +392,7 @@ const LICHT: Record<string, { farbe: string; stopps: [number, string, number][] 
   blitz: {
     farbe: "#FFF3D6",
     // Die Mitte bleibt bis 72 % des Radius voll deckend. Das ist kein Geschmackswert: Unter
-    // ihr wird das Bild getauscht (siehe TAUSCH_MS), und die Figur reicht bei der hier
+    // ihr wird das Bild getauscht (siehe tauschAb im Effekt oben), und die Figur reicht bei der hier
     // verwendeten Größe bis rund 68 % des Radius. Ein früher einsetzender Abfall ließe den
     // Wechsel durchscheinen — genau das, was der Blitz verbergen soll.
     stopps: [

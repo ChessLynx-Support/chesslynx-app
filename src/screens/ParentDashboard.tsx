@@ -54,7 +54,10 @@ import {
   loadQuestFortschrittLocal,
   saveBonusFortschrittLocal,
   saveQuestFortschrittLocal,
+  setWillkommenGesehen,
 } from "../lib/storage";
+import { markiereFarbeinfuehrungGezeigt } from "../lib/freispielEinfuehrung";
+import { leseTestAnsicht, setzeTestAnsicht } from "../lib/testAnsicht";
 import {
   CONSENT_VERSION,
   COPPA_HINWEIS_VERSION,
@@ -66,7 +69,15 @@ import {
   type KindProfil,
 } from "../lib/firebase";
 // Rechtstexte-Adressen und Datenschutz-Kontakt zentral, sprachabhängig — siehe lib/sprache.ts.
-import { DATENSCHUTZ_MAIL, datenschutzUrl, impressumUrl } from "../lib/sprache";
+import {
+  DATENSCHUTZ_MAIL,
+  datenschutzUrl,
+  impressumUrl,
+  setzeSprache,
+  sprachWahl,
+  t,
+  type SprachWahl,
+} from "../lib/sprache";
 // Nutzer-Entscheidung 2026-09-09 ("Spielstand zurücksetzen" als echte Eltern-Funktion,
 // nicht nur lokaler Test-Reset): derselbe Startwert wie beim Neuanlegen eines
 // Kinderprofils (siehe storage.ts, getOrCreateAktivesKindId) — ein zurückgesetzter
@@ -210,6 +221,9 @@ export function ParentDashboard({ navigation }: any) {
   const [heutigeNutzung, setHeutigeNutzung] = useState({ minutenGenutzt: 0, bonusMinuten: 0 });
   const [einfuehrungSichtbar, setEinfuehrungSichtbar] = useState(false);
   const [untertitelAktiv, setUntertitelAktivState] = useState(UNTERTITEL_STANDARD);
+  // Sprachwahl (2026-09-14). `sprachWahl()` ist synchron und beim Rendern bereits gefüllt,
+  // weil App.tsx `ladeSprache()` vor dem ersten Screen abwartet — deshalb kein Laden hier.
+  const [gewaehlteSprache, setGewaehlteSprache] = useState<SprachWahl>(sprachWahl());
   const [hinweiseAktiv, setHinweiseAktivState] = useState(HINWEISE_STANDARD);
 
   const [stimmenLaden, setStimmenLaden] = useState(true);
@@ -259,12 +273,27 @@ export function ParentDashboard({ navigation }: any) {
   const [ganzePartieGeschafft, setGanzePartieGeschafft] = useState(false);
   // Gerätetest 2026-09-11: Rückmeldung für die Testmodus-Knöpfe (vorher passierte sichtbar nichts).
   const [testMeldung, setTestMeldung] = useState<string | null>(null);
+  // Reine Ansichts-Schalter der Saga-Karte (2026-09-14, siehe lib/testAnsicht.ts) — die
+  // Knöpfe unten zeigen den aktuellen Stand an, deshalb werden sie hier beim Öffnen
+  // einmal gelesen.
+  const [gefaehrtenVorschau, setGefaehrtenVorschau] = useState(false);
+  const [alleGruessen, setAlleGruessen] = useState(false);
+  const [nebelAus, setNebelAus] = useState(false);
   useEffect(() => {
     let abgebrochen = false;
     Promise.all([ladeGanzePartieEtappe(), loadBonusFortschrittLocal("ganzePartie")]).then(([etappe, geschafft]) => {
       if (abgebrochen) return;
       setGanzePartieEtappe(etappe);
       setGanzePartieGeschafft(geschafft);
+    });
+    leseTestAnsicht("gefaehrtenVorschau").then((an) => {
+      if (!abgebrochen) setGefaehrtenVorschau(an);
+    });
+    leseTestAnsicht("alleGruessen").then((an) => {
+      if (!abgebrochen) setAlleGruessen(an);
+    });
+    leseTestAnsicht("nebelAus").then((an) => {
+      if (!abgebrochen) setNebelAus(an);
     });
     return () => {
       abgebrochen = true;
@@ -357,6 +386,14 @@ export function ParentDashboard({ navigation }: any) {
   async function untertitelUmschalten(wert: boolean) {
     setUntertitelAktivState(wert);
     await setzeUntertitelAktiv(wert);
+  }
+
+  // Sprache umstellen. Wirkt sofort — die Sprechzeilen-Listen der Quest-Screens sind
+  // Funktionen, keine Konstanten (siehe lib/sprache.ts), und werden beim nächsten Rendern
+  // neu gebildet. Das Dashboard selbst zeichnet durch setState ohnehin neu.
+  async function spracheUmschalten(neu: SprachWahl) {
+    setGewaehlteSprache(neu);
+    await setzeSprache(neu);
   }
 
   async function hinweiseUmschalten(wert: boolean) {
@@ -731,6 +768,38 @@ export function ParentDashboard({ navigation }: any) {
           Zusätzlich (2026-09-08): manuelle Stimmauswahl mit Vorhören, siehe
           stimmeAuswahl.ts — vor allem im Browser am PC findet die automatische
           Bestenauswahl in luxStimme.ts keine verlässliche Qualitätsangabe. */}
+      {/* --- Sprache (2026-09-14) ---
+          Eingebaut, weil die App sonst nur auf einem Gerät mit englischer Systemsprache in
+          Englisch zu sehen ist — für den Test des DE+EN-Simultanlaunches unzumutbar, und
+          auch für Familien sinnvoll, die die Gerätesprache nicht umstellen wollen (etwa
+          zweisprachige Haushalte oder Eltern, die ihrem Kind gezielt Englisch anbieten).
+          "Automatisch" folgt der Gerätesprache und bleibt die Voreinstellung. */}
+      <Text style={styles.sectionTitle}>{t("Sprache", "Language")}</Text>
+      <View style={styles.panel}>
+        <Text style={styles.muted}>
+          {t(
+            "Gilt für die ganze App — auch für das, was Lux spricht. Die Stimme wird passend zur Sprache neu gewählt.",
+            "Applies to the whole app, including what Lux says. The voice is picked to match the language."
+          )}
+        </Text>
+        {([
+          ["auto", t("Automatisch (Gerätesprache)", "Automatic (device language)")],
+          ["de", "Deutsch"],
+          ["en", "English"],
+        ] as [SprachWahl, string][]).map(([wert, beschriftung]) => (
+          <Pressable
+            key={wert}
+            style={styles.switchZeile}
+            onPress={() => spracheUmschalten(wert)}
+            accessibilityRole="radio"
+            accessibilityState={{ selected: gewaehlteSprache === wert }}
+          >
+            <Text style={styles.karteName}>{beschriftung}</Text>
+            <Text style={styles.karteName}>{gewaehlteSprache === wert ? "●" : "○"}</Text>
+          </Pressable>
+        ))}
+      </View>
+
       <Text style={styles.sectionTitle}>Sprachausgabe</Text>
       <View style={styles.panel}>
         <View style={styles.switchZeile}>
@@ -1309,6 +1378,128 @@ export function ParentDashboard({ navigation }: any) {
                 }}
               >
                 <Text style={styles.testKnopfText}>Schlosstor-Test (alles geschafft)</Text>
+              </Pressable>
+            </View>
+            {/* Nutzerwunsch 2026-09-14 („Inhalt komplett freigespielt, sonst sehe ich das
+                nicht"): Der Schlosstor-Test oben öffnet nur das Gate — er lässt Matt in 3
+                (die Kür), das Kapitel „Die ganze Partie" und die Willkommenssequenz
+                unberührt. Die Steinbrücke springt dann beim Besuch weiterhin sofort ins
+                Kapitel, statt ihre beiden Kacheln zu zeigen, und wer die Karte ansehen will,
+                sitzt erst in der Begrüßung fest.
+
+                Dieser Knopf setzt deshalb ALLES, was ein Kind in Version 1.0 überhaupt
+                erreichen kann. Was er bewusst NICHT tut: die sieben Gefährten im Oberland
+                freischalten — die sind Update-1-Inhalt und bleiben gesperrt, gedimmt und
+                nicht antippbar. Das ist kein Fehler des Knopfes, sondern der Auslieferungs-
+                stand.
+
+                Rückgängig machen: „Spielstand zurücksetzen" weiter oben auf dieser Seite. */}
+            <Text style={styles.testGruppenTitel}>Alles freischalten</Text>
+            <View style={styles.testKnopfReihe}>
+              <Pressable
+                style={styles.testKnopf}
+                onPress={async () => {
+                  // Sechs Quests: bereits geschaffte behalten ihre Sterne — ein Testknopf
+                  // soll keine echten Ergebnisse überschreiben (gleiche Regel wie oben).
+                  for (const id of ["quest1", "quest2", "quest3", "quest4", "quest5", "quest6"]) {
+                    const alt = await loadQuestFortschrittLocal(id);
+                    if (!alt?.abgeschlossen) {
+                      await saveQuestFortschrittLocal(id, { sterne: 3, abgeschlossen: true, letzterSchritt: "test" });
+                    }
+                  }
+                  // Alle fünf Lernkapitel, also inklusive Matt in 3 — das ist die nicht
+                  // gate-pflichtige Kür und fehlt im Schlosstor-Test bewusst.
+                  for (const id of ["fesselung", "rochade", "figurenwert", "mattIn2", "mattIn3"] as const) {
+                    await saveBonusFortschrittLocal(id, true);
+                  }
+                  // „Die ganze Partie" als gespielt markieren und den Zwischenstand löschen:
+                  // Sonst zeigt die Steinbrücke beim Besuch den Rückkehr-Screen statt der
+                  // Bots-/Puzzles-Wahl.
+                  await saveBonusFortschrittLocal("ganzePartie", true);
+                  await loescheGanzePartieEtappe();
+                  // Begrüßung und Farbeinführung als gesehen markieren — beide laufen sonst
+                  // vor der Karte ab und stehen jedem schnellen Blick im Weg.
+                  await setWillkommenGesehen();
+                  await markiereFarbeinfuehrungGezeigt();
+                  setGanzePartieGeschafft(true);
+                  setGanzePartieEtappe(0);
+                  setTestMeldung(
+                    "✓ Alles freigespielt: sechs Abenteuer, fünf Lernkapitel, „Die ganze Partie\", Schlosstor offen, Begrüßung übersprungen. Die sieben Gefährten im Oberland bleiben gesperrt — die kommen erst mit Update 1."
+                  );
+                }}
+              >
+                <Text style={styles.testKnopfText}>Inhalt komplett freispielen</Text>
+              </Pressable>
+              {/* Nutzerwunsch 2026-09-14 („ungedimmt und nebelfrei anzeigen"): Die sieben
+                  Gefährten im Oberland lassen sich NICHT freischalten — es gibt keine
+                  Screens hinter ihnen (der Navigator kennt keine Revier-Route, keine
+                  Ruhmeshalle, keinen Wisent-Kampf). Was geht, ist sie so zu ZEIGEN, wie sie
+                  später aussehen: volle Deckkraft, Nebel weg. Antippbar werden sie dadurch
+                  nicht — deshalb heißt der Knopf „Vorschau" und nicht „freischalten". */}
+              <Pressable
+                style={styles.testKnopf}
+                onPress={async () => {
+                  const neu = !gefaehrtenVorschau;
+                  await setzeTestAnsicht("gefaehrtenVorschau", neu);
+                  setGefaehrtenVorschau(neu);
+                  setTestMeldung(
+                    neu
+                      ? "✓ Gefährten-Vorschau an — zurück zur Karte und nach oben scrollen. Antippbar sind sie weiterhin nicht, dahinter gibt es noch keine Screens."
+                      : "✓ Gefährten-Vorschau aus — das Oberland zeigt wieder den Auslieferungsstand."
+                  );
+                }}
+              >
+                <Text style={styles.testKnopfText}>
+                  Gefährten-Vorschau: {gefaehrtenVorschau ? "an" : "aus"}
+                </Text>
+              </Pressable>
+              {/* Nutzerwunsch 2026-09-14 („eine Option, wo die freigespielten Figuren
+                  trotzdem grüßen, um die Animationen zu testen"): Die Geste hängt sonst an
+                  „nächste Station" — nach dem Freispielen gibt es keine mehr, und damit
+                  auch keine Geste zu sehen. Dieser Schalter lässt alle erledigten
+                  Quest-Tiere mitgrüßen.
+
+                  Gilt nur für die sechs Quest-Tiere: Sie haben eine Zustandsfamilie
+                  (grund/blinzeln/geste). Schildkröte und die sieben Gefährten sind
+                  Standbilder ohne Gesten-Asset — sie können nicht grüßen, solange es die
+                  Bilder dafür nicht gibt. */}
+              <Pressable
+                style={styles.testKnopf}
+                onPress={async () => {
+                  const neu = !alleGruessen;
+                  await setzeTestAnsicht("alleGruessen", neu);
+                  setAlleGruessen(neu);
+                  setTestMeldung(
+                    neu
+                      ? "✓ Alle grüßen an — auf der Karte winken/nicken jetzt auch die schon erledigten Quest-Tiere in ruhigen Abständen. Schildkröte und Gefährten sind Standbilder und bleiben ruhig."
+                      : "✓ Alle grüßen aus — es grüßt wieder nur das Tier, das als nächstes dran ist."
+                  );
+                }}
+              >
+                <Text style={styles.testKnopfText}>
+                  Alle Tiere grüßen: {alleGruessen ? "an" : "aus"}
+                </Text>
+              </Pressable>
+              {/* Eigener Schalter seit 2026-09-14 (Nutzer: „vorher war er komplett weg, seit
+                  den Grußbewegungen ist er wieder da"): Die Nebelfreiheit hing vorher an der
+                  Gefährten-Vorschau — dort ist sie ein Nebeneffekt, kein Zweck. Wer die
+                  Vorschau ausschaltete, holte sich den Nebel ungewollt zurück. Jetzt
+                  unabhängig, und er nimmt den Nebel auf der GANZEN Karte weg, nicht nur im
+                  Oberland. */}
+              <Pressable
+                style={styles.testKnopf}
+                onPress={async () => {
+                  const neu = !nebelAus;
+                  await setzeTestAnsicht("nebelAus", neu);
+                  setNebelAus(neu);
+                  setTestMeldung(
+                    neu
+                      ? "✓ Nebel aus — Oberland und Karte liegen komplett frei, unabhängig vom Fortschritt. Gut zum Prüfen von Figuren und Animationen; der Nebel ist im Auslieferungsstand ein Fortschrittsanzeiger."
+                      : "✓ Nebel an — die Karte zeigt wieder den Nebel zum aktuellen Spielstand."
+                  );
+                }}
+              >
+                <Text style={styles.testKnopfText}>Nebel aus: {nebelAus ? "an" : "aus"}</Text>
               </Pressable>
             </View>
             {testMeldung && <Text style={styles.body}>{testMeldung}</Text>}

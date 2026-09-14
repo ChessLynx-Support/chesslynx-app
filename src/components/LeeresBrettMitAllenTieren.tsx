@@ -331,12 +331,17 @@ export function LeeresBrettMitAllenTieren({
                 disabled
                 style={[styles.cell, { width: cellSize, height: cellSize }]}
               >
-                <Image
-                  source={isDark ? feldDunkel : feldHell}
-                  style={[StyleSheet.absoluteFillObject, { zIndex: 0 }]}
-                  resizeMode="cover"
-                  pointerEvents="none"
-                />
+                {/* RN 0.86 kennt `pointerEvents` nur noch als Eigenschaft von View, nicht mehr
+                    von Image. Statt die Eigenschaft ersatzlos zu streichen (was das Verhalten
+                    stillschweigend ändern könnte) trägt sie jetzt eine umhüllende View — die
+                    behält zugleich das `zIndex: 0`, auf das der Android-Rendering-Fix oben baut. */}
+                <View pointerEvents="none" style={[StyleSheet.absoluteFill, { zIndex: 0 }]}>
+                  <Image
+                    source={isDark ? feldDunkel : feldHell}
+                    style={StyleSheet.absoluteFill}
+                    resizeMode="cover"
+                  />
+                </View>
               </Pressable>
             );
           })

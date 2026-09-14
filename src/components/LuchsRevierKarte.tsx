@@ -84,22 +84,31 @@ import {
   type LayoutChangeEvent,
 } from "react-native";
 import { useFocusEffect, useIsFocused } from "@react-navigation/native";
+// Reine Ansichts-Schalter aus dem Testmodus (`__DEV__`) — sie ändern, wie die Karte
+// AUSSIEHT, und fassen keinen Fortschritt an. KEINE Freischaltungen: antippbar wird
+// dadurch nichts (siehe Datei-Kommentar dort).
+import { useTestAnsicht } from "../lib/testAnsicht";
 import Svg, { Circle, Defs, G, Image as SvgBild, LinearGradient, Mask, Path, RadialGradient, Rect, Stop } from "react-native-svg";
 import { loadBonusFortschrittLocal, loadQuestFortschrittLocal } from "../lib/storage";
 import { pruefeSchlosstorStatus } from "../lib/gate";
 import { SCHILDKROETE_ASPEKT, SCHILDKROETE_BILD } from "../lib/schildkroete";
 import { QuestTierWegmarke, questTierWegmarkeAspekt } from "../lib/questTiere";
 import { AmbientLoop } from "./AmbientLoop";
+import { Gluehwuermchen } from "./Gluehwuermchen";
 
 const hintergrund = require("../../assets/hintergrund/luchsrevier_wisentfeste.webp");
 // Paket 3 (2026-09-11): Oberland-Kartenstück mit der Steinbrücke, siehe Datei-Kopfkommentar.
 const oberland = require("../../assets/hintergrund/luchsrevier_oberland.webp");
-// Dieselbe Schleife wie in AMBIENT_SCHLEIFEN weiter unten — hier zusätzlich als Markierung
-// der nächsten Wegmarke (siehe Kommentar in `Wegmarke`).
-const gluehwuermchen = require("../../assets/lottie/chesslynx-firefly-twinkle.json");
 // Seitenverhältnis Höhe/Breite des Oberland-Stücks (1658×519px) — gleiche Breite wie die
 // bisherige Karte, deshalb schließen beide bei jeder Bildschirmbreite nahtlos aneinander an.
-export const OBERLAND_ASPECT = 519 / 1658;
+// Update 2026-09-14: Das Oberland ist von 519 auf 1159 Zeilen gewachsen. Der HQ-Master
+// (Grafiken/Sonniges_Tal_der_Maerchenschloesser_3576x8192_v2.png) trug oberhalb des bisherigen
+// Ausschnitts noch 640 ungenutzte Zeilen — Hochgebirge, ein Schloss auf dem Fels, ein
+// Wasserfall und der Weg, der dorthin führt. Genau dort stehen jetzt die fünf Gefährten
+// (siehe GEFAEHRTEN weiter unten). Der Ausschnitt beginnt seither bei Zeile 0 statt bei 640;
+// die unteren 519 Zeilen sind unverändert dieselben wie zuvor (nachgemessen: Abweichung
+// 1,49/255, also reines WebP-Rauschen).
+export const OBERLAND_ASPECT = 1159 / 1658;
 
 // (Der frühere NEBEL_RANDSTREIFEN_FRAC entfällt seit 2026-09-13: er glich einen weißen
 // Randstreifen des alten Nebelbands aus. Die neue Textur deckt Oberland und Karte in
@@ -109,7 +118,13 @@ export const OBERLAND_ASPECT = 519 / 1658;
 // Stücks (Lichtung links der Steinbrücke), Bildbreite als Anteil der Kartenbreite.
 // Gerätetest 2026-09-11 (Nutzerwunsch, Screenshot mit Pfeil): nicht auf/neben der Brücke,
 // sondern links auf der Lichtung unter den Tannen (vorher fx 0.434).
-const SCHILDKROETE_WEGPUNKT = { fx: 0.1, fy: 0.56, breiteFrac: 36 / 390 };
+// Die Schildkröte ist die siebte Station (Nutzer-Nummerierung 2026-09-14). Ihr alter Platz
+// (fx 0,10 / fy 0,56 des 519 Zeilen hohen Oberlands, also x 166 / y 931 im Master) lag
+// tatsächlich NEBEN der Steinbrücke im Wald am Hang — unter dem dichten Nebel des kleinen
+// Oberlands ist das nie aufgefallen. Auf dem gewachsenen Ausschnitt steht sie jetzt auf dem
+// linken Brückenkopf und etwas kleiner, passend zu den Gefährten weiter oben.
+// Ihre Breite kommt seit 2026-09-14 aus derselben Größenformel wie die der Gefährten
+// (siehe `oberlandBreite` weiter unten) — deshalb steht die Konstante jetzt dort.
 
 // Nebel-/Wolken-Höhenband — siehe Datei-Kopfkommentar. Herkunft: vom Nutzer bereitgestellte
 // 5-stufige Nebel-/Wolken-Bildreihe (`Grafiken/d1c399e6-….png`, "Nebel 1 Leicht" … "Wolken 5
@@ -305,22 +320,39 @@ export const WEGMARKEN: WegmarkenEintrag[] = [
   },
   {
     quest: "quest4",
-    fx: 110 / REFERENZ_BREITE,
-    fy: 410 / REFERENZ_HOEHE,
+    // 2026-09-14, Nutzerwunsch: „Pferd in etwa an die Stelle des Schwans" (vorher 110/410,
+    // tief im linken Wald). Nicht exakt auf dessen alten Punkt 120/300: Dort steht man am
+    // Felsufer halb im Wasser — beim Schwan gewollt, beim Pferd nicht (gemessen: 16 %
+    // Wasser und 54 % Fels/Dunkelgrün unter den Hufen). 30 Referenzpunkte tiefer steht es
+    // mit allen vier Beinen auf dem hellen Weg am linken Brückenkopf (4 % / 18 %), und der
+    // Fluss liegt als Kulisse dahinter statt darunter.
+    fx: 115 / REFERENZ_BREITE,
+    fy: 330 / REFERENZ_HOEHE,
     breiteFrac: 61 / REFERENZ_BREITE,
     aspekt: questTierWegmarkeAspekt("quest4"),
   },
   {
     quest: "quest5",
-    fx: 120 / REFERENZ_BREITE,
-    fy: 300 / REFERENZ_HOEHE,
+    // 2026-09-14, Nutzerwunsch: „auf die andere Seite, auf die Lichtung" (vorher 120/300,
+    // linkes Flussufer). Jetzt rechts des Flusses auf der offenen Wiese oberhalb der
+    // Steinbrücke — die einzige größere Lichtung dieser Karte. Standfläche dort vollständig
+    // frei (0 % Wasser, 0 % Dunkelgrün).
+    //
+    // Nebenwirkung, die hier erwünscht ist: Die Pfad-Lichtungen im Nebel laufen von Quest 4
+    // aus jetzt ungefähr über die Steinbrücke statt quer durchs Wasser.
+    fx: 270 / REFERENZ_BREITE,
+    fy: 290 / REFERENZ_HOEHE,
     breiteFrac: 61 / REFERENZ_BREITE,
     aspekt: questTierWegmarkeAspekt("quest5"),
   },
   {
     quest: "quest6",
-    fx: 245 / REFERENZ_BREITE,
-    fy: 230 / REFERENZ_HOEHE,
+    // 2026-09-14, Nutzerwunsch: „weiter hoch neben die Burg" (vorher 245/230, mitten auf der
+    // Wiese darunter). Jetzt auf dem Weg unmittelbar links der Wisentfeste, auf Höhe ihrer
+    // Grundmauern. Weiter nach rechts ginge nicht: Dort steht der Hirsch vor dem Burgtor und
+    // verdeckt genau die Fläche, die als Nächstes angetippt wird.
+    fx: 195 / REFERENZ_BREITE,
+    fy: 200 / REFERENZ_HOEHE,
     breiteFrac: 52 / REFERENZ_BREITE,
     aspekt: questTierWegmarkeAspekt("quest6"),
   },
@@ -329,9 +361,243 @@ export const WEGMARKEN: WegmarkenEintrag[] = [
 // Burgtor der Wisentfeste (Schlossvorplatz-Zugang) — Kreis-Mittelpunkt + Durchmesser, ebenfalls
 // als Anteil der Referenzmaße (siehe Design-Canvas: ehemals `.gate-tap { left:236px; top:52px;
 // width:54px; height:54px }`, hier auf Mittelpunkt umgerechnet: 236+27, 52+27).
+// ---------------------------------------------------------------------------------------
+// Die fünf Gefährten im Oberland (2026-09-14)
+// ---------------------------------------------------------------------------------------
+// Reihenfolge und Namen stehen fest (projektwissen.md, Abschnitt Endlosmodus): Die fünf
+// Reviere öffnen sich STRIKT LINEAR — Eichhörnchen-Lichtung, Fuchsbau, Dachshöhle,
+// Adlerhorst, Wolfsfeste. Deshalb stehen sie hier von unten nach oben in genau dieser
+// Folge auf dem Weg, der zum Schloss im Hochgebirge hinaufführt; das Kind sieht den Weg
+// weitergehen, lange bevor es ihn gehen kann.
+//
+// Update 2026-09-14, Nutzerentscheidung anhand des eingezeichneten Kartenentwurfs: Der
+// WISENT steht als sechste und letzte Station oben vor dem Schloss. Damit ist
+// produktionsplan_saga_karte_18_ansichten.md überholt — dort war für Segment 18 noch eine
+// Hochland-Wildnis ohne Bauwerk vorgesehen. Die Schildkröte an der Steinbrücke ist die
+// siebte Station; sie liegt abseits des Aufstiegs und steht weiter unten im eigenen
+// Wegpunkt (SCHILDKROETE_WEGPUNKT).
+//
+// Sie sind INHALT VON UPDATE 1 (Ende Januar 2027) und deshalb bis dahin gesperrt: nicht
+// antippbar, gedimmt, ohne Blinzeln und ohne Glühwürmchen. Im Nebel bekommen sie dieselbe
+// Behandlung wie das Burgtor — nur angelichtet, neugierig machend statt versperrt (siehe
+// baueOberlandKlarungen).
+//
+// Die Plätze sind auf dem gemalten Weg eingemessen: Der Wegverlauf wurde im HQ-Master über
+// die Wegfarbe verfolgt, die Fußpunkte liegen darauf. Die Kette SCHLÄNGELT sich dabei durch
+// den Wald — sie läuft nicht als gerade Linie den Hang hinauf, sondern folgt dem Weg mit
+// seinen Kehren, mal nach links, mal nach rechts. Ein Zwischenstand, der sie zu einem
+// gestreckten Aufstieg begradigt hatte, wurde am 2026-09-14 wieder verworfen.
+//
+// OFFEN: Der Abzweig zur Steinbrücke (Schildkröte, siehe SCHILDKROETE_WEGPUNKT) ist bisher
+// nur geografisch da — erzählerisch muss noch begründet werden, warum der Weg sich dort
+// teilt und wohin die Brücke führt.
+
+// ---------------------------------------------------------------------------------------
+// Größenhierarchie im Oberland (2026-09-14)
+// ---------------------------------------------------------------------------------------
+// Nutzer-Befund: „Das Eichhörnchen ist größer als der Luchs und Fuchs und Wisent." Stimmte —
+// die Breiten waren von Hand als reine Perspektivreihe gesetzt (40 → 25 Referenzpunkte, von
+// unten nach oben abnehmend). Damit war ausgerechnet das kleinste Tier der Kette die größte
+// Figur und der Wisent die kleinste.
+//
+// Nachgemessen an Q1–Q6 (Höhe der FIGUR in Referenzpunkten, also breiteFrac × aspekt):
+//   Igel 77 · Bär 100 · Eule 108 · Pferd 99 · Schwan 101 · Hirsch 100
+// Die Hauptkarte kennt also gar keine Perspektive: Alle Stationen stehen gleich hoch, nur
+// das eine wirklich kleine Tier (Igel) fällt auf ~0,78 ab. Das ist die Bilderbuch-Konvention
+// des Projekts — die Gefährten sind Gleiche, keine Größenstudie.
+//
+// Das Oberland übernimmt diese Konvention und ergänzt sie um das eine, was dort anders ist:
+// Der Weg führt tatsächlich in die Tiefe, vom Kartenrand bis zum Schlosstor. Deshalb
+//
+//     Figurhöhe = GRUNDHOEHE × Ferne(fy) × Artfaktor
+//
+// mit GRUNDHOEHE = 100 (der Q1–Q6-Wert), einer schwachen linearen Ferne und einem Artfaktor,
+// der dieselbe Spanne nutzt wie der Igel auf der Hauptkarte. Die Ferne ist bewusst schwach:
+// Sie soll die Tiefe andeuten, nicht die Artgröße überstimmen. Vorher tat sie genau das.
+const OBERLAND_GRUNDHOEHE = 100;
+/** Fernfaktor am unteren Rand des Oberlands (Naht zur Hauptkarte) … */
+const OBERLAND_FERNE_UNTEN = 0.58;
+/** … und ganz oben am Gipfel. Dazwischen linear. */
+const OBERLAND_FERNE_OBEN = 0.44;
+
+function oberlandFerne(fy: number) {
+  return OBERLAND_FERNE_OBEN + (OBERLAND_FERNE_UNTEN - OBERLAND_FERNE_OBEN) * fy;
+}
+
+/**
+ * Bildbreite einer Oberland-Figur in Referenzpunkten. `fy` ist der Fußpunkt als Anteil der
+ * Oberlandhöhe, `artFaktor` die Artgröße (1,0 = Standardgefährte), `aspekt` Höhe/Breite der
+ * Grafik. Gerechnet wird über die HÖHE — nur die ist zwischen verschieden breiten Tieren
+ * vergleichbar. Der Fuchs ist mit seiner Rute fast so breit wie hoch; nach Breite gestaffelt
+ * sähe er winzig aus.
+ */
+function oberlandBreite(fy: number, artFaktor: number, aspekt: number) {
+  return (OBERLAND_GRUNDHOEHE * oberlandFerne(fy) * artFaktor) / aspekt;
+}
+
+// Umgebungsleben im Oberland (2026-09-14). Bis das Oberland auf 1159 Zeilen gewachsen ist,
+// lag dort keine einzige Schleife — der obere Kartenteil war eine Standbild-Kulisse, während
+// unten Bäume schwankten und Glühwürmchen flogen. Drei genügen, und sie sitzen dort, wo die
+// Landschaft ohnehin Bewegung nahelegt: am Wasserfall rechts, an den Wipfeln links über der
+// Steinbrücke, und ein Vogel über den Schneegipfeln.
+//
+// Koordinaten als Anteil von Kartenbreite und OBERLAND-Höhe. Wie unten gilt: versetzte
+// Startverzögerungen, sonst fällt der Gleichtakt als Maschine auf.
+const AMBIENT_OBERLAND = [
+  {
+    name: "wasserfall",
+    quelle: require("../../assets/lottie/chesslynx-water-shimmer.json"),
+    fx: 0.77,
+    fy: 0.62,
+    groesseFrac: 0.2,
+    verzoegerungMs: 0,
+    tempo: 0.9,
+    deckkraft: 0.5,
+  },
+  {
+    name: "wipfel",
+    quelle: require("../../assets/lottie/chesslynx-tree-sway.json"),
+    fx: 0.13,
+    fy: 0.84,
+    groesseFrac: 0.22,
+    verzoegerungMs: 1700,
+    tempo: 0.8,
+    deckkraft: 0.6,
+  },
+  {
+    name: "bergvogel",
+    quelle: require("../../assets/lottie/chesslynx-bird-flyaway.json"),
+    fx: 0.28,
+    fy: 0.2,
+    groesseFrac: 0.16,
+    verzoegerungMs: 4300,
+    tempo: 0.85,
+    deckkraft: 0.55,
+  },
+] as const;
+
+export type GefaehrtenEintrag = {
+  id: "eichhoernchen" | "fuchs" | "dachs" | "adlerin" | "wolf" | "wisent";
+  name: string;
+  bild: ReturnType<typeof require>;
+  /** Fußpunkt als Anteil der OBERLAND-Maße. */
+  fx: number;
+  fy: number;
+  breiteFrac: number;
+  aspekt: number;
+};
+
+const O = 1159; // Zeilen des Oberlands — die fy-Werte unten sind daran gemessen.
+
+// Artfaktoren (1,0 = Standardgefährte, siehe Größenhierarchie oben). Begründung je Tier:
+//   0,78 Eichhörnchen — das kleinste Tier der Kette, exakt der Igel-Wert der Hauptkarte
+//   0,90 Dachs        — gedrungen und kurzbeinig, steht spürbar tiefer als Fuchs und Wolf
+//   0,96 Fuchs        — knapp unter Standard
+//   1,00 Adlerin      — aufrecht stehender Greifvogel, wie die Eule auf der Hauptkarte
+//   1,08 Wolf         — größer als der Fuchs, aber kein Koloss
+//   1,15 Wisent       — das größte Tier der Welt und Herr der Feste; er soll am Tor auch so
+//                       wirken. Vorher war er die KLEINSTE Figur der Karte.
+//   0,82 Schildkröte  — klein und niedrig, aber nicht ganz Eichhörnchen-Maß
+const GEFAEHRTEN_ROH = [
+  {
+    id: "eichhoernchen",
+    name: "Eichhörnchen-Lichtung",
+    bild: require("../../assets/figuren/gefaehrten/chesslynx_eichhoernchen_wegmarke.webp"),
+    fx: 1130 / 1658,
+    fy: 1155 / O,
+    artFaktor: 0.78,
+    aspekt: 320 / 215,
+  },
+  {
+    id: "fuchs",
+    name: "Fuchsbau",
+    bild: require("../../assets/figuren/gefaehrten/chesslynx_fuchs_wegmarke.webp"),
+    // 2026-09-14, vierte Korrekturrunde: noch einmal 35 Zeilen tiefer (vorher 1090). Der Weg
+    // ist dort 821–1157 breit, x 940 liegt darin.
+    fx: 940 / 1658,
+    fy: 1125 / O,
+    artFaktor: 0.96,
+    aspekt: 320 / 224,
+  },
+  {
+    id: "dachs",
+    name: "Dachshöhle",
+    bild: require("../../assets/figuren/gefaehrten/chesslynx_dachs_wegmarke.webp"),
+    fx: 760 / 1658,
+    fy: 1015 / O,
+    artFaktor: 0.9,
+    aspekt: 320 / 198,
+  },
+  {
+    id: "adlerin",
+    name: "Adlerhorst",
+    bild: require("../../assets/figuren/gefaehrten/chesslynx_adlerin_wegmarke.webp"),
+    // 2026-09-14, letzte Runde: 1030 → 1075 → 1035 und 14 Zeilen tiefer. Der Weg läuft auf
+    // y 892 von x 844 bis 1093; 1035 liegt darin, rechts der Wegmitte (968), aber nicht mehr
+    // am äußersten Rand wie bei 1075.
+    fx: 1035 / 1658,
+    fy: 892 / O,
+    artFaktor: 1.0,
+    aspekt: 320 / 172,
+  },
+  {
+    id: "wolf",
+    name: "Wolfsfeste",
+    bild: require("../../assets/figuren/gefaehrten/chesslynx_wolf_wegmarke.webp"),
+    // 2026-09-14, letzte Runde: nach unten und rechts (vorher 1160 · 710). Auf y 710 liegt
+    // die Kehre noch breit (x 976–1220); dreißig Zeilen tiefer ist der Weg dort schon nach
+    // rechts abgebogen (x 1126–1288), und 1205 steht mittig darauf.
+    fx: 1205 / 1658,
+    fy: 740 / O,
+    artFaktor: 1.08,
+    aspekt: 320 / 193,
+  },
+  {
+    id: "wisent",
+    name: "Wisent — vor dem Schlosstor",
+    bild: require("../../assets/figuren/gefaehrten/chesslynx_wisent_wegmarke.webp"),
+    fx: 1017 / 1658,
+    fy: 552 / O,
+    artFaktor: 1.15,
+    aspekt: 320 / 204,
+  },
+] as const;
+
+export const GEFAEHRTEN: GefaehrtenEintrag[] = GEFAEHRTEN_ROH.map((g) => ({
+  id: g.id,
+  name: g.name,
+  bild: g.bild,
+  fx: g.fx,
+  fy: g.fy,
+  aspekt: g.aspekt,
+  breiteFrac: oberlandBreite(g.fy, g.artFaktor, g.aspekt) / REFERENZ_BREITE,
+}));
+
+// Schildkröten-Wegpunkt (siehe Kopfkommentar weiter oben): linker Brückenkopf auf der Wiese.
+const SCHILDKROETE_WEGPUNKT = {
+  fx: 335 / 1658,
+  fy: 1055 / O,
+  breiteFrac: oberlandBreite(1055 / O, 0.82, SCHILDKROETE_ASPEKT) / REFERENZ_BREITE,
+};
+
 const BURGTOR = { fx: 263 / REFERENZ_BREITE, fy: 79 / REFERENZ_HOEHE, durchmesserFrac: 54 / REFERENZ_BREITE };
 
-type Klarung = { cx: number; cy: number; r: number; zentrum: number };
+type Klarung = {
+  cx: number;
+  cy: number;
+  r: number;
+  zentrum: number;
+  /**
+   * Anteil des Radius, bis zu dem der Zentrumswert UNVERÄNDERT gilt, bevor er zur Umgebung
+   * ausblendet (0 = sofort ausblenden, der bisherige Fall).
+   *
+   * Nutzer-Feedback 2026-09-14: "Der nebelfreie Ausschnitt sollte die ganze Figur und etwas
+   * drumherum frei machen." Ohne diesen Kern beginnt der Verlauf schon in der Mitte
+   * abzublenden — die Lichtung war damit nur in ihrem Zentrum wirklich frei, und das Tier
+   * stand mit Kopf und Schultern bereits wieder im Nebel.
+   */
+  kern?: number;
+};
 
 // Baut die Liste weicher "Lichtungen", die die Nebelmaske in das Höhenband schneidet — analog
 // zur `fortschritt-fog-mask` im alten SVG-Design-Canvas (siehe Datei-Kopfkommentar): volle
@@ -350,10 +616,24 @@ function grauwert(wert: number): string {
   return `rgb(${v}, ${v}, ${v})`;
 }
 
+// Testmodus-Vorschau (siehe `testAnsicht.ts`): Bis zu diesem Anteil der Oberland-Höhe
+// liegt gar kein Nebel; darunter blendet er wieder ein, bis er an der obersten Wegmarke der
+// Karte (Quest 6) seinen normalen Wert erreicht hat.
+//
+// Warum nicht einfach die Nebel-Ebene des Oberlands weglassen: An der Naht zwischen Oberland
+// und Karte stünde dann eine harte waagerechte Kante — oben klar, direkt darunter voller
+// Nebel (der senkrechte Verlauf liegt dort ohne Fortschritt bei 1). Die Einblendung läuft
+// stattdessen über die Naht hinweg und ist erst an Quest 6 fertig; von dort abwärts bleibt
+// die Karte in der Vorschau unverändert. Der unterste Gefährte (Eichhörnchen, fy ≈ 0,997)
+// steht zwar im Anlauf der Einblendung, wird aber wie alle anderen von seiner eigenen
+// Lichtung (NEBEL_KLARUNG_VOLL samt Kern) freigestellt.
+const VORSCHAU_OBERLAND_FREI_BIS = 0.92;
+
 function baueNebelVerlauf(
   status: Record<QuestId, WegmarkeStatus> | null,
   oberlandHoehe: number,
-  hoehe: number
+  hoehe: number,
+  oberlandFrei = false
 ): { offset: number; wert: number }[] {
   const gesamt = oberlandHoehe + hoehe;
   const erledigt = WEGMARKEN.filter((w) => status?.[w.quest] === "erledigt").length;
@@ -366,6 +646,14 @@ function baueNebelVerlauf(
     return { offset: (oberlandHoehe + w.fy * hoehe) / gesamt, wert };
   });
   stufen.reverse();
+  if (oberlandFrei) {
+    return [
+      { offset: 0, wert: 0 },
+      { offset: (oberlandHoehe * VORSCHAU_OBERLAND_FREI_BIS) / gesamt, wert: 0 },
+      ...stufen,
+      { offset: 1, wert: 0 },
+    ];
+  }
   return [{ offset: 0, wert: 1 }, ...stufen, { offset: 1, wert: 0 }];
 }
 
@@ -411,12 +699,41 @@ function klarungsFarben(
   return [grauwert(Math.min(k.zentrum, aussen)), grauwert(aussen)];
 }
 
+/**
+ * Eine Lichtung, die eine stehende Figur vollständig freistellt.
+ *
+ * `cx`/`cy` ist der FUSSPUNKT der Figur (dort sitzt die Wegmarke), `breite`/`aspekt` ihre
+ * Maße. Der Kreis wird auf die Mitte der Figur gehoben und so bemessen, dass die Figur samt
+ * einem Fünftel ihrer halben Höhe als Rand vollständig im freien Kern liegt; erst danach
+ * blendet er zur Umgebung aus.
+ *
+ * Vorher saß die Lichtung am Fußpunkt und war kleiner als die Figur — der Kopf ragte oben
+ * heraus und stand wieder im Nebel.
+ */
+function figurLichtung(
+  cx: number,
+  cy: number,
+  breite: number,
+  aspekt: number,
+  zentrum: number = NEBEL_KLARUNG_VOLL
+): Klarung {
+  const figurHoehe = breite * aspekt;
+  const halb = Math.max(figurHoehe, breite) / 2;
+  return {
+    cx,
+    cy: cy - figurHoehe / 2,
+    r: halb * 2,
+    zentrum,
+    // 0,6 × Radius = 1,2 × halbe Figurhöhe: die Figur plus 20 % Rand liegen im freien Kern.
+    kern: 0.6,
+  };
+}
+
 function baueNebelKlarungen(
   status: Record<QuestId, WegmarkeStatus> | null,
   breite: number,
   hoehe: number
 ): Klarung[] {
-  const wegmarkenRadius = 0.17 * breite;
   const pfadRadius = 0.1 * breite;
   const klarungen: Klarung[] = [
     // Lichtungs-Eingang unten (vor der ersten Wegmarke) — immer leicht angelichtet.
@@ -427,10 +744,8 @@ function baueNebelKlarungen(
     const zustand = status?.[w.quest] ?? "gesperrt";
     const cx = w.fx * breite;
     const cy = w.fy * hoehe;
-    if (zustand === "erledigt") {
-      klarungen.push({ cx, cy, r: wegmarkenRadius, zentrum: NEBEL_KLARUNG_VOLL });
-    } else if (zustand === "naechstes") {
-      klarungen.push({ cx, cy, r: wegmarkenRadius * 0.85, zentrum: NEBEL_KLARUNG_NAECHSTES });
+    if (zustand === "erledigt" || zustand === "naechstes") {
+      klarungen.push(figurLichtung(cx, cy, w.breiteFrac * breite, w.aspekt));
     }
 
     // Pfad-Zwischenpunkte zur nächsten Wegmarke (bzw. zum Burgtor nach der letzten) — nur wenn
@@ -501,6 +816,12 @@ export function LuchsRevierKarte({
   const breite = breiteVorgabe && breiteVorgabe > 0 ? breiteVorgabe : gemesseneBreite;
   const [status, setStatus] = useState<Record<QuestId, WegmarkeStatus> | null>(null);
   const [steinbruecke, setSteinbruecke] = useState<WegmarkeStatus>("gesperrt");
+  // Testmodus-Ansichten (siehe lib/testAnsicht.ts). Lesen bei jedem Fokussieren neu, weil
+  // KidHome — anders als die Quest-Screens — beim Zurückkommen aus dem Eltern-Bereich
+  // nicht neu gemountet wird.
+  const gefaehrtenVorschau = useTestAnsicht("gefaehrtenVorschau");
+  const alleGruessen = useTestAnsicht("alleGruessen");
+  const nebelAus = useTestAnsicht("nebelAus");
   const onSteinbrueckeWartetRef = useRef(onSteinbrueckeWartet);
   onSteinbrueckeWartetRef.current = onSteinbrueckeWartet;
 
@@ -558,7 +879,24 @@ export function LuchsRevierKarte({
   const burgtorDurchmesser = BURGTOR.durchmesserFrac * breite;
   const torOffen = steinbruecke !== "gesperrt";
   const nebelKlarungen = breite > 0 ? baueNebelKlarungen(status, breite, hoehe) : [];
-  const nebelVerlauf = breite > 0 ? baueNebelVerlauf(status, oberlandHoehe, hoehe) : [];
+  // In der Testmodus-Vorschau liegt über dem Oberland kein Nebel mehr (Nutzerwunsch
+  // 2026-09-14: "ungedimmt und nebelfrei anzeigen bitte"). Die sieben Lichtungen allein
+  // genügten dafür nicht — sieben kleine Aufhellungen in einem sonst vollen Höhenband
+  // lassen das Oberland weiter vernebelt wirken. Der Verlauf selbst muss weg.
+  //
+  // `nebelAus` geht weiter und nimmt den Nebel auf der GANZEN Karte weg, unabhängig vom
+  // Fortschritt. Ein durchgehend schwarzer Verlauf maskiert die Nebeltextur vollständig
+  // aus; die Lichtungen werden dadurch von selbst unsichtbar (`klarungsFarben` rechnet
+  // sie gegen die Umgebung, und die ist hier überall frei).
+  const nebelVerlauf =
+    breite <= 0
+      ? []
+      : nebelAus
+        ? [
+            { offset: 0, wert: 0 },
+            { offset: 1, wert: 0 },
+          ]
+        : baueNebelVerlauf(status, oberlandHoehe, hoehe, gefaehrtenVorschau);
   const nebelGesamtHoehe = oberlandHoehe + hoehe;
   // Paket 3: bei offenem Schlosstor lichtet sich der Weg vom Burgtor bis zur Oberkante der
   // Karte (dort geht er im Oberland-Stück weiter, siehe oberlandKlarungen).
@@ -587,12 +925,11 @@ export function LuchsRevierKarte({
         r: 0.1 * breite,
         zentrum: NEBEL_KLARUNG_VOLL,
       });
-      oberlandKlarungen.push({
-        cx: turtleX,
-        cy: turtleY - oberlandHoehe * 0.2,
-        r: 0.2 * breite,
-        zentrum: steinbruecke === "erledigt" ? NEBEL_KLARUNG_VOLL : NEBEL_KLARUNG_NAECHSTES,
-      });
+      // Dieselbe Rechnung wie bei den Quest-Tieren: Die Lichtung stellt die ganze Figur
+      // frei, nicht nur die Stelle, an der sie steht.
+      oberlandKlarungen.push(
+        figurLichtung(turtleX, turtleY, SCHILDKROETE_WEGPUNKT.breiteFrac * breite, SCHILDKROETE_ASPEKT)
+      );
       if (steinbruecke === "erledigt") {
         // Ganz aufgedeckt: auch Brücke und Wiese drumherum.
         oberlandKlarungen.push({ cx: 0.3 * breite, cy: 0.55 * oberlandHoehe, r: 0.22 * breite, zentrum: NEBEL_KLARUNG_VOLL });
@@ -601,7 +938,23 @@ export function LuchsRevierKarte({
     } else {
       // Schlosstor noch zu: die Schildkröte schimmert nur ganz leicht durch die Wolken —
       // genau wie das Burgtor (NEBEL_KLARUNG_BURGTOR), neugierig machend statt versperrt.
-      oberlandKlarungen.push({ cx: turtleX, cy: turtleY - oberlandHoehe * 0.2, r: 0.14 * breite, zentrum: NEBEL_KLARUNG_BURGTOR });
+      oberlandKlarungen.push(figurLichtung(turtleX, turtleY, SCHILDKROETE_WEGPUNKT.breiteFrac * breite, SCHILDKROETE_ASPEKT, NEBEL_KLARUNG_BURGTOR));
+    }
+    // Die Gefährten schimmern dauerhaft durch, unabhängig vom Fortschritt: Sie sind
+    // Update-1-Inhalt, und genau das sollen sie erzählen — der Weg geht weiter. Derselbe
+    // Wert wie beim Burgtor.
+    //
+    // Mit der Testmodus-Vorschau (2026-09-14) stehen sie stattdessen ganz frei, damit
+    // Illustration, Größenstaffelung und Platz auf dem Weg beurteilbar sind. Dort liegt
+    // ohnehin kein Nebel mehr (siehe `nebelVerlauf` weiter unten), die Lichtung ist damit
+    // wirkungslos — `klarungsFarben` rechnet sie gegen die Umgebung und sie verschwindet.
+    // Sie bleibt trotzdem auf diesem Wert, damit der Anlauf der Nebel-Einblendung unten am
+    // Eichhörnchen nicht doch noch Schleier auf die Figur legt.
+    const gefaehrtenLichtung = gefaehrtenVorschau ? NEBEL_KLARUNG_VOLL : NEBEL_KLARUNG_BURGTOR;
+    for (const g of GEFAEHRTEN) {
+      oberlandKlarungen.push(
+        figurLichtung(g.fx * breite, g.fy * oberlandHoehe, g.breiteFrac * breite, g.aspekt, gefaehrtenLichtung)
+      );
     }
   }
   const turtleBreite = SCHILDKROETE_WEGPUNKT.breiteFrac * breite;
@@ -625,6 +978,47 @@ export function LuchsRevierKarte({
             onPress={steinbruecke === "gesperrt" ? undefined : onSelectSteinbruecke}
             pausiert={!karteSichtbar}
           />
+          {AMBIENT_OBERLAND.map((a) => {
+            const seite = a.groesseFrac * breite;
+            return (
+              <AmbientLoop
+                key={a.name}
+                quelle={a.quelle}
+                groesse={seite}
+                position={{ left: a.fx * breite - seite / 2, top: a.fy * oberlandHoehe - seite / 2 }}
+                verzoegerungMs={a.verzoegerungMs}
+                tempo={a.tempo}
+                deckkraft={a.deckkraft}
+                pausiert={!karteSichtbar}
+              />
+            );
+          })}
+          {/* Die fünf Gefährten. Bewusst dieselbe `Wegmarke`-Komponente wie alle anderen
+              Stationen — sie bringt Fußpunkt-Verankerung und Bodenschatten mit, und wenn die
+              Reviere in Update 1 spielbar werden, genügt hier ein `zustand` und ein
+              `onPress`. Bis dahin: gesperrt, also gedimmt und nicht antippbar. */}
+          {/* Von hinten nach vorn: Die Liste läuft von unten (nah) nach oben (fern); gezeichnet
+              wird umgekehrt, damit eine näher stehende Figur eine weiter entfernte überdeckt
+              und nicht andersherum. Auf dem Zickzack des Weges stehen die Stationen dicht
+              beieinander — ohne diese Reihenfolge stünde der Wolf vor der Adlerin, obwohl er
+              hinter ihr den Berg hinaufgeht. */}
+          {[...GEFAEHRTEN].reverse().map((g) => {
+            const gBreite = g.breiteFrac * breite;
+            return (
+              <Wegmarke
+                key={g.id}
+                bild={g.bild}
+                left={g.fx * breite}
+                top={g.fy * oberlandHoehe}
+                breite={gBreite}
+                hoehe={gBreite * g.aspekt}
+                // "erledigt" heißt hier NUR volle Deckkraft — kein `onPress` wird
+                // übergeben, die Wegmarke bleibt also in jedem Fall nicht antippbar.
+                // Glühwürmchen bekommt sie ebenfalls nicht, die hängen an "naechstes".
+                zustand={gefaehrtenVorschau ? "erledigt" : "gesperrt"}
+              />
+            );
+          })}
           {/* Nebel wie auf der Karte darunter, aber vertikal gespiegelt: so trifft die
               Unterkante dieses Stücks genau auf dieselbe Nebelzeile (Oberkante des
               Höhenbands) wie die Oberkante der Karte — kein sichtbarer Nebel-Sprung an der
@@ -650,6 +1044,9 @@ export function LuchsRevierKarte({
                 return (
                   <RadialGradient key={i} id={`oberlandKlarung-${i}`} cx="50%" cy="50%" r="50%">
                     <Stop offset="0%" stopColor={innen} stopOpacity={1} />
+                    {/* Der Kern hält den Innenwert, bis die Figur ganz frei ist — erst
+                        danach wird zur Umgebung ausgeblendet. */}
+                    <Stop offset={`${Math.round((k.kern ?? 0) * 100)}%`} stopColor={innen} stopOpacity={1} />
                     <Stop offset="100%" stopColor={aussen} stopOpacity={1} />
                   </RadialGradient>
                 );
@@ -736,7 +1133,12 @@ export function LuchsRevierKarte({
                 // Die sechs Quest-Tiere kommen als Zustandsfamilie (blinzeln, und das
                 // nächste grüßt); die Schildkröte weiter oben ist weiterhin ein Standbild.
                 tier={w.quest}
-                gruesst={zustand === "naechstes"}
+                // Normalfall: Die Geste markiert die nächste Station. Wer alles freigespielt
+                // hat, sieht sie deshalb nirgends mehr — es gibt kein „nächstes". Der
+                // Testmodus-Schalter lässt sie dann bei allen erledigten Tieren mitlaufen,
+                // damit sich die sechs Gesten überhaupt prüfen lassen. Gesperrte Tiere
+                // grüßen weiterhin nicht: Sie stehen im Nebel.
+                gruesst={zustand === "naechstes" || (alleGruessen && zustand === "erledigt")}
                 pausiert={!karteSichtbar}
                 left={w.fx * breite}
                 top={w.fy * hoehe}
@@ -756,7 +1158,7 @@ export function LuchsRevierKarte({
           <Svg
             width={breite}
             height={hoehe}
-            style={StyleSheet.absoluteFillObject}
+            style={StyleSheet.absoluteFill}
             pointerEvents="none"
           >
             <Defs>
@@ -767,6 +1169,9 @@ export function LuchsRevierKarte({
                 return (
                   <RadialGradient key={i} id={`nebelKlarung-${i}`} cx="50%" cy="50%" r="50%">
                     <Stop offset="0%" stopColor={innen} stopOpacity={1} />
+                    {/* Der Kern hält den Innenwert, bis die Figur ganz frei ist — erst
+                        danach wird zur Umgebung ausgeblendet. */}
+                    <Stop offset={`${Math.round((k.kern ?? 0) * 100)}%`} stopColor={innen} stopOpacity={1} />
                     <Stop offset="100%" stopColor={aussen} stopOpacity={1} />
                   </RadialGradient>
                 );
@@ -841,12 +1246,11 @@ function Wegmarke({
   // ein exakter Kreis mit 3 px Kontur — die Formensprache eines Bedienelements, am unteren
   // Kartenrand zudem angeschnitten, sodass er als Bogen erschien.
   //
-  // An seiner Stelle ziehen Glühwürmchen um die nächste Wegmarke. Es ist dieselbe
-  // Lottie-Schleife, die schon als Umgebungsleben auf der Karte liegt (AMBIENT_SCHLEIFEN
-  // oben) — kein neues Asset, keine neue Formensprache, und sie sagt dasselbe: hier ist
-  // etwas los. Zusammen mit der Lichtung im Nebel und der grüßenden Geste des Tieres reicht
-  // das dreifach.
-  const gluehwuermchenGroesse = breite * 1.7;
+  // An seiner Stelle schweben Glühwürmchen um die nächste Wegmarke (siehe
+  // Gluehwuermchen.tsx — bewusst nicht die vorhandene Lottie-Schleife, die im Browser
+  // unsichtbar bliebe). Zusammen mit der Lichtung im Nebel und der grüßenden Geste des
+  // Tieres ist die nächste Station dreifach markiert, ohne ein Wort Text.
+  const leuchtfeld = hoehe * 1.15;
 
   return (
     <Pressable
@@ -856,19 +1260,15 @@ function Wegmarke({
       style={[styles.wegmarke, { left: left - breite / 2, top: top - hoehe, width: breite, height: hoehe }]}
     >
       {zustand === "naechstes" && (
-        <AmbientLoop
-          quelle={gluehwuermchen}
-          groesse={gluehwuermchenGroesse}
-          position={{
-            left: breite / 2 - gluehwuermchenGroesse / 2,
-            // Auf Höhe des Körpers, nicht der Füße: Dort fallen die Lichtpunkte gegen die
-            // Silhouette auf, unten würden sie im Schatten und im Weg untergehen.
-            top: hoehe * 0.45 - gluehwuermchenGroesse / 2,
-          }}
-          verzoegerungMs={0}
-          tempo={0.85}
-          deckkraft={0.9}
+        <Gluehwuermchen
+          kante={leuchtfeld}
           pausiert={pausiert}
+          style={{
+            left: breite / 2 - leuchtfeld / 2,
+            // Um den Körper, nicht um die Füße: Dort heben sich die Lichtpunkte gegen die
+            // Silhouette und den Himmel ab, unten gingen sie im Weg und im Schatten unter.
+            top: hoehe * 0.45 - leuchtfeld / 2,
+          }}
         />
       )}
       <View

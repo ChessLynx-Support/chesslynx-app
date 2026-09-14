@@ -62,8 +62,8 @@ import { useUntertitelAktiv } from "../lib/untertitelEinstellung";
 import {
   useHinweiseAktiv,
   useHinweisEinfuehrungGezeigt,
-  HINWEIS_ANGEBOT_ZEILE,
-  HINWEIS_EINFUEHRUNG_SATZ,
+  hinweisAngebotZeile,
+  hinweisEinfuehrungSatz,
   type HinweisPhase,
 } from "../lib/luxHinweis";
 import { QuestGeschafft } from "../components/QuestGeschafft";
@@ -166,7 +166,7 @@ export default function Fesselung() {
   // statt eine eigene Sprechpause zu erzwingen (siehe Vorschlagsdokument, Teil B2).
   const introSichtbar = screen === 2 && hinweiseAktiv && !introGezeigt;
   const lines = introSichtbar
-    ? [SCREEN_SCRIPTS[2][0] + HINWEIS_EINFUEHRUNG_SATZ, ...SCREEN_SCRIPTS[2].slice(1)]
+    ? [SCREEN_SCRIPTS[2][0] + hinweisEinfuehrungSatz(), ...SCREEN_SCRIPTS[2].slice(1)]
     : SCREEN_SCRIPTS[screen];
   const isLastLine = lineIndex === lines.length - 1;
 
@@ -228,7 +228,7 @@ export default function Fesselung() {
   const zeigeZielringe = !hinweiseAktiv || hinweisPhase === "hinweis";
   const sprechSchluessel = hinweisPhase === "still" ? `${screen}-${lineIndex}` : `${screen}-${hinweisPhase}`;
   const sprechZeile =
-    hinweisPhase === "still" ? lines[lineIndex] : hinweisPhase === "angebot" ? HINWEIS_ANGEBOT_ZEILE : hinweisInhaltFuer(screen);
+    hinweisPhase === "still" ? lines[lineIndex] : hinweisPhase === "angebot" ? hinweisAngebotZeile() : hinweisInhaltFuer(screen);
   // Nutzerfeedback 2026-09-09: auf der letzten Zeile eines reinen Erzähl-Screens
   // (TIPP_SCREENS) geht es jetzt nach einer ruhigen Pause von selbst zum nächsten Screen
   // weiter, statt (wie zuvor bei autoWeiter-Screens ohne definiertes Nachfolge-Ziel) in

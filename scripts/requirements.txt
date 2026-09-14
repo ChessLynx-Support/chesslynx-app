@@ -1,0 +1,26 @@
+# Python-Pakete für die Skripte in diesem Ordner.
+#
+# Installieren (Windows, PowerShell, im Projektverzeichnis):
+#     py -m pip install -r scripts/requirements.txt
+#
+# Die Bildskripte laufen NICHT ohne diese drei. Sie gehören nicht zur App —
+# React Native bringt kein Python mit; die Skripte bauen nur die Assets, die
+# danach als fertige Dateien im Repository liegen.
+
+# Bildverarbeitung: rig_master.py, zustand_montage.py, zustand_einpassen.py,
+# zustand_kopfsenken.py, kopf_einpassen.py
+numpy>=1.26
+Pillow>=10.0
+
+# Zusammenhängende Flächen und Verzerrung: zustand_montage.py (binary_closing,
+# binary_dilation, label), zustand_kopfsenken.py (map_coordinates)
+scipy>=1.11
+
+# Nur für lichess_filter.py — prüft die Lichess-Rätsel gegen eine echte
+# Schach-Engine. Wird erst für Update 2 gebraucht.
+chess>=1.10
+
+# Nur für tts_voranhoeren.py — Stimmen-Voranhören über Google Cloud TTS.
+# Braucht zusätzlich einen Service-Account-Schlüssel, siehe
+# tts_pipeline_festlegungen_2026-09-10.md.
+google-cloud-texttospeech>=2.16

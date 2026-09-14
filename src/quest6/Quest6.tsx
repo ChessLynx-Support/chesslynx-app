@@ -300,6 +300,17 @@ export default function Quest6() {
   // Neu (2026-09-08, Task #110, siehe PHASE_LINES-Kommentar oben und Quest1.tsx): nur für
   // Screen 2 relevant, treibt dort, welche Zeilen gerade angezeigt/gesprochen werden.
   const [movePhase, setMovePhase] = useState<QuestPhase>("vorfuehrung");
+  // Gerätetest 2026-09-14 (Nutzer zu Quest 1: "die Verwandlung wird abgebrochen, nach 'now
+  // watch closely' wird schon übergeblendet"): Die Verwandlungs-Animation lief bisher los,
+  // sobald ihr Screen erschien — also gleichzeitig mit Lux' Ankündigung. Nach ~1,9 s war sie
+  // durch und schaltete weiter, was den noch laufenden Satz abschnitt. Ankündigung und
+  // angekündigtes Ereignis fielen damit zusammen.
+  //
+  // Jetzt hält dieser Zustand die Sequenz zurück, bis Lux die Zeile zu Ende gesprochen hat
+  // (siehe `onFertig` beim Sprechzeilen-Hook weiter unten und `starten` an <Verwandlung>).
+  // Er kann nicht hängen bleiben: Der Hook meldet das Ende in jedem Fall, notfalls über sein
+  // Sicherheitsnetz, selbst wenn die Sprachausgabe ganz ausfällt.
+  const [verwandlungBereit, setVerwandlungBereit] = useState(false);
   // Paket 2: aktuelle Stellung im Mini-Spiel (0–3) und eingeschobene Zeile.
   const [miniIndex, setMiniIndex] = useState(0);
   const [einschub, setEinschub] = useState<Einschub | null>(null);
@@ -375,6 +386,12 @@ export default function Quest6() {
         setEinschub(null);
         danach?.();
       }
+    // Auf dem Verwandlungs-Screen bedeutet "Zeile fertig gesprochen" nicht "nächste Zeile",
+    // sondern "jetzt darf die Verwandlung beginnen" (siehe verwandlungBereit oben). Dass hier
+    // überhaupt ein Handler steht, schaltet nebenbei die 8-Sekunden-Erinnerung ab — die wäre
+    // auf diesem Screen ohnehin sinnlos, weil das Kind nichts tun soll außer zuzusehen.
+    : screen === "verwandlung"
+    ? () => setVerwandlungBereit(true)
     : screen === "mattFeier" && isLastLine
       ? () => {
           geheZu(7);
@@ -458,6 +475,9 @@ export default function Quest6() {
           tier={<QuestTierIcon quest="quest6" size={150} />}
           grossGroesse={150}
           kleinGroesse={34}
+          // Erst losreißen, wenn Lux zu Ende gesprochen hat (siehe verwandlungBereit oben).
+          // Bis dahin steht das Tier ruhig da, während die Ankündigung läuft.
+          starten={verwandlungBereit}
           onDone={() => geheZu(2)}
         />
       )}

@@ -132,6 +132,17 @@ export default function Quest5() {
   const [lineIndex, setLineIndex] = useState(0);
   // Neu (2026-09-08, Task #109, siehe PHASE_LINES-Kommentar oben und Quest1.tsx).
   const [movePhase, setMovePhase] = useState<QuestPhase>("vorfuehrung");
+  // Gerätetest 2026-09-14 (Nutzer zu Quest 1: "die Verwandlung wird abgebrochen, nach 'now
+  // watch closely' wird schon übergeblendet"): Die Verwandlungs-Animation lief bisher los,
+  // sobald ihr Screen erschien — also gleichzeitig mit Lux' Ankündigung. Nach ~1,9 s war sie
+  // durch und schaltete weiter, was den noch laufenden Satz abschnitt. Ankündigung und
+  // angekündigtes Ereignis fielen damit zusammen.
+  //
+  // Jetzt hält dieser Zustand die Sequenz zurück, bis Lux die Zeile zu Ende gesprochen hat
+  // (siehe `onFertig` beim Sprechzeilen-Hook weiter unten und `starten` an <Verwandlung>).
+  // Er kann nicht hängen bleiben: Der Hook meldet das Ende in jedem Fall, notfalls über sein
+  // Sicherheitsnetz, selbst wenn die Sprachausgabe ganz ausfällt.
+  const [verwandlungBereit, setVerwandlungBereit] = useState(false);
 
   const lines = screen === 2 ? PHASE_LINES[movePhase] : SCREEN_SCRIPTS[screen];
   const isLastLine = lineIndex === lines.length - 1;
@@ -183,11 +194,17 @@ export default function Quest5() {
   const { wiederholen, aktuelleZeile } = useLuxSprechzeile(
     zeilenSchluessel,
     zeileZuSprechen,
-    autoWeiter && !isLastLine
-      ? () => setLineIndex((i) => i + 1)
-      : screen === 0 && isLastLine
-        ? () => setTimeout(() => advanceOrGo(1), 700)
-        : undefined,
+    // Auf dem Verwandlungs-Screen bedeutet "Zeile fertig gesprochen" nicht "nächste Zeile",
+    // sondern "jetzt darf die Verwandlung beginnen" (siehe verwandlungBereit oben). Dass hier
+    // überhaupt ein onFertig steht, schaltet nebenbei die 8-Sekunden-Erinnerung ab — die wäre
+    // auf diesem Screen ohnehin sinnlos, weil das Kind nichts tun soll außer zuzusehen.
+    screen === "verwandlung"
+      ? () => setVerwandlungBereit(true)
+      : autoWeiter && !isLastLine
+        ? () => setLineIndex((i) => i + 1)
+        : screen === 0 && isLastLine
+          ? () => setTimeout(() => advanceOrGo(1), 700)
+          : undefined,
     { onErinnerung: () => { erinnerungenRef.current += 1; } }
   );
   // Echter Eltern-Dashboard-Schalter statt der früheren ZEIGE_UNTERTITEL-Konstante,
@@ -253,6 +270,9 @@ export default function Quest5() {
           tier={<QuestTierIcon quest="quest5" size={150} />}
           grossGroesse={150}
           kleinGroesse={34}
+          // Erst losreißen, wenn Lux zu Ende gesprochen hat (siehe verwandlungBereit oben).
+          // Bis dahin steht das Tier ruhig da, während die Ankündigung läuft.
+          starten={verwandlungBereit}
           onDone={() => {
             setLineIndex(0);
             setScreen(2);

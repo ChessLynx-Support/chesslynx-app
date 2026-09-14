@@ -74,6 +74,9 @@ import Svg, { Circle, Defs, Image as SvgBild, Mask, RadialGradient, Rect, Stop }
 import { WaldHintergrund } from "../components/WaldHintergrund";
 import { Funkeln } from "../components/Funkeln";
 import { WEGMARKEN, MAP_ASPECT } from "../components/LuchsRevierKarte";
+// Die Wegmarken-Tiere kommen seit dem 2026-09-14 aus der Zustandsfamilie statt aus einem
+// Standbild-Feld `bild` (siehe lib/questTiere.tsx und `Wegmarke` in LuchsRevierKarte.tsx).
+import { QuestTierWegmarke } from "../lib/questTiere";
 
 const hintergrundKarte = require("../../assets/hintergrund/luchsrevier_wisentfeste.webp");
 // Dasselbe durchgehende Nebel-Höhenband wie in LuchsRevierKarte.tsx (siehe dortiger
@@ -262,11 +265,11 @@ export default function WillkommensFlugProbe() {
             <Animated.View
               pointerEvents="none"
               style={[
-                StyleSheet.absoluteFillObject,
+                StyleSheet.absoluteFill,
                 { opacity: szenenUeberblendung.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }) },
               ]}
             >
-              <View style={StyleSheet.absoluteFillObject}>
+              <View style={StyleSheet.absoluteFill}>
                 <WaldHintergrund variante={1} />
               </View>
               {WEGMARKEN.map((w, i) => {
@@ -278,10 +281,8 @@ export default function WillkommensFlugProbe() {
                 const bildHoehe = bildBreite * w.aspekt;
                 const fortschritt = versteckWerte[i];
                 return (
-                  <Animated.Image
+                  <Animated.View
                     key={w.quest}
-                    source={w.bild}
-                    resizeMode="contain"
                     {...ANDROID_FIX_PROPS}
                     style={{
                       position: "absolute",
@@ -289,6 +290,8 @@ export default function WillkommensFlugProbe() {
                       top: startY - bildHoehe,
                       width: bildBreite,
                       height: bildHoehe,
+                      alignItems: "center",
+                      justifyContent: "flex-end",
                       opacity: fortschritt.interpolate({ inputRange: [0, 0.15, 1], outputRange: [1, 1, 0] }),
                       transform: [
                         { translateX: fortschritt.interpolate({ inputRange: [0, 1], outputRange: [0, zielX - startX] }) },
@@ -296,7 +299,9 @@ export default function WillkommensFlugProbe() {
                         { scale: fortschritt.interpolate({ inputRange: [0, 0.3, 1], outputRange: [1, 1.08, 0.35] }) },
                       ],
                     }}
-                  />
+                  >
+                    <QuestTierWegmarke quest={w.quest} breite={bildBreite} blinzeln={false} />
+                  </Animated.View>
                 );
               })}
             </Animated.View>
@@ -304,7 +309,7 @@ export default function WillkommensFlugProbe() {
             {/* Karten-Szene */}
             <Animated.View
               pointerEvents="none"
-              style={[StyleSheet.absoluteFillObject, { opacity: szenenUeberblendung }]}
+              style={[StyleSheet.absoluteFill, { opacity: szenenUeberblendung }]}
             >
               <ImageBackground source={hintergrundKarte} style={{ width: breite, height: hoehe }} resizeMode="cover">
                 {WEGMARKEN.map((w, i) => {
@@ -360,16 +365,20 @@ export default function WillkommensFlugProbe() {
                           ]}
                         />
                       )}
-                      <Animated.Image
-                        source={w.bild}
-                        resizeMode="contain"
+                      <Animated.View
                         {...ANDROID_FIX_PROPS}
                         style={{
                           width: bildBreite,
                           height: bildHoehe,
+                          // Wie in LuchsRevierKarte.tsx (styles.wegmarke): Das Tier steht am
+                          // unteren Rand seiner Box, damit die Füße auf dem Weg aufsetzen.
+                          alignItems: "center",
+                          justifyContent: "flex-end",
                           opacity: nebelRueckfall.interpolate({ inputRange: [0, 1], outputRange: [1, NEBEL_GEDIMMT] }),
                         }}
-                      />
+                      >
+                        <QuestTierWegmarke quest={w.quest} breite={bildBreite} blinzeln={false} />
+                      </Animated.View>
                     </Animated.View>
                   );
                 })}
@@ -383,9 +392,9 @@ export default function WillkommensFlugProbe() {
                     mit dem dort dokumentierten Android/Fabric-Fallstrick-Hinweis. */}
                 <Animated.View
                   pointerEvents="none"
-                  style={[StyleSheet.absoluteFillObject, { opacity: nebelGesamtdeckung }]}
+                  style={[StyleSheet.absoluteFill, { opacity: nebelGesamtdeckung }]}
                 >
-                  <Svg width={breite} height={hoehe} style={StyleSheet.absoluteFillObject}>
+                  <Svg width={breite} height={hoehe} style={StyleSheet.absoluteFill}>
                     <Defs>
                       <RadialGradient id="klarungIgelProbe" cx="50%" cy="50%" r="50%">
                         <Stop offset="0%" stopColor={NEBEL_KLARUNG_NAECHSTES} stopOpacity={1} />

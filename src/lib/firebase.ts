@@ -18,11 +18,25 @@ import { Platform } from "react-native";
 import { initializeApp, type FirebaseApp, type FirebaseOptions } from "firebase/app";
 import {
   browserLocalPersistence,
-  getReactNativePersistence,
   initializeAuth,
   useDeviceLanguage,
   type Auth,
 } from "firebase/auth";
+// `getReactNativePersistence` bewusst getrennt importiert, damit die Unterdrückung genau
+// diese eine Zeile trifft und nicht den ganzen Import-Block (2026-09-14, aufgefallen beim
+// ersten Typecheck, der überhaupt gelaufen ist — siehe tsconfig.json):
+//
+// Die Funktion existiert in firebase 11.10 nur im "react-native"-Zweig der Exportkarte von
+// @firebase/auth. Metro löst diesen Zweig zur Laufzeit korrekt auf, deshalb funktioniert die
+// Anmeldung auf dem Gerät seit jeher. TypeScript liest dagegen die Browser-Typen, und dort
+// ist sie nicht deklariert. Es ist also keine Lücke im Code — der `Platform.OS`-Zweig unten
+// ist bereits richtig —, sondern eine Lücke in Firebases Typauslieferung.
+//
+// `@ts-expect-error` statt `@ts-ignore`: Liefert Firebase die Typen eines Tages nach, meldet
+// der Typecheck die dann überflüssige Unterdrückung. Die Zeile verschwindet dadurch von
+// selbst, statt für immer stillschweigend stehen zu bleiben.
+// @ts-expect-error -- siehe Begründung oben
+import { getReactNativePersistence } from "firebase/auth";
 import { getFirestore, type Firestore } from "firebase/firestore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 

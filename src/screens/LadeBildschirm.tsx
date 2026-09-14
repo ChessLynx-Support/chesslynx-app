@@ -233,7 +233,7 @@ const styles = StyleSheet.create({
   // Kindern/Eltern, dass hier etwas antippbar ist, statt sie vor einem scheinbar
   // eingefrorenen Bild stehen zu lassen.
   playUeberlagerung: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "rgba(0,0,0,0.25)",

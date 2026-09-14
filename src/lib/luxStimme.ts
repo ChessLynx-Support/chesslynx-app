@@ -19,6 +19,7 @@
 // Schritt lässt sich die App gar nicht mehr bündeln ("Unable to resolve module").
 
 import { useEffect, useState } from "react";
+import { Platform } from "react-native";
 import * as Speech from "expo-speech";
 import { stimmeOptionen, bevorzugteStimmeIdSynchron, leseBevorzugteStimmeId } from "./stimmeAuswahl";
 import { sprache } from "./sprache";
@@ -109,28 +110,75 @@ function stelleStimmeBereit() {
  * Abbruch (erneuter sprich()-Aufruf oder stoppen()) unterbrochen wurde — sonst würde ein
  * schnelles Weitertippen fälschlich als "Zeile zu Ende gesprochen" gewertet.
  *
+ * `onStart` meldet den HÖRBAREN Beginn genau dieser Äußerung (seit 2026-09-14). Zwischen
+ * diesem Aufruf und dem ersten Ton liegen je nach Plattform 100-500 ms, im Browser beim
+ * ersten Satz einer Stimme auch mehr. `useLuxSprechzeile.ts` braucht diese Auskunft, um den
+ * Beginn der neuen Zeile vom Nachhall der gerade abgebrochenen vorherigen unterscheiden zu
+ * können — ohne sie war im Browser beides nicht auseinanderzuhalten, und die Führung
+ * schaltete mitten im ersten Wort weiter (siehe die ausführliche Begründung dort).
+ *
  * Ruft `stelleStimmeBereit()` bei jedem Aufruf auf (billige No-Op nach dem ersten Mal) —
  * die Stimmen-Ermittlung läuft asynchron im Hintergrund, deshalb kann die allererste
  * gesprochene Zeile der App (meist die Onboarding-Begrüßung) noch mit der System-
  * standardstimme herauskommen, bevor `automatischeStimme` gesetzt ist; jede folgende
  * Zeile profitiert dann bereits davon.
  */
-export function sprich(zeile: string, optionen?: { onFertig?: () => void }) {
+export function sprich(
+  zeile: string,
+  optionen?: { onStart?: () => void; onFertig?: () => void }
+) {
   if (!zeile) return;
   stelleStimmeBereit();
   Speech.stop();
   const stimme = bevorzugteStimmeIdSynchron() ?? automatischeStimme;
-  // `onDone` bewusst gekapselt statt direkt durchgereicht: Je nach Plattform/Version ruft
-  // expo-speech den Callback mit einem Ereignisobjekt auf. `onFertig` in useLuxSprechzeile.ts
-  // hat inzwischen einen optionalen ersten Parameter (`vonEngine`) — ein durchgereichtes
-  // Ereignis würde dort versehentlich als `true` gelesen und die Absicherung gegen zu frühe
-  // Ende-Meldungen aushebeln. Hier wird deshalb garantiert ohne Argumente aufgerufen.
-  Speech.speak(fuerSprachausgabe(zeile), {
+  const text = fuerSprachausgabe(zeile);
+  // Ab hier ist DIESE Äußerung die aktuelle; alle Rückmeldungen älterer prallen ab.
+  const eigeneGeneration = ++sprechGeneration;
+  // `onDone`/`onStart` bewusst gekapselt statt direkt durchgereicht: Je nach Plattform/
+  // Version ruft expo-speech den Callback mit einem Ereignisobjekt auf. `onFertig` in
+  // useLuxSprechzeile.ts hat inzwischen einen optionalen ersten Parameter (`vonEngine`) — ein
+  // durchgereichtes Ereignis würde dort versehentlich als `true` gelesen und die Absicherung
+  // gegen zu frühe Ende-Meldungen aushebeln. Hier wird deshalb garantiert ohne Argumente
+  // aufgerufen.
+  Speech.speak(text, {
     ...stimmeOptionen(),
     voice: stimme,
-    onDone: () => optionen?.onFertig?.(),
+    onStart: () => {
+      // Eine überholte Äußerung darf nichts mehr melden (siehe sprechGeneration oben).
+      if (eigeneGeneration !== sprechGeneration) return;
+      // Ab hier wird tatsächlich gesprochen. Die Anlaufzeit für Lux' Maul (ANLAUF_MS oben)
+      // zählt deshalb ab diesem Moment neu und nicht ab dem Absenden — sonst ging das Maul
+      // im Browser wieder zu, bevor der erste Ton überhaupt zu hören war.
+      begonnenAm = Date.now();
+      setzeSprechzustand(true);
+      optionen?.onStart?.();
+    },
+    onDone: () => {
+      // Das `end` der ABGEBROCHENEN vorherigen Äußerung kommt im Browser verspätet nach und
+      // landet genau hier. Ohne diese Prüfung löschte es den Sprechzustand der inzwischen
+      // laufenden Zeile — siehe sprechGeneration oben.
+      if (eigeneGeneration !== sprechGeneration) return;
+      // Im Browser ist dieses Ereignis die verlässliche Auskunft über das Sprechende (siehe
+      // ENGINE_ABFRAGE_VERLAESSLICH oben) — das Maul geht also hier zu, nicht über die
+      // Abfrage. Nativ bleibt die Abfrage zuständig, weil `onDone` dort zu früh kommt.
+      if (!ENGINE_ABFRAGE_VERLAESSLICH) {
+        beendePruefung();
+        setzeSprechzustand(false);
+      }
+      optionen?.onFertig?.();
+    },
   });
-  beginneSprechzustand();
+  if (ENGINE_ABFRAGE_VERLAESSLICH) {
+    beginneSprechzustand();
+    return;
+  }
+  // Web: Maul sofort auf (der erste Ton kommt gleich), zu beim `end`-Ereignis oben. Der
+  // Notbremsen-Timer ist nur für den Fall, dass die Web Speech API die Äußerung samt
+  // Ereignis verschluckt — dann bliebe das Maul sonst dauerhaft offen stehen.
+  begonnenAm = Date.now();
+  setzeSprechzustand(true);
+  beendePruefung();
+  maulNotbremse = setTimeout(() => setzeSprechzustand(false), text.length * 130 + 3000);
 }
 
 // ---------------------------------------------------------------------------
@@ -158,9 +206,53 @@ export function sprich(zeile: string, optionen?: { onFertig?: () => void }) {
 const ANLAUF_MS = 500;
 const PRUEF_TAKT_MS = 250;
 
+/**
+ * WELCHER QUELLE MAN DAS SPRECHENDE GLAUBEN DARF — und warum das pro Plattform verschieden
+ * ist. Diese eine Konstante entscheidet es; `useLuxSprechzeile.ts` richtet sich nach ihr.
+ *
+ * NATIV (Android/iOS): `onDone` ist unzuverlässig. Etliche Android-TTS-Engines melden es
+ * verfrüht — teils schon beim Einreihen der Äußerung, teils ausgelöst durch das
+ * `Speech.stop()` unmittelbar davor (Gerätetests 2026-09-11 und 2026-09-13). Verlässlich ist
+ * dort die Engine-Abfrage `isSpeakingAsync()`.
+ *
+ * WEB: genau umgekehrt. Ein Blick in das installierte Paket
+ * (node_modules/expo-speech/build/ExponentSpeech.web.js, geprüft 2026-09-14) zeigt beides
+ * schwarz auf weiß:
+ *   - `isSpeaking()` ist nichts weiter als `return window.speechSynthesis.speaking;` — und
+ *     dieser Wert ist in Chrome nach einem `cancel()` (das `Speech.stop()` vor JEDER Zeile
+ *     auslöst) nicht verlässlich: er meldet noch kurz die abgebrochene vorherige Äußerung
+ *     und kann während der neuen zwischendurch `false` sein, obwohl hörbar gesprochen wird.
+ *   - `onDone` hängt dagegen direkt am `end`-Ereignis GENAU DIESER Äußerung
+ *     (`message.onend = ...`), kann also gar nicht von einer fremden stammen.
+ *
+ * Nutzer-Rückmeldung 2026-09-14 ("Die Texte in der Vorschau sind zu schnell und werden
+ * abgehackt", danach erneut "Stimme brechen immer noch ab"): Der Versuch, die Abfrage im
+ * Browser abzusichern, musste scheitern — jede Absicherung baute auf derselben unbrauchbaren
+ * Auskunft auf. Deshalb wird sie im Browser gar nicht erst befragt.
+ */
+export const ENGINE_ABFRAGE_VERLAESSLICH = Platform.OS !== "web";
+
 let spricht = false;
 let begonnenAm = 0;
+// Generationszählung für den Sprechzustand (2026-09-14, gefunden, als die Führung in der
+// Vorführ-Phase hängen blieb).
+//
+// `sprich()` bricht vor jeder neuen Zeile die vorherige ab. Im Browser feuert die
+// abgebrochene Äußerung ihr `end`-Ereignis danach trotzdem noch, nur zeitversetzt — und ihr
+// `onDone` schaltete den Zustand der INZWISCHEN LAUFENDEN Zeile auf "spricht nicht" und
+// löschte deren Notbremse gleich mit. Der Zustand log dann für den Rest der Zeile, und alles,
+// was sich darauf verlässt (Lux' Maul, seit heute auch die Phasenwechsel in
+// QuestMoveScreen.tsx), bekam eine falsche Auskunft.
+//
+// `useLuxSprechzeile.ts` hat gegen genau dieses verspätete `onDone` längst eine
+// Generationszählung — dieses Modul hatte keine. Jetzt schon: Jede Äußerung merkt sich ihre
+// Nummer, und ihre Rückmeldungen wirken nur, solange sie die aktuelle ist.
+let sprechGeneration = 0;
 let pruefung: ReturnType<typeof setInterval> | undefined;
+// Nur im Browser: schließt Lux' Maul auch dann, wenn das `end`-Ereignis ausbleibt (die Web
+// Speech API verschluckt gelegentlich eine ganze Äußerung samt Ereignis). Nativ übernimmt
+// das die laufende Abfrage, dort braucht es den Timer nicht.
+let maulNotbremse: ReturnType<typeof setTimeout> | undefined;
 const zuhoerer = new Set<(spricht: boolean) => void>();
 
 function setzeSprechzustand(neu: boolean) {
@@ -170,6 +262,10 @@ function setzeSprechzustand(neu: boolean) {
 }
 
 function beendePruefung() {
+  if (maulNotbremse) {
+    clearTimeout(maulNotbremse);
+    maulNotbremse = undefined;
+  }
   if (!pruefung) return;
   clearInterval(pruefung);
   pruefung = undefined;
@@ -221,6 +317,9 @@ export function fuerSprachausgabe(zeile: string): string {
 }
 
 export function stoppen() {
+  // Generation vorziehen, damit ein verspätetes `onDone` der gerade abgebrochenen Äußerung
+  // sich als überholt erkennt und weder den Sprechzustand noch ein `onFertig` nachfeuert.
+  sprechGeneration++;
   Speech.stop();
   // Hier ist der Abbruch die verlässliche Information — nicht erst die Engine fragen,
   // sondern das Maul sofort schließen.

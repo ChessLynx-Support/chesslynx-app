@@ -45,10 +45,63 @@
 // samt Prop ersatzlos entfernt — Quest 1 Screen 2 zeigt jetzt wie jeder andere Screen
 // einfach ALLE von chess.js gelieferten Legalzüge.
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { Board, type BoardConfig } from "../quest1/Board";
 import { createPosition, legalTargetsFor, tryMove, type BoardSquare } from "./chessEngine";
+import { useLuxSpricht } from "./luxStimme";
+
+// ---------------------------------------------------------------------------------------
+// Phasenwechsel warten auf Lux
+// ---------------------------------------------------------------------------------------
+// Gerätetest 2026-09-14 (Nutzer: "Erfolgsmeldung wird abgeschnitten nach Aufgabe 1" und
+// "nach der Verwandlung wird bei der Angabe die Sprechzeile etwas abgebrochen").
+//
+// Beides dieselbe Ursache wie zuvor beim Verwandlungsmoment: Ein Phasenwechsel hier lässt in
+// der aufrufenden Quest den Sprech-Schlüssel wechseln, und dessen Aufräumschritt ruft
+// `stoppen()` — mitten in einem laufenden Satz. Ausgelöst wurde der Wechsel bisher von
+// Dingen, die nichts mit der Stimme zu tun haben:
+//
+//   - `onDemoDone`: sobald die ZUG-ANIMATION durch war, ging es in die interaktive Phase.
+//     Die Vorführ-Zeile lief da noch.
+//   - `beendeAufgabe`: ein festes `setTimeout(onSolved, 950)`. Der Kommentar dort nannte den
+//     Zweck korrekt ("damit die Lob-Zeile Zeit hat, gehört zu werden") — nur ist 950 ms
+//     geraten, und "Super, das kannst du schon richtig gut!" braucht deutlich länger.
+//
+// Statt weiter zu schätzen, wird jetzt gefragt: `useLuxSpricht()` liefert denselben Zustand,
+// mit dem sich auch Lux' Maul bewegt, und ist seit dem 2026-09-14 auf beiden Plattformen
+// belastbar (siehe ENGINE_ABFRAGE_VERLAESSLICH in luxStimme.ts). Der Wechsel wartet, bis es
+// still ist, legt eine Atempause ein und geht dann weiter.
+//
+// Bewusst HIER und nicht in den sechs Quest-Dateien: Dies ist die eine Stelle, an der beide
+// Wechsel entstehen — die Quests bleiben unverändert.
+
+/** Atempause, nachdem Lux verstummt ist, bevor es weitergeht. */
+const ATEMPAUSE_MS = 400;
+/**
+ * Anlauf für eine Zeile, die gerade erst angestoßen WURDE: Nach `wechselPhase("fertig")`
+ * beginnt die Lob-Zeile erst im nächsten Rendergang und braucht dann noch bis zum ersten Ton.
+ * Ohne diese Frist wäre es in genau dem Moment still, und wir würden sofort weiterschalten —
+ * derselbe Wettlauf, der die Zeile vorher abgeschnitten hat, nur umgekehrt.
+ */
+const LOB_ANLAUF_MS = 700;
+/**
+ * Notbremsen. Sollte die Sprech-Auskunft je klemmen, geht es spätestens hiernach trotzdem
+ * weiter — ein Kind darf nie vor einem Bildschirm sitzen, der sich nicht mehr rührt.
+ *
+ * Warum zwei Werte und warum so knapp (2026-09-14, nach der Rückmeldung "Bug, komme nicht
+ * weiter im Quest"): Ein einzelner Wert von 8 s war zu großzügig gedacht. Rechnerisch löste
+ * er die Blockade zwar auf, aber acht Sekunden vor einem Brett, das auf nichts reagiert,
+ * sind für jeden — Kind wie Tester — schlicht ein kaputtes Spiel. Eine Notbremse muss kürzer
+ * greifen, als Geduld reicht.
+ *
+ * Die Werte sind an der jeweils längstmöglichen Zeile bemessen, nicht geraten: Zu spät
+ * weiterzuschalten kostet einen unhörbaren Moment, zu früh kostet den Satz.
+ */
+/** Vorführ-Zeilen sind kurz und laufen schon, wenn die Animation endet. */
+const NOTBREMSE_VORFUEHRUNG_MS = 2500;
+/** Lob-Zeilen sind die längsten Zeilen im Ablauf — plus deren Anlauf. */
+const NOTBREMSE_LOB_MS = 4000;
 
 // ---------------------------------------------------------------------------------------
 // Neu (2026-09-08, Auto-Demo-Vorführung + Übungsphase, siehe claude/quest_review_
@@ -229,6 +282,60 @@ export function QuestMoveScreen({
     onPhaseChange?.(neu);
   }
 
+  // --- Warten, bis Lux ausgesprochen hat (siehe Datei-Kommentar oben) --------------------
+  const luxSpricht = useLuxSpricht();
+  // Die aufgeschobene Aktion liegt in einer Ref (sie soll kein Rendern auslösen); `wartemarke`
+  // ist nur da, um den Effekt unten erneut laufen zu lassen, wenn eine Aktion NEU eingestellt
+  // wird, während es ohnehin schon still ist — `luxSpricht` ändert sich dann ja nicht.
+  const wartet = useRef<(() => void) | null>(null);
+  const notbremse = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const anlauf = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [wartemarke, setWartemarke] = useState(0);
+
+  function loeseAus() {
+    const tun = wartet.current;
+    wartet.current = null;
+    if (notbremse.current) {
+      clearTimeout(notbremse.current);
+      notbremse.current = null;
+    }
+    tun?.();
+  }
+
+  /** Führt `tun` aus, sobald Lux zu Ende gesprochen hat — nicht nach geschätzter Zeit. */
+  function sobaldLuxFertigIst(tun: () => void, notbremseMs: number, anlaufMs = 0) {
+    const einstellen = () => {
+      anlauf.current = null;
+      wartet.current = tun;
+      if (notbremse.current) clearTimeout(notbremse.current);
+      notbremse.current = setTimeout(loeseAus, notbremseMs);
+      setWartemarke((n) => n + 1);
+    };
+    if (anlaufMs > 0) {
+      if (anlauf.current) clearTimeout(anlauf.current);
+      anlauf.current = setTimeout(einstellen, anlaufMs);
+    } else {
+      einstellen();
+    }
+  }
+
+  useEffect(() => {
+    if (!wartet.current || luxSpricht) return;
+    const pause = setTimeout(loeseAus, ATEMPAUSE_MS);
+    return () => clearTimeout(pause);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [luxSpricht, wartemarke]);
+
+  // Beim Verlassen des Screens nichts mehr nachfeuern lassen.
+  useEffect(
+    () => () => {
+      wartet.current = null;
+      if (notbremse.current) clearTimeout(notbremse.current);
+      if (anlauf.current) clearTimeout(anlauf.current);
+    },
+    []
+  );
+
   // Bugfix (2026-09-08, beim Entwurf der Quest1.tsx-Anbindung entdeckt, noch bevor eine
   // Quest*.tsx die neuen Props überhaupt nutzt): die ursprüngliche Fassung rief in beiden
   // Abschluss-Zweigen unten `onSolved()` VOR `wechselPhase("fertig")` auf. Da `onSolved`
@@ -237,18 +344,24 @@ export function QuestMoveScreen({
   // `onPhaseChange("fertig")` erst danach ausgelöst würde — eine an die "fertig"-Phase
   // gekoppelte Lob-Sprechzeile (z. B. "Super, das kannst du schon richtig gut!" nach der
   // Übungsphase) käme dadurch nie sichtbar/hörbar zustande. Jetzt: `wechselPhase("fertig")`
-  // zuerst, danach `onSolved()` — und zwar erst nach einer kurzen Verzögerung, WENN eine
-  // Übungsphase stattfand (uebungsrunden > 0), damit die Lob-Zeile tatsächlich Zeit hat,
-  // gesehen/gehört zu werden, bevor der Screen wechselt. Ohne Übungsphase (uebungsrunden
-  // = 0, der bisherige Anwendungsfall in Screen 4/5 aller Quests) bleibt es beim sofortigen
-  // `onSolved()` — dort gibt es keine "fertig"-Sprechzeile, die Verzögerung wäre reine,
-  // vom Kind spürbare Wartezeit ohne Gegenwert. Verzögerung (950ms) übernommen vom bereits
-  // bestehenden `setTimeout(..., 950)`-Muster für `onTrapTap` in Quest1.tsx Screen 4.
+  // zuerst, danach erst `onSolved()`.
+  //
+  // Nachtrag 2026-09-14: Dieses "danach" war bis heute eine feste Verzögerung von 950 ms,
+  // übernommen vom `setTimeout(..., 950)`-Muster für `onTrapTap` in Quest1.tsx Screen 4. Die
+  // Absicht stimmte, der Wert nicht — er reichte für die Lob-Zeile schlicht nicht, und der
+  // Nutzer meldete beim Gerätetest genau das ("Erfolgsmeldung wird abgeschnitten nach
+  // Aufgabe 1"). Statt einer größeren Schätzung wird jetzt gewartet, bis Lux tatsächlich
+  // fertig ist (siehe `sobaldLuxFertigIst` und der Datei-Kommentar ganz oben).
   function beendeAufgabe() {
     wechselPhase("fertig");
     if (uebungsrunden > 0) {
-      setTimeout(() => onSolved(), 950);
+      // Update 2026-09-14: vorher ein festes `setTimeout(onSolved, 950)` — siehe
+      // Datei-Kommentar oben. Jetzt wird der Lob-Zeile erst ihr Anlauf gegeben und danach
+      // gewartet, bis sie WIRKLICH zu Ende gesprochen ist.
+      sobaldLuxFertigIst(onSolved, NOTBREMSE_LOB_MS, LOB_ANLAUF_MS);
     } else {
+      // Ohne Übungsphase (Screen 4/5 aller Quests) gibt es keine "fertig"-Sprechzeile —
+      // hier wäre jedes Warten reine, vom Kind spürbare Wartezeit ohne Gegenwert.
       onSolved();
     }
   }
@@ -298,7 +411,11 @@ export function QuestMoveScreen({
       // automatisch (siehe dortiger Kommentar zu animatingTo), ein echter onCorrectMove-
       // Aufruf kann in dieser Phase also nicht auftreten.
       demoTarget={phase === "vorfuehrung" ? vorschlagZiel : undefined}
-      onDemoDone={() => wechselPhase("interaktiv")}
+      // Update 2026-09-14: Der Wechsel hing vorher allein an der Zug-Animation. Ist die
+      // schneller durch als Lux' Vorführ-Zeile, schnitt der Phasenwechsel sie ab (siehe
+      // Datei-Kommentar oben). Kein Anlauf nötig: Diese Zeile läuft schon seit dem
+      // Betreten des Screens, die Auskunft "spricht" ist hier also belastbar.
+      onDemoDone={() => sobaldLuxFertigIst(() => wechselPhase("interaktiv"), NOTBREMSE_VORFUEHRUNG_MS)}
       onCorrectMove={(target) => {
         const real: BoardSquare = { row: target.row + rowOffset, col: target.col + colOffset };
         const result = tryMove(gameRef.current, aktuellerOrt, real);

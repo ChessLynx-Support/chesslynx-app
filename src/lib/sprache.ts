@@ -22,20 +22,39 @@
 // und die Sprechende-Erkennung in lib/useLuxSprechzeile.ts). Das Übersetzen ist die kleinere
 // Hälfte der Arbeit. Diese Datei macht die Umschaltung möglich, sie erledigt sie nicht.
 
-export type Sprache = "de" | "en";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-// Einmal ermittelt und gemerkt: Die Gerätesprache ändert sich während einer Sitzung nicht,
-// und ein wiederholter Intl-Aufruf in jedem Render wäre unnötig.
-let gemerkteSprache: Sprache | undefined;
+export type Sprache = "de" | "en";
+/** "auto" = der Gerätesprache folgen (Voreinstellung). */
+export type SprachWahl = Sprache | "auto";
+
+const SCHLUESSEL = "chesslynx:sprache";
+
+// Die aus der Gerätesprache abgeleitete Sprache — einmal ermittelt und gemerkt, denn sie
+// ändert sich während einer Sitzung nicht.
+let ausGeraet: Sprache | undefined;
+// Die bewusste Wahl aus dem Eltern-Bereich. Bis `ladeSprache()` gelaufen ist "auto", damit
+// die App auch dann etwas Vernünftiges anzeigt, wenn der Speicher noch nicht gelesen wurde.
+let wahl: SprachWahl = "auto";
 
 /**
- * Die Sprache, in der die App läuft. Alles außer Englisch ergibt Deutsch — die App ist
- * deutschsprachig entstanden, Deutsch ist die sichere Rückfallebene, nicht Englisch.
+ * Die Sprache, in der die App läuft: die bewusste Wahl aus dem Eltern-Bereich, sonst die
+ * Gerätesprache. Alles außer Englisch ergibt Deutsch — die App ist deutschsprachig
+ * entstanden, Deutsch ist die sichere Rückfallebene, nicht Englisch.
+ *
+ * BEWUSST SYNCHRON: `t()` wird in Sprechzeilen-Listen und mitten im Rendern aufgerufen; ein
+ * `await` an jeder dieser Stellen wäre unzumutbar. Deshalb liegt die gespeicherte Wahl in
+ * einer Modulvariable, die `ladeSprache()` beim App-Start einmalig füllt (siehe App.tsx).
  */
 export function sprache(): Sprache {
-  if (gemerkteSprache) return gemerkteSprache;
-  gemerkteSprache = ermittle();
-  return gemerkteSprache;
+  if (wahl !== "auto") return wahl;
+  if (!ausGeraet) ausGeraet = ermittle();
+  return ausGeraet;
+}
+
+/** Die rohe Einstellung inklusive "auto" — für die Anzeige im Eltern-Bereich. */
+export function sprachWahl(): SprachWahl {
+  return wahl;
 }
 
 function ermittle(): Sprache {
@@ -50,6 +69,36 @@ function ermittle(): Sprache {
 }
 
 /**
+ * Liest die gespeicherte Wahl. **Muss beim App-Start aufgerufen werden, bevor der erste
+ * Screen rendert** — siehe App.tsx. Vorher gilt "auto", und ein Screen, der vor dem Laden
+ * gerendert hätte, zeigte die Gerätesprache statt der gewählten.
+ */
+export async function ladeSprache(): Promise<void> {
+  try {
+    const gespeichert = await AsyncStorage.getItem(SCHLUESSEL);
+    if (gespeichert === "de" || gespeichert === "en" || gespeichert === "auto") {
+      wahl = gespeichert;
+    }
+  } catch {
+    // Ohne Speicher bleibt "auto" — die App läuft, nur ohne gemerkte Wahl.
+  }
+}
+
+/**
+ * Setzt die Sprache aus dem Eltern-Bereich. Wirkt sofort für alles, was danach gerendert
+ * oder gesprochen wird — deshalb sind die Sprechzeilen-Listen in den Quest-Screens
+ * Funktionen und keine Konstanten (siehe Kommentar bei `t` unten).
+ */
+export async function setzeSprache(neu: SprachWahl): Promise<void> {
+  wahl = neu;
+  try {
+    await AsyncStorage.setItem(SCHLUESSEL, neu);
+  } catch {
+    // Die Wahl gilt dann nur für diese Sitzung — besser als ein Absturz beim Umstellen.
+  }
+}
+
+/**
  * Kurzform für zweisprachige Texte an der Verwendungsstelle:
  *
  *   <Text>{t("Abbrechen", "Cancel")}</Text>
@@ -60,6 +109,12 @@ function ermittle(): Sprache {
  * Form hält beide Fassungen nebeneinander und damit auch beim Ändern zusammen.
  * Falls später doch ein Katalog gebraucht wird (z. B. für externe Übersetzer), bleibt diese
  * Funktion die einzige Stelle, die umgestellt werden muss.
+ *
+ * WICHTIG FÜR AUFRUFSTELLEN: `t()` liest die Sprache im Moment des Aufrufs. Sprechzeilen-
+ * Listen gehören deshalb in eine **Funktion**, nicht in eine Modulkonstante — eine Konstante
+ * würde beim Import ausgewertet, also bevor `ladeSprache()` die gespeicherte Wahl kennt, und
+ * bliebe danach auf der Gerätesprache stehen. Siehe `screenScripts()`/`phaseLines()` in
+ * quest1/Quest1.tsx als Muster für die übrigen Quest-Screens.
  */
 export function t(de: string, en: string): string {
   return sprache() === "en" ? en : de;

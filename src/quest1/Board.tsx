@@ -580,18 +580,23 @@ export function Board({
                   hat NICHT geholfen — "View Flattening" war also nicht die Ursache, siehe
                   aktualisierte Kommentare unten). Neue Vermutung: Android kann ein normal
                   im Fluss stehendes Geschwister-Element (die Figur), das NACH einem
-                  absolut positionierten `Image` (`StyleSheet.absoluteFillObject`, hier die
+                  absolut positionierten `Image` (`StyleSheet.absoluteFill`, hier die
                   Feld-Kachel) im JSX steht, beim Zeichnen trotzdem darunter statt darüber
                   einsortieren, wenn keine explizite Stapelreihenfolge (`zIndex`) gesetzt ist
                   — Android verlässt sich dabei nicht zuverlässig auf die reine JSX-
                   Reihenfolge. Deshalb hier und bei allen Figur-/Marker-Ebenen weiter unten
                   jetzt explizit `zIndex` gesetzt: Kachel ganz unten (0), alles andere darüber. */}
-              <Image
-                source={isDark ? feldDunkel : feldHell}
-                style={[StyleSheet.absoluteFillObject, { zIndex: 0 }]}
-                resizeMode="cover"
-                pointerEvents="none"
-              />
+              {/* RN 0.86 kennt `pointerEvents` nur noch als Eigenschaft von View, nicht mehr
+                  von Image. Statt die Eigenschaft ersatzlos zu streichen (was das Verhalten
+                  stillschweigend ändern könnte) trägt sie jetzt eine umhüllende View — die
+                  behält zugleich das `zIndex: 0`, auf das der Android-Rendering-Fix oben baut. */}
+              <View pointerEvents="none" style={[StyleSheet.absoluteFill, { zIndex: 0 }]}>
+                <Image
+                  source={isDark ? feldDunkel : feldHell}
+                  style={StyleSheet.absoluteFill}
+                  resizeMode="cover"
+                />
+              </View>
               {/* Bugfix (Opus-Review 2.6): warmer Puls VOR allen anderen Markern/Figuren
                   gerendert (unterste Ebene direkt über der Kachel), damit König-Icon und
                   ggf. ein ZielfeldMarker weiterhin klar erkennbar darüber liegen. */}

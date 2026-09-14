@@ -36,8 +36,10 @@ import {
   purchaseErrorListener,
   purchaseUpdatedListener,
   requestPurchase,
+  // `ErrorCode` ist ein echtes Enum (Wert, kein Typ) — seit expo-iap 5.x heißen die
+  // Fehlercodes nicht mehr "E_USER_CANCELLED", sondern "user-cancelled" (siehe unten).
+  ErrorCode,
   type Purchase,
-  type PurchaseError,
 } from "expo-iap";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { doc, getDoc } from "firebase/firestore";
@@ -98,15 +100,24 @@ async function quittungPruefen(kauf: Purchase): Promise<void> {
     { freigeschaltet: boolean }
   >(functions, "verifyPurchase");
 
-  // iOS liefert die App-Store-Quittung über `transactionReceipt`, Android den
-  // Play-Store-`purchaseToken` — expo-iap normalisiert beides (noch) nicht auf ein
-  // gemeinsames Feld, deshalb beide Werte mitschicken und serverseitig je nach
-  // `platform` auswerten (siehe functions/src/index.ts).
+  // Korrektur 2026-09-14 (expo-iap 5.5.1): Der frühere Kommentar hier war überholt und
+  // der Code damit kaputt. `transactionReceipt` gibt es nicht mehr — der Beleg wäre
+  // stillschweigend als leerer String an den Server gegangen, die Prüfung hätte nie
+  // funktioniert. expo-iap führt beide Quittungsformen inzwischen in EINEM Feld
+  // zusammen: `purchaseToken` trägt auf iOS die JWS-Repräsentation der Transaktion, auf
+  // Android den Play-Store-Token (Zitat aus node_modules/expo-iap/build/types.d.ts:
+  // "Unified purchase token (iOS JWS, Android purchaseToken)").
+  //
+  // Die Aufteilung auf zwei Felder bleibt trotzdem bestehen: Die Cloud Function wertet
+  // je nach `platform` genau eines davon aus (siehe functions/src/index.ts), und diesen
+  // Vertrag ändern wir nicht nebenbei mit.
+  const istIOS = Platform.OS === "ios";
+  const quittung = kauf.purchaseToken ?? "";
   await verifyPurchase({
-    platform: Platform.OS === "ios" ? "ios" : "android",
+    platform: istIOS ? "ios" : "android",
     productId: VOLLSTAENDIGER_LERNPFAD_PRODUKT_ID,
-    receipt: kauf.transactionReceipt ?? "",
-    purchaseToken: (kauf as unknown as { purchaseToken?: string }).purchaseToken,
+    receipt: istIOS ? quittung : "",
+    purchaseToken: istIOS ? undefined : quittung,
   });
 }
 
@@ -138,14 +149,31 @@ export async function kaufeVollstaendigenLernpfad(): Promise<KaufErgebnis> {
       }
     });
 
-    const fehlerListener = purchaseErrorListener((fehler: PurchaseError) => {
+    // Bewusst ohne Typannotation: expo-iap deklariert `PurchaseError` an zwei Stellen
+    // (types.d.ts und utils/errorMapping.d.ts) mit unterschiedlich striktem `code`.
+    // Eine eigene Annotation trifft zwangsläufig die falsche; die Herleitung aus der
+    // Listener-Signatur trifft immer die richtige.
+    const fehlerListener = purchaseErrorListener((fehler) => {
       erfolgListener.remove();
       fehlerListener.remove();
-      const abgebrochen = fehler.code === "E_USER_CANCELLED";
+      // Seit expo-iap 5.x ein Enum-Wert ("user-cancelled") statt der alten Konstante
+      // "E_USER_CANCELLED". Der alte Vergleich war immer falsch — ein vom Elternteil
+      // abgebrochener Kauf wäre als echter Fehler gemeldet worden.
+      const abgebrochen = fehler.code === ErrorCode.UserCancelled;
       resolve({ erfolg: false, grund: abgebrochen ? "abgebrochen" : "fehler", details: fehler.message });
     });
 
-    requestPurchase({ request: { sku: VOLLSTAENDIGER_LERNPFAD_PRODUKT_ID } }).catch((fehler: any) => {
+    // expo-iap 5.x verlangt die Anfrage plattformgetrennt (`apple` mit einer einzelnen
+    // `sku`, `google` mit einer `skus`-Liste) plus die ausdrückliche Art des Kaufs. Die
+    // frühere Kurzform `{ request: { sku } }` wurde zur Laufzeit nicht mehr verstanden.
+    requestPurchase({
+      request: {
+        apple: { sku: VOLLSTAENDIGER_LERNPFAD_PRODUKT_ID },
+        google: { skus: [VOLLSTAENDIGER_LERNPFAD_PRODUKT_ID] },
+      },
+      // "in-app" = Einmalkauf, nicht Abo — entspricht dem entschiedenen Kaufmodell.
+      type: "in-app",
+    }).catch((fehler: any) => {
       erfolgListener.remove();
       fehlerListener.remove();
       resolve({ erfolg: false, grund: "fehler", details: fehler?.message });

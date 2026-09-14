@@ -20,6 +20,7 @@
 // die Hinweisfunktion aktiv einschalten, bevor ein Kind sie per Doppel-Tipp nutzen kann.
 
 import { useEffect, useState } from "react";
+import { t } from "./sprache";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const SCHLUESSEL = "chesslynx:hinweiseAktiv";
@@ -32,13 +33,21 @@ const EINFUEHRUNG_GEZEIGT_SCHLUESSEL = "chesslynx:hinweisEinfuehrungGezeigt";
 export const HINWEISE_STANDARD = true;
 
 /** Die feste Angebots-Zeile, exakt in der vom Nutzer vorgeschlagenen Formulierung. */
-export const HINWEIS_ANGEBOT_ZEILE = "Möchtest du einen Hinweis von mir? Tipp mich nochmal!";
+// FUNKTION statt Konstante (2026-09-14): siehe lib/sprache.ts — eine Konstante würde beim
+// Import ausgewertet, also bevor die gewählte Sprache gelesen ist.
+export function hinweisAngebotZeile(): string {
+  return t("Möchtest du einen Hinweis von mir? Tipp mich nochmal!", "Would you like a hint from me? Tap me again!");
+}
 
 /** Einmaliger, zusätzlicher Erklärsatz beim allerersten Erreichen einer hinweisfähigen
  * Zugaufgabe überhaupt (siehe Teil B2 im Vorschlagsdokument) — hängt sich an die normale
  * Instruktions-Zeile an, statt eine eigene Sprechpause zu erzwingen. */
-export const HINWEIS_EINFUEHRUNG_SATZ =
-  " Und falls du nicht weiterweißt: tipp einfach zweimal auf mich, dann helfe ich dir!";
+export function hinweisEinfuehrungSatz(): string {
+  return t(
+    " Und falls du nicht weiterweißt: tipp einfach zweimal auf mich, dann helfe ich dir!",
+    " And if you get stuck, just tap me twice and I'll help you!"
+  );
+}
 
 export async function leseHinweiseAktiv(): Promise<boolean> {
   const gespeichert = await AsyncStorage.getItem(SCHLUESSEL);

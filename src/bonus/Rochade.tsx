@@ -48,7 +48,7 @@ import { useUntertitelAktiv } from "../lib/untertitelEinstellung";
 // siehe sprechzeilen_vorschlaege_bonus_endlosspiel_und_hinweisfunktion_2026-09-09.md,
 // Teil B) — der einmalige Einführungssatz erscheint bereits in Fesselung.tsx (der
 // allerersten Zugaufgabe im Bonusbereich), hier deshalb nicht nochmal nötig.
-import { useHinweiseAktiv, HINWEIS_ANGEBOT_ZEILE, type HinweisPhase } from "../lib/luxHinweis";
+import { useHinweiseAktiv, hinweisAngebotZeile, type HinweisPhase } from "../lib/luxHinweis";
 import { QuestGeschafft } from "../components/QuestGeschafft";
 import { WaldHintergrund } from "../components/WaldHintergrund";
 
@@ -219,7 +219,7 @@ export default function Rochade() {
     hinweisPhase === "still"
       ? lines[lineIndex]
       : hinweisPhase === "angebot"
-        ? HINWEIS_ANGEBOT_ZEILE
+        ? hinweisAngebotZeile()
         : hinweisInhaltFuer(screen, uebungAktuelle);
   const naechsterScreenNachLetzterZeile = NAECHSTER_SCREEN_NACH_EINFUEHRUNG[screen];
   const { wiederholen, aktuelleZeile } = useLuxSprechzeile(

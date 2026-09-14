@@ -50,7 +50,7 @@ import { useUntertitelAktiv } from "../lib/untertitelEinstellung";
 // "Lux fragen"-Hinweisfunktion (Claude-Projekt "ChessLynx", Nutzerauftrag 2026-09-09,
 // siehe sprechzeilen_vorschlaege_bonus_endlosspiel_und_hinweisfunktion_2026-09-09.md,
 // Teil B) — der einmalige Einführungssatz erscheint bereits in Fesselung.tsx.
-import { useHinweiseAktiv, HINWEIS_ANGEBOT_ZEILE, type HinweisPhase } from "../lib/luxHinweis";
+import { useHinweiseAktiv, hinweisAngebotZeile, type HinweisPhase } from "../lib/luxHinweis";
 import { QuestGeschafft } from "../components/QuestGeschafft";
 import { WaldHintergrund } from "../components/WaldHintergrund";
 
@@ -208,7 +208,7 @@ export default function MattIn2() {
     hinweisPhase === "still"
       ? lines[lineIndex]
       : hinweisPhase === "angebot"
-        ? HINWEIS_ANGEBOT_ZEILE
+        ? hinweisAngebotZeile()
         : hinweisInhaltFuer(screen, teilzug, uebungAktuelle.art);
   const naechsterScreenNachLetzterZeile = NAECHSTER_SCREEN_NACH_EINFUEHRUNG[screen];
   const { wiederholen, aktuelleZeile } = useLuxSprechzeile(

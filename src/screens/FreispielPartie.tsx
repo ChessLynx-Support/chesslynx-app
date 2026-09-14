@@ -137,7 +137,7 @@ import { luxVariante } from "../lib/luxVarianten";
 // Zugauswahl, die sonst die Bot-Gegner steuert) mit der stärksten Kalibrierung
 // (Elo 1300, praktisch kein Zufallsanteil mehr) für die WEISSE Seite — die Funktion ist
 // unabhängig von der Farbe, sie bewertet einfach, wer gerade am Zug ist.
-import { useHinweiseAktiv, HINWEIS_ANGEBOT_ZEILE, type HinweisPhase } from "../lib/luxHinweis";
+import { useHinweiseAktiv, hinweisAngebotZeile, type HinweisPhase } from "../lib/luxHinweis";
 // Paket 3: Gegner-Illustration im Kapitel „Die ganze Partie".
 import { SchildkroeteIcon } from "../lib/schildkroete";
 // Paket 3: Remis-Ursache (reine Logik, eigene Datei für verify/test-ganze-partie-logic.cjs).
@@ -470,7 +470,7 @@ export default function FreispielPartie() {
     hinweisPhase === "still"
       ? undefined
       : hinweisPhase === "angebot"
-        ? HINWEIS_ANGEBOT_ZEILE
+        ? hinweisAngebotZeile()
         : () => luxVariante(HINWEIS_ZUG_VARIANTEN, "freispiel-zug-hinweis");
   const { wiederholen: hinweisWiederholen, aktuelleZeile: hinweisAnzeige } = useLuxSprechzeile(
     hinweisSchluessel,
@@ -643,7 +643,7 @@ function FarbTrennungAnimation({ onFertig }: { onFertig: () => void }) {
  * Doppelkontur-Technik wie die Ring-Variante von `ZielfeldMarker` in quest1/Board.tsx. */
 function FreispielZielRing({ size }: { size: number }) {
   return (
-    <Svg width={size} height={size} viewBox="0 0 40 40" style={StyleSheet.absoluteFillObject} pointerEvents="none">
+    <Svg width={size} height={size} viewBox="0 0 40 40" style={StyleSheet.absoluteFill} pointerEvents="none">
       <Defs>
         <RadialGradient id="freispielZielFuellung" cx="42%" cy="38%" r="65%">
           <Stop offset="0%" stopColor="#C7DCC5" stopOpacity={0.55} />
@@ -663,7 +663,7 @@ function FreispielZielRing({ size }: { size: number }) {
  * Loop (siehe Brett-Komponente unten) bleibt unverändert der Animations-Treiber. */
 function FreispielSchachGlut({ size }: { size: number }) {
   return (
-    <Svg width={size} height={size} viewBox="0 0 100 100" style={StyleSheet.absoluteFillObject} pointerEvents="none">
+    <Svg width={size} height={size} viewBox="0 0 100 100" style={StyleSheet.absoluteFill} pointerEvents="none">
       <Defs>
         <RadialGradient id="freispielSchachGlut" cx="50%" cy="50%" r="50%">
           <Stop offset="0%" stopColor="#EFAF8D" stopOpacity={1} />
@@ -681,7 +681,7 @@ function FreispielSchachGlut({ size }: { size: number }) {
  * (Vorschlag) klar von einem bereits selbst gewählten Legalzug unterscheidbar bleibt. */
 function FreispielHinweisRing({ size }: { size: number }) {
   return (
-    <Svg width={size} height={size} viewBox="0 0 40 40" style={StyleSheet.absoluteFillObject} pointerEvents="none">
+    <Svg width={size} height={size} viewBox="0 0 40 40" style={StyleSheet.absoluteFill} pointerEvents="none">
       <Defs>
         <RadialGradient id="freispielHinweisFuellung" cx="42%" cy="38%" r="65%">
           <Stop offset="0%" stopColor="#F0DBA0" stopOpacity={0.6} />
@@ -773,30 +773,35 @@ function Brett({
               style={[styles.feld, { width: cellSize, height: cellSize }]}
             >
               {/* Kachel-Bild statt Flatcolor (2026-09-09, Angleichung ans Hauptspiel) —
-                  dieselbe Image+absoluteFillObject+zIndex-Technik wie in quest1/Board.tsx
+                  dieselbe Image+absoluteFill+zIndex-Technik wie in quest1/Board.tsx
                   (dort aus einem echten Android-Rendering-Bug gelernt: die Kachel muss
                   explizit ganz unten liegen, alles andere darüber). */}
-              <Image
-                source={istDunkel ? feldDunkel : feldHell}
-                style={[StyleSheet.absoluteFillObject, { zIndex: 0 }]}
-                resizeMode="cover"
-                pointerEvents="none"
-              />
+              {/* RN 0.86 kennt `pointerEvents` nur noch als Eigenschaft von View, nicht mehr
+                  von Image. Statt die Eigenschaft ersatzlos zu streichen (was das Verhalten
+                  stillschweigend ändern könnte) trägt sie jetzt eine umhüllende View — die
+                  behält zugleich das `zIndex: 0`, auf das der Android-Rendering-Fix oben baut. */}
+              <View pointerEvents="none" style={[StyleSheet.absoluteFill, { zIndex: 0 }]}>
+                <Image
+                  source={istDunkel ? feldDunkel : feldHell}
+                  style={StyleSheet.absoluteFill}
+                  resizeMode="cover"
+                />
+              </View>
               {istAusgewaehlt && <View style={[styles.feldAusgewaehltUeberlagerung, { zIndex: 1 }]} pointerEvents="none" />}
               {istZiel && (
-                <View style={[StyleSheet.absoluteFillObject, { zIndex: 2 }]} pointerEvents="none">
+                <View style={[StyleSheet.absoluteFill, { zIndex: 2 }]} pointerEvents="none">
                   <FreispielZielRing size={cellSize} />
                 </View>
               )}
               {istHinweisFeld && !istZiel && (
-                <View style={[StyleSheet.absoluteFillObject, { zIndex: 2 }]} pointerEvents="none">
+                <View style={[StyleSheet.absoluteFill, { zIndex: 2 }]} pointerEvents="none">
                   <FreispielHinweisRing size={cellSize} />
                 </View>
               )}
               {istSchachfeld && (
                 <Animated.View
                   pointerEvents="none"
-                  style={[StyleSheet.absoluteFillObject, { zIndex: 2, transform: [{ scale: schachPuls }] }]}
+                  style={[StyleSheet.absoluteFill, { zIndex: 2, transform: [{ scale: schachPuls }] }]}
                 >
                   <FreispielSchachGlut size={cellSize} />
                 </Animated.View>
@@ -806,7 +811,7 @@ function Brett({
                   Kind rendern, seit die Kachel jetzt selbst ein absolut positioniertes
                   Bild ist — sonst dieselbe „Figur bleibt auf Android unsichtbar"-Falle. */}
               {Icon && (
-                <View style={[StyleSheet.absoluteFillObject, styles.figurWrap, { zIndex: 3 }]} pointerEvents="none">
+                <View style={[StyleSheet.absoluteFill, styles.figurWrap, { zIndex: 3 }]} pointerEvents="none">
                   <Icon size={figurGroesse} />
                 </View>
               )}
@@ -984,12 +989,12 @@ const styles = StyleSheet.create({
   // seit die Kachel ein Bild ist (siehe oben), braucht die Auswahl-Markierung eine eigene
   // halbtransparente Überlagerungsebene statt einer Flächenfarbe, die vom Bild verdeckt würde.
   feldAusgewaehltUeberlagerung: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(227,217,190,0.6)",
   },
   figurWrap: { alignItems: "center", justifyContent: "center" },
 
-  ergebnisHintergrund: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(74,64,56,0.55)" },
+  ergebnisHintergrund: { ...StyleSheet.absoluteFill, backgroundColor: "rgba(74,64,56,0.55)" },
   ergebnisMitte: { flex: 1, alignItems: "center", justifyContent: "center" },
   ergebnisKarte: {
     minWidth: 220,
