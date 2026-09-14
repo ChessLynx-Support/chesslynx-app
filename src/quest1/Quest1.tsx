@@ -393,7 +393,18 @@ export default function Quest1() {
             accessibilityLabel="Den Igel antippen, um die Verwandlung zu sehen"
           >
             <LuxAtem dauer={900} betrag={1.08}>
-              <QuestTierIcon quest="quest1" size={150} />
+              {/* Update 2026-09-14: Sobald der Igel antippbar ist, WINKT er in ruhigen
+                  Abständen (freigegebener Zustand S1_winken, siehe questTiere.tsx).
+                  Dasselbe Ziel wie das Pulsieren darüber — "tipp mich an" —, nur ohne ein
+                  Wort Text und ohne Zeitdruck. Vorher blinzelt er nur: Ein winkender Igel
+                  während der ersten, automatisch weiterlaufenden Zeile würde zum Tippen
+                  auffordern, bevor das Tippen etwas bewirkt. */}
+              <QuestTierIcon
+                quest="quest1"
+                size={150}
+                geste={isLastLine ? "bereit" : null}
+                gesteWiederholen
+              />
             </LuxAtem>
           </Pressable>
         </View>

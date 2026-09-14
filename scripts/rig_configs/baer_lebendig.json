@@ -97,24 +97,101 @@
       "rel_height": 0.76
     },
     {
-      "state": "S0_standing",
-      "file": "assets/figuren/lebendig/zustaende/chesslynx_baer_grund.webp",
       "canvas": 768,
       "margin": 0.03,
       "rel_height": 0.76,
-      "zweck": "Grundzustand für den Zustands-Renderer (gleiche Geometrie wie das Blinzeln)"
+      "geometry_union": [
+        "S0_standing",
+        "S0b_blink",
+        "S1_winken"
+      ],
+      "state": "S0_standing",
+      "file": "assets/figuren/lebendig/zustaende/chesslynx_baer_grund.webp",
+      "zweck": "Grundzustand für den Zustands-Renderer (Quest-Screens)"
     },
     {
+      "canvas": 768,
+      "margin": 0.03,
+      "rel_height": 0.76,
+      "geometry_union": [
+        "S0_standing",
+        "S0b_blink",
+        "S1_winken"
+      ],
       "state": "S0b_blink",
+      "file": "assets/figuren/lebendig/zustaende/chesslynx_baer_blinzeln.webp",
+      "zweck": "Blinzeln — deckungsgleich zum Grundzustand (Quest-Screens)",
       "compose": [
         "S0_standing",
         "02_lider_zu"
-      ],
-      "file": "assets/figuren/lebendig/zustaende/chesslynx_baer_blinzeln.webp",
+      ]
+    },
+    {
       "canvas": 768,
       "margin": 0.03,
       "rel_height": 0.76,
-      "zweck": "Blinzeln — Grundzustand mit aufgelegter Lider-Ebene, deckungsgleich zum Grundzustand"
+      "geometry_union": [
+        "S0_standing",
+        "S0b_blink",
+        "S1_winken"
+      ],
+      "state": "S1_winken",
+      "geometry_from": "S0_standing",
+      "file": "assets/figuren/lebendig/zustaende/chesslynx_baer_winken.webp",
+      "zweck": "Winken — Vollbild-Zustand, gleiche Leinwand wie der Grundzustand (Quest-Screens)"
+    },
+    {
+      "canvas": [
+        201,
+        324
+      ],
+      "margin": 0,
+      "rel_height": 0.988108,
+      "geometry_union": [
+        "S0_standing",
+        "S0b_blink",
+        "S1_winken"
+      ],
+      "state": "S0_standing",
+      "file": "assets/figuren/lebendig/wegmarken/chesslynx_baer_wegmarke_grund.webp",
+      "zweck": "Grundzustand für den Zustands-Renderer (Saga-Karte)"
+    },
+    {
+      "canvas": [
+        201,
+        324
+      ],
+      "margin": 0,
+      "rel_height": 0.988108,
+      "geometry_union": [
+        "S0_standing",
+        "S0b_blink",
+        "S1_winken"
+      ],
+      "state": "S0b_blink",
+      "file": "assets/figuren/lebendig/wegmarken/chesslynx_baer_wegmarke_blinzeln.webp",
+      "zweck": "Blinzeln — deckungsgleich zum Grundzustand (Saga-Karte)",
+      "compose": [
+        "S0_standing",
+        "02_lider_zu"
+      ]
+    },
+    {
+      "canvas": [
+        201,
+        324
+      ],
+      "margin": 0,
+      "rel_height": 0.988108,
+      "geometry_union": [
+        "S0_standing",
+        "S0b_blink",
+        "S1_winken"
+      ],
+      "state": "S1_winken",
+      "geometry_from": "S0_standing",
+      "file": "assets/figuren/lebendig/wegmarken/chesslynx_baer_wegmarke_winken.webp",
+      "zweck": "Winken — Vollbild-Zustand, gleiche Leinwand wie der Grundzustand (Saga-Karte)"
     }
   ],
   "known_limits": [

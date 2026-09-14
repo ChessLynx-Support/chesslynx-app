@@ -13,16 +13,20 @@
 // scripts/rig_master.py (siehe claude/rig_master_system_2026-09-12.md und
 // scripts/rig_configs/lux.json).
 //
-// Eingebunden sind hier drei davon:
-//   lux_grund.webp     — S0_standing, der Grundzustand
-//   lux_blinzeln.webp  — S0b_blink, beide Augen geschlossen
-//   lux_sprechen.webp  — S1_sprechen, Maul geöffnet
+// Eingebunden sind alle sechs:
+//   lux_grund.webp         — S0_standing, der Grundzustand
+//   lux_blinzeln.webp      — S0b_blink, beide Augen geschlossen
+//   lux_sprechen.webp      — S1_sprechen, Maul geöffnet
+//   lux_winken.webp        — L1_winken, Begrüßung
+//   lux_achtung.webp       — L2_achtung, Pfote gehoben: „Pass auf!" / „Dich meine ich"
+//   lux_zeigen_brett.webp  — L3_zeigen_brett, deutet auf ein Feld oder eine Figur
 //
-// Gemessen gegen den Grundzustand (2026-09-13, maskiert über den Alphakanal): Blinzeln
-// verändert nur y 376–463, Sprechen nur y 519–556; alles andere — Ohrpinsel, Brauen,
-// Flecken, Backenbart, Körper — ist Pixel für Pixel dasselbe Bild, die Alphakanäle sind
-// identisch. Deshalb genügt reines Überblenden ohne jede Positionierungsrechnung, siehe
-// components/ZustandsTier.tsx.
+// Gemessen gegen den Grundzustand (2026-09-14, maskiert über den Alphakanal): Blinzeln
+// verändert nur y 383–474, Sprechen nur y 526–565; alles andere — Ohrpinsel, Brauen,
+// Flecken, Backenbart, Körper — ist Pixel für Pixel dasselbe Bild. Deshalb genügt reines
+// Überblenden ohne jede Positionierungsrechnung, siehe components/ZustandsTier.tsx. Die
+// drei Posen verändern die Figur großflächig — sie sind keine Differenz, sondern eigene
+// Haltungen, und liegen deshalb als ganze Bilder auf derselben Leinwand.
 //
 // ACHTUNG, BEWUSSTE ÄNDERUNG AM AUSSEHEN: Die Zustände sind aus dem neueren Master
 // V6/Revision 6 gerechnet, das bisherige Hero-Bild stammt aus V4/Revision 5. Beide zeigen
@@ -37,22 +41,38 @@
 // Grundzustands hinausragen — ohne diesen Rand wären sie angeschnitten. Das bisherige
 // Hero-Bild dagegen war randlos auf die Figur zugeschnitten (600×1004). Würde man das neue
 // Bild einfach in denselben Kasten legen, stünde Lux kleiner und verschoben da. Die
-// Komponente `LuxZustand` unten rechnet den Rand deshalb heraus: Der äußere Kasten behält
-// exakt die alten Maße (`breite` × `breite * LUX_HERO_ASPECT_RATIO`), das Zustandsbild wird
-// darin so weit vergrößert und negativ versetzt, dass die FIGUR an derselben Stelle und in
-// derselben Größe steht wie vorher. Alle bestehenden Aufrufstellen bleiben dadurch
-// unverändert gültig.
+// gemeinsame Hilfskomponente `ZustandsFigur` (components/ZustandsTier.tsx) rechnet den Rand
+// deshalb heraus: Der äußere Kasten behält exakt die alten Maße (`breite` × `breite *
+// LUX_HERO_ASPECT_RATIO`), das Zustandsbild wird darin so weit vergrößert und negativ
+// versetzt, dass die FIGUR an derselben Stelle und in derselben Größe steht wie vorher.
+// Alle bestehenden Aufrufstellen bleiben dadurch unverändert gültig.
 
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { Animated, View } from "react-native";
+import { Animated } from "react-native";
 
-import { ZustandsTier } from "../components/ZustandsTier";
+import {
+  GESTE_EINMAL,
+  GESTE_WINKEN,
+  ZustandsFigur,
+  useGeste,
+} from "../components/ZustandsTier";
+import type { Leinwand } from "../components/ZustandsTier";
 import { useLuxSpricht } from "./luxStimme";
 
 const luxGrund = require("../../assets/lux/zustaende/lux_grund.webp");
 const luxBlinzeln = require("../../assets/lux/zustaende/lux_blinzeln.webp");
 const luxSprechen = require("../../assets/lux/zustaende/lux_sprechen.webp");
+
+// Die drei Posen, freigegeben am 2026-09-13. Sie ragen über die Silhouette des
+// Grundzustands hinaus; deshalb hat der Export rundherum Rand (siehe LEINWAND unten).
+const luxPosen = {
+  winken: require("../../assets/lux/zustaende/lux_winken.webp"),
+  achtung: require("../../assets/lux/zustaende/lux_achtung.webp"),
+  zeigen_brett: require("../../assets/lux/zustaende/lux_zeigen_brett.webp"),
+} as const;
+
+export type LuxPose = keyof typeof luxPosen;
 
 // Natives Seitenverhältnis (Höhe/Breite) der FIGUR, wie sie die App darstellt. Der Wert
 // stammt aus dem randlosen Hero-Export und bleibt die Rechengrundlage aller Layouts
@@ -60,26 +80,11 @@ const luxSprechen = require("../../assets/lux/zustaende/lux_sprechen.webp");
 // bewusst nicht, damit sich keine Abstände verschieben.
 export const LUX_HERO_ASPECT_RATIO = 1004 / 600;
 
-// Maße des Zustands-Exports und Lage der Figur darin, gemessen am 2026-09-13 über den
-// Alphakanal (Schwelle 8): Leinwand 660×1060, Figur bei x 30–630, y 32–1027.
-const LEINWAND = { breite: 660, hoehe: 1060 };
-const FIGUR = { x: 30, y: 32, breite: 601 };
-
-/**
- * Rechnet aus der gewünschten FIGURENBREITE den Kasten, in dem das Zustandsbild liegen
- * muss, samt negativem Versatz. Ergebnis: Die Figur steht danach exakt dort, wo das alte,
- * randlos zugeschnittene Bild stand.
- */
-function kasten(figurBreite: number) {
-  const breite = figurBreite * (LEINWAND.breite / FIGUR.breite);
-  const hoehe = breite * (LEINWAND.hoehe / LEINWAND.breite);
-  return {
-    breite,
-    hoehe,
-    links: -breite * (FIGUR.x / LEINWAND.breite),
-    oben: -hoehe * (FIGUR.y / LEINWAND.hoehe),
-  };
-}
+// Maße des Zustands-Exports und Lage der Figur darin, gemessen am 2026-09-14 über den
+// Alphakanal (Schwelle 8). Die Figur füllt die Leinwand NICHT aus: Rundherum bleibt Rand
+// für die Posen — die winkende Pfote steht 13 px weiter links und 7 px höher als die
+// Silhouette des Grundzustands. `ZustandsFigur` rechnet diesen Rand wieder heraus.
+const LEINWAND: Leinwand = { breite: 660, hoehe: 1060, figur: [33, 46, 594, 982] };
 
 // Wie schnell sich das Maul beim Sprechen öffnet und schließt. 150 ms ist bewusst kein
 // Silbentakt — die Geräte-Stimme liefert keine Lautinformation, ein echtes Lippenlesen ist
@@ -111,41 +116,56 @@ type LuxZustandProps = {
   blinzeln?: boolean;
   /** Maulbewegung, solange Lux spricht. Aus, wo Lux nur als Bild dasteht. */
   mundBewegung?: boolean;
+  /** Welche Pose gezeigt werden kann. Ohne Angabe wird kein Posenbild geladen. */
+  pose?: LuxPose;
+  /** Löst die Pose aus: Bei jedem Wechsel dieses Werts läuft sie einmal ab. */
+  posenAusloeser?: unknown;
 };
 
 /**
  * Lux in seiner jetzigen Machart: Grundzustand plus überblendete Zustände. Gemeinsame
  * Grundlage von `LuxHeroIcon` und `LuxEckIcon` unten.
+ *
+ * Maul und Pose sind zwei getrennte Ebenen. Sie dürfen gleichzeitig laufen — dann liegt
+ * die Pose über dem Maul und verdeckt es, weil beide Bilder die ganze Figur zeigen. Das
+ * ist die ehrliche Grenze der Zustands-Methode: Ein Bild "Pfote gehoben UND Maul offen"
+ * gibt es nicht. Gesten dauern rund eine Sekunde, das Maul bewegt sich danach weiter.
  */
-function LuxZustand({ breite, blinzeln = true, mundBewegung = true }: LuxZustandProps) {
+function LuxZustand({
+  breite,
+  blinzeln = true,
+  mundBewegung = true,
+  pose,
+  posenAusloeser,
+}: LuxZustandProps) {
   const spricht = useLuxSpricht();
   const mundOffen = useMundTakt(mundBewegung && spricht);
-  const k = kasten(breite);
+  const posiert = useGeste(
+    posenAusloeser,
+    pose === "winken" ? GESTE_WINKEN : GESTE_EINMAL
+  );
 
   return (
-    // Äußerer Kasten in den Maßen der Figur: Er bestimmt, wie viel Platz Lux im Layout
-    // einnimmt. Das größere Zustandsbild liegt absolut darin und ragt darüber hinaus —
-    // aber nur mit seinem LEEREN Rand. Die Figur selbst liegt vollständig innerhalb des
-    // Kastens (sie ist sogar rund 1 % niedriger als er). Sollte Android den Überstand
-    // wider Erwarten abschneiden, geht deshalb nichts Sichtbares verloren.
-    <View style={{ width: breite, height: breite * LUX_HERO_ASPECT_RATIO }}>
-      <View style={{ position: "absolute", left: k.links, top: k.oben }}>
-        <ZustandsTier
-          grund={luxGrund}
-          blinzeln={luxBlinzeln}
-          aktiverZustand={luxSprechen}
-          aktiv={mundOffen}
-          breite={k.breite}
-          hoehe={k.hoehe}
-          idle={blinzeln}
-          accessibilityLabel="Lux, der Luchs"
-        />
-      </View>
-    </View>
+    <ZustandsFigur
+      leinwand={LEINWAND}
+      figurBreite={breite}
+      // Das Layout der Quest-Ecken und der Willkommenssequenz ist auf diesen Wert
+      // eingemessen (Quest1.tsx rechnet die Sprechblase danach aus) — deshalb bleibt er
+      // die Vorgabe, statt aus der neuen Figur abgeleitet zu werden.
+      aspekt={LUX_HERO_ASPECT_RATIO}
+      grund={luxGrund}
+      blinzeln={luxBlinzeln}
+      ebenen={[
+        { bild: luxSprechen, aktiv: mundOffen },
+        { bild: pose ? luxPosen[pose] : luxSprechen, aktiv: pose != null && posiert },
+      ]}
+      idle={blinzeln}
+      accessibilityLabel="Lux, der Luchs"
+    />
   );
 }
 
-type LuxHeroIconProps = { width?: number };
+type LuxHeroIconProps = { width?: number; pose?: LuxPose; posenAusloeser?: unknown };
 
 /**
  * Lux, große Held:innen-Illustration — für den Onboarding/Splash-Screen (siehe
@@ -156,8 +176,8 @@ type LuxHeroIconProps = { width?: number };
  * Seitenverhältnis — Lux ist deutlich höher als breit (sitzende Pose), ein quadratisches
  * `contain` würde das Bild unnötig verkleinern.
  */
-export function LuxHeroIcon({ width = 220 }: LuxHeroIconProps) {
-  return <LuxZustand breite={width} />;
+export function LuxHeroIcon({ width = 220, pose, posenAusloeser }: LuxHeroIconProps) {
+  return <LuxZustand breite={width} pose={pose} posenAusloeser={posenAusloeser} />;
 }
 
 // Update (Opus-Review, 2026-09-07, Befund 2.1/2.8, siehe claude/review_logik_grafik_
@@ -193,7 +213,12 @@ export function LuxAtem({
   return <Animated.View style={{ transform: [{ scale }] }}>{children}</Animated.View>;
 }
 
-type LuxEckIconProps = { size?: number; atmen?: boolean };
+type LuxEckIconProps = {
+  size?: number;
+  atmen?: boolean;
+  pose?: LuxPose;
+  posenAusloeser?: unknown;
+};
 
 /**
  * Lux-Icon für Quest-Ecken und ähnliche kleine Auftritte neben der Sprechblase — löste
@@ -217,7 +242,7 @@ type LuxEckIconProps = { size?: number; atmen?: boolean };
  * Überblendung der Zustände nicht, weil beide Ebenen innerhalb desselben skalierten
  * Kastens liegen.
  */
-export function LuxEckIcon({ size = 52, atmen = true }: LuxEckIconProps) {
-  const inhalt = <LuxZustand breite={size} />;
+export function LuxEckIcon({ size = 52, atmen = true, pose, posenAusloeser }: LuxEckIconProps) {
+  const inhalt = <LuxZustand breite={size} pose={pose} posenAusloeser={posenAusloeser} />;
   return atmen ? <LuxAtem>{inhalt}</LuxAtem> : inhalt;
 }

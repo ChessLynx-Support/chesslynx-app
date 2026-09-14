@@ -90,6 +90,7 @@ import Svg, { Circle, Defs, G, Image as SvgBild, LinearGradient, Mask, Path, Rad
 import { loadBonusFortschrittLocal, loadQuestFortschrittLocal } from "../lib/storage";
 import { pruefeSchlosstorStatus } from "../lib/gate";
 import { SCHILDKROETE_ASPEKT, SCHILDKROETE_BILD } from "../lib/schildkroete";
+import { QuestTierWegmarke, questTierWegmarkeAspekt } from "../lib/questTiere";
 import { AmbientLoop } from "./AmbientLoop";
 
 const hintergrund = require("../../assets/hintergrund/luchsrevier_wisentfeste.webp");
@@ -201,14 +202,16 @@ const NEBEL_KLARUNG_BURGTOR = "#CFCFCF"; // Burgtor: dauerhaft nur leicht gelich
 
 export type WegmarkenEintrag = {
   quest: QuestId;
-  bild: ReturnType<typeof require>;
   // Fußpunkt der Figur (wo sie auf dem Weg "steht"), als Anteil von Referenzbreite/-höhe.
   fx: number;
   fy: number;
   // Bildbreite als Anteil der Referenzbreite; die Höhe ergibt sich aus dem echten
   // Seitenverhältnis der jeweiligen Illustration (aspekt unten) statt einem festen Wert.
   breiteFrac: number;
-  aspekt: number; // Höhe/Breite der Originalgrafik
+  // Höhe/Breite des TIERES. Seit dem 2026-09-14 aus der Zustandsfamilie gerechnet statt
+  // von Hand eingetragen: Die Bilder haben jetzt einen Rand für die Geste (beim Schwan
+  // ist die Datei fast doppelt so breit wie der Vogel), und nur die Figur darf zählen.
+  aspekt: number;
 };
 
 // Paket 11d (2026-09-13) — vier dezente Umgebungsschleifen (Lottie, siehe AmbientLoop.tsx).
@@ -270,56 +273,50 @@ const AMBIENT_SCHLEIFEN = [
 export const WEGMARKEN: WegmarkenEintrag[] = [
   {
     quest: "quest1",
-    bild: require("../../assets/figuren/lebendig/chesslynx_igel_lebendig_wegmarke.webp"),
     fx: 150 / REFERENZ_BREITE,
     // 2026-09-13: 16 px tiefer — auf der neuen Karte stand der Igel bei y=590 am Bachufer
     // (gemessene Farbe dort 106/207/201, also Wasser), jetzt mittig auf dem Sandweg.
     fy: 606 / REFERENZ_HOEHE,
     breiteFrac: 45 / REFERENZ_BREITE,
-    aspekt: 397 / 227,
+    aspekt: questTierWegmarkeAspekt("quest1"),
   },
   {
     quest: "quest2",
-    bild: require("../../assets/figuren/lebendig/chesslynx_baer_lebendig_wegmarke.webp"),
     fx: 255 / REFERENZ_BREITE,
     // 2026-09-13: 14 px höher, damit der Bär mittig auf dem Weg steht statt am unteren Rand.
     fy: 566 / REFERENZ_HOEHE,
     breiteFrac: 50 / REFERENZ_BREITE,
-    aspekt: 547 / 267,
+    aspekt: questTierWegmarkeAspekt("quest2"),
   },
   {
     quest: "quest3",
-    bild: require("../../assets/figuren/lebendig/chesslynx_eule_lebendig_wegmarke.webp"),
     // 2026-09-13: 20 px nach links und 25 px tiefer, auf den Weg. Abstand zum Pferd
     // gemessen 19 px — die Silhouetten berühren sich nicht.
     fx: 175 / REFERENZ_BREITE,
     fy: 475 / REFERENZ_HOEHE,
     breiteFrac: 56 / REFERENZ_BREITE,
-    aspekt: 476 / 247,
+    aspekt: questTierWegmarkeAspekt("quest3"),
   },
   {
     quest: "quest4",
-    bild: require("../../assets/figuren/lebendig/chesslynx_pferd_lebendig_wegmarke.webp"),
     fx: 110 / REFERENZ_BREITE,
     fy: 410 / REFERENZ_HOEHE,
     breiteFrac: 61 / REFERENZ_BREITE,
-    aspekt: 671 / 414,
+    aspekt: questTierWegmarkeAspekt("quest4"),
   },
   {
     quest: "quest5",
-    bild: require("../../assets/figuren/lebendig/chesslynx_schwan_lebendig_wegmarke.webp"),
     fx: 120 / REFERENZ_BREITE,
     fy: 300 / REFERENZ_HOEHE,
     breiteFrac: 61 / REFERENZ_BREITE,
-    aspekt: 606 / 355,
+    aspekt: questTierWegmarkeAspekt("quest5"),
   },
   {
     quest: "quest6",
-    bild: require("../../assets/figuren/lebendig/chesslynx_hirsch_lebendig_wegmarke.webp"),
     fx: 245 / REFERENZ_BREITE,
     fy: 230 / REFERENZ_HOEHE,
     breiteFrac: 52 / REFERENZ_BREITE,
-    aspekt: 721 / 375,
+    aspekt: questTierWegmarkeAspekt("quest6"),
   },
 ];
 
@@ -662,7 +659,10 @@ export function LuchsRevierKarte({
             return (
               <Wegmarke
                 key={w.quest}
-                bild={w.bild}
+                // Die sechs Quest-Tiere kommen als Zustandsfamilie (blinzeln, und das
+                // nächste grüßt); die Schildkröte weiter oben ist weiterhin ein Standbild.
+                tier={w.quest}
+                gruesst={zustand === "naechstes"}
                 left={w.fx * breite}
                 top={w.fy * hoehe}
                 breite={bildBreite}
@@ -730,6 +730,8 @@ export function LuchsRevierKarte({
 
 function Wegmarke({
   bild,
+  tier,
+  gruesst = false,
   left,
   top,
   breite,
@@ -739,7 +741,12 @@ function Wegmarke({
   ringMitteY,
   ringFaktor = 1.55,
 }: {
-  bild: ReturnType<typeof require>;
+  /** Standbild — für Wegmarken ohne Zustandsfamilie (Schildkröte). */
+  bild?: ReturnType<typeof require>;
+  /** Quest-Tier mit Zuständen; schließt `bild` aus. */
+  tier?: QuestId;
+  /** Nur für `tier`: Das Tier, das als nächstes dran ist, grüßt in ruhigen Abständen. */
+  gruesst?: boolean;
   left: number;
   top: number;
   breite: number;
@@ -788,11 +795,24 @@ function Wegmarke({
           { width: breite * 0.58, height: breite * 0.16, left: breite * 0.21, top: hoehe - breite * 0.1 },
         ]}
       />
-      <Image
-        source={bild}
-        style={{ width: breite, height: hoehe, opacity: zustand === "gesperrt" ? GESPERRT_OPACITY : 1 }}
-        resizeMode="contain"
-      />
+      {tier ? (
+        // Gesperrte Tiere blinzeln nicht und grüßen nicht: Sie stehen noch im Nebel, und
+        // Bewegung würde sie als erreichbar lesen lassen.
+        <View style={{ opacity: zustand === "gesperrt" ? GESPERRT_OPACITY : 1 }}>
+          <QuestTierWegmarke
+            quest={tier}
+            breite={breite}
+            blinzeln={zustand !== "gesperrt"}
+            gruesst={gruesst}
+          />
+        </View>
+      ) : (
+        <Image
+          source={bild}
+          style={{ width: breite, height: hoehe, opacity: zustand === "gesperrt" ? GESPERRT_OPACITY : 1 }}
+          resizeMode="contain"
+        />
+      )}
       {zustand === "erledigt" && (
         <View style={[styles.abzeichen, { right: -breite * 0.08, top: -breite * 0.04 }]}>
           <Svg width={10} height={10} viewBox="0 0 24 24">

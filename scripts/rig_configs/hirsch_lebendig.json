@@ -113,24 +113,101 @@
       "rel_height": 1.0
     },
     {
-      "state": "S0_standing",
-      "file": "assets/figuren/lebendig/zustaende/chesslynx_hirsch_grund.webp",
       "canvas": 768,
       "margin": 0.03,
       "rel_height": 1.0,
-      "zweck": "Grundzustand für den Zustands-Renderer (gleiche Geometrie wie das Blinzeln)"
+      "geometry_union": [
+        "S0_standing",
+        "S0b_blink",
+        "S1_nicken"
+      ],
+      "state": "S0_standing",
+      "file": "assets/figuren/lebendig/zustaende/chesslynx_hirsch_grund.webp",
+      "zweck": "Grundzustand für den Zustands-Renderer (Quest-Screens)"
     },
     {
+      "canvas": 768,
+      "margin": 0.03,
+      "rel_height": 1.0,
+      "geometry_union": [
+        "S0_standing",
+        "S0b_blink",
+        "S1_nicken"
+      ],
       "state": "S0b_blink",
+      "file": "assets/figuren/lebendig/zustaende/chesslynx_hirsch_blinzeln.webp",
+      "zweck": "Blinzeln — deckungsgleich zum Grundzustand (Quest-Screens)",
       "compose": [
         "S0_standing",
         "02_lider_zu"
-      ],
-      "file": "assets/figuren/lebendig/zustaende/chesslynx_hirsch_blinzeln.webp",
+      ]
+    },
+    {
       "canvas": 768,
       "margin": 0.03,
       "rel_height": 1.0,
-      "zweck": "Blinzeln — Grundzustand mit aufgelegter Lider-Ebene, deckungsgleich zum Grundzustand"
+      "geometry_union": [
+        "S0_standing",
+        "S0b_blink",
+        "S1_nicken"
+      ],
+      "state": "S1_nicken",
+      "geometry_from": "S0_standing",
+      "file": "assets/figuren/lebendig/zustaende/chesslynx_hirsch_nicken.webp",
+      "zweck": "Nicken — Vollbild-Zustand, gleiche Leinwand wie der Grundzustand (Quest-Screens)"
+    },
+    {
+      "canvas": [
+        166,
+        320
+      ],
+      "margin": 0,
+      "rel_height": 1.000555,
+      "geometry_union": [
+        "S0_standing",
+        "S0b_blink",
+        "S1_nicken"
+      ],
+      "state": "S0_standing",
+      "file": "assets/figuren/lebendig/wegmarken/chesslynx_hirsch_wegmarke_grund.webp",
+      "zweck": "Grundzustand für den Zustands-Renderer (Saga-Karte)"
+    },
+    {
+      "canvas": [
+        166,
+        320
+      ],
+      "margin": 0,
+      "rel_height": 1.000555,
+      "geometry_union": [
+        "S0_standing",
+        "S0b_blink",
+        "S1_nicken"
+      ],
+      "state": "S0b_blink",
+      "file": "assets/figuren/lebendig/wegmarken/chesslynx_hirsch_wegmarke_blinzeln.webp",
+      "zweck": "Blinzeln — deckungsgleich zum Grundzustand (Saga-Karte)",
+      "compose": [
+        "S0_standing",
+        "02_lider_zu"
+      ]
+    },
+    {
+      "canvas": [
+        166,
+        320
+      ],
+      "margin": 0,
+      "rel_height": 1.000555,
+      "geometry_union": [
+        "S0_standing",
+        "S0b_blink",
+        "S1_nicken"
+      ],
+      "state": "S1_nicken",
+      "geometry_from": "S0_standing",
+      "file": "assets/figuren/lebendig/wegmarken/chesslynx_hirsch_wegmarke_nicken.webp",
+      "zweck": "Nicken — Vollbild-Zustand, gleiche Leinwand wie der Grundzustand (Saga-Karte)"
     }
   ],
   "known_limits": [

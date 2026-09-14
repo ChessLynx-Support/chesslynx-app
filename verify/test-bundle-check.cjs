@@ -88,5 +88,35 @@ test("Quellcode: kein Import von Analytics/Performance/Messaging/Tracking", () =
   if (treffer.length) throw new Error(`verbotener Import in: ${treffer.map((d) => path.relative(WURZEL, d)).join(", ")}`);
 });
 
+test("Firebase-Konfiguration ohne measurementId (keine Analytics-Anbindung)", () => {
+  // Geprüft 2026-09-14: Das Firebase-Projekt „chelynx" hat eine verknüpfte
+  // Google-Analytics-Property, die Web-App-Konfiguration in der Firebase-Konsole enthält
+  // daher eine `measurementId`. In `src/lib/firebase.ts` steht sie NICHT — und genau das
+  // hält dieser Test fest.
+  //
+  // Warum das zählt: Firebase Analytics lädt sich nicht von selbst. Es braucht einen Import
+  // von `firebase/analytics` (verboten, siehe Test darüber) UND eine `measurementId` in der
+  // übergebenen Konfiguration. Fehlt eines von beidem, fließt nichts. Ohne diesen Test
+  // könnte die `measurementId` unbemerkt mitkommen, wenn jemand die Konfiguration später
+  // aus der Firebase-Konsole neu herauskopiert — dort steht sie nämlich drin.
+  //
+  // Hintergrund: Apple Kids Category, Guideline 1.3 (keine Analytics-/Tracking-SDKs, auch
+  // nicht ungenutzte) und das Datenschutz-Nutrition-Label „kein Tracking".
+  const dateien = [];
+  (function sammle(dir) {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      const p = path.join(dir, e.name);
+      if (e.isDirectory()) sammle(p);
+      else if (/\.(t|j)sx?$/.test(e.name)) dateien.push(p);
+    }
+  })(path.join(WURZEL, "src"));
+  const treffer = dateien.filter((d) => /measurementId|getAnalytics/.test(fs.readFileSync(d, "utf8")));
+  if (treffer.length) {
+    throw new Error(
+      `measurementId/getAnalytics gefunden in: ${treffer.map((d) => path.relative(WURZEL, d)).join(", ")}`
+    );
+  }
+});
+
 console.log(`\n${passed} bestanden, ${failed} fehlgeschlagen`);
 process.exit(failed ? 1 : 0);

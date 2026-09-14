@@ -208,7 +208,15 @@
         1060
       ],
       "margin": 0.03,
-      "zweck": "Grundzustand für den Zustands-Renderer"
+      "zweck": "Grundzustand für den Zustands-Renderer",
+      "geometry_union": [
+        "S0_standing",
+        "S0b_blink",
+        "S1_sprechen",
+        "L1_winken",
+        "L2_achtung",
+        "L3_zeigen_brett"
+      ]
     },
     {
       "state": "S0b_blink",
@@ -222,7 +230,15 @@
         1060
       ],
       "margin": 0.03,
-      "zweck": "Blinzeln — Lider-Ebene über dem Grundzustand"
+      "zweck": "Blinzeln — Lider-Ebene über dem Grundzustand",
+      "geometry_union": [
+        "S0_standing",
+        "S0b_blink",
+        "S1_sprechen",
+        "L1_winken",
+        "L2_achtung",
+        "L3_zeigen_brett"
+      ]
     },
     {
       "state": "S1_sprechen",
@@ -236,7 +252,72 @@
         1060
       ],
       "margin": 0.03,
-      "zweck": "Sprechen — Mund-Ebene über dem Grundzustand"
+      "zweck": "Sprechen — Mund-Ebene über dem Grundzustand",
+      "geometry_union": [
+        "S0_standing",
+        "S0b_blink",
+        "S1_sprechen",
+        "L1_winken",
+        "L2_achtung",
+        "L3_zeigen_brett"
+      ]
+    },
+    {
+      "canvas": [
+        660,
+        1060
+      ],
+      "margin": 0.03,
+      "geometry_union": [
+        "S0_standing",
+        "S0b_blink",
+        "S1_sprechen",
+        "L1_winken",
+        "L2_achtung",
+        "L3_zeigen_brett"
+      ],
+      "state": "L1_winken",
+      "geometry_from": "S0_standing",
+      "file": "assets/lux/zustaende/lux_winken.webp",
+      "zweck": "Winken — Begrüßung, Vollbild-Zustand auf derselben Leinwand"
+    },
+    {
+      "canvas": [
+        660,
+        1060
+      ],
+      "margin": 0.03,
+      "geometry_union": [
+        "S0_standing",
+        "S0b_blink",
+        "S1_sprechen",
+        "L1_winken",
+        "L2_achtung",
+        "L3_zeigen_brett"
+      ],
+      "state": "L2_achtung",
+      "geometry_from": "S0_standing",
+      "file": "assets/lux/zustaende/lux_achtung.webp",
+      "zweck": "Pfote gehoben — „Pass auf!“ / „Dich meine ich“"
+    },
+    {
+      "canvas": [
+        660,
+        1060
+      ],
+      "margin": 0.03,
+      "geometry_union": [
+        "S0_standing",
+        "S0b_blink",
+        "S1_sprechen",
+        "L1_winken",
+        "L2_achtung",
+        "L3_zeigen_brett"
+      ],
+      "state": "L3_zeigen_brett",
+      "geometry_from": "S0_standing",
+      "file": "assets/lux/zustaende/lux_zeigen_brett.webp",
+      "zweck": "Deutet auf das Brett — Zughilfen und Hinweise"
     }
   ]
 }

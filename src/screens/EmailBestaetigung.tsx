@@ -108,6 +108,18 @@ export function EmailBestaetigung({ navigation }: any) {
           Bestätigungslink — dann wird der Fortschritt deines Kindes in deinem Konto gesichert und der
           Eltern-Bereich öffnet sich.
         </Text>
+        {/* Gerätetest 2026-09-12: Die Bestätigungsmail landete im Spam und kam verzögert
+            (Greylisting beim Empfänger, weil SPF/DKIM des Standardabsenders
+            `noreply@<projekt>.firebaseapp.com` Google gehören, nicht ChessLynx). Behoben wird
+            das über den eigenen Absender `noreply@chesslynx.com` — siehe
+            claude/auth_mails_eigene_domain_2026-09-12.md.
+            Diese Zeile bleibt trotzdem dauerhaft stehen: Kein Absender der Welt kommt bei
+            jedem Empfänger in den Posteingang, und eine ungefundene Bestätigungsmail ist bei
+            ChessLynx kein Schönheitsfehler, sondern ein abgebrochenes Onboarding — ohne sie
+            gibt es kein Kinderprofil in der Cloud, keinen Sync und keinen Kauf. */}
+        <Text style={styles.nebentext}>
+          Keine Mail bekommen? Schau bitte auch im Spam-Ordner nach.
+        </Text>
         <Text style={styles.nebentext}>
           Bis dahin spielt dein Kind ganz normal weiter; der Fortschritt bleibt auf diesem Gerät.
         </Text>

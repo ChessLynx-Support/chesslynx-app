@@ -453,8 +453,14 @@ def rig_bauen(cfg: dict, ktx: Kontext) -> dict:
             # zu weit gefasst ist, entstehen sonst freischwebende Streifen neben dem Tier
             # (beim Hirsch am 2026-09-13 aufgetreten: ein Band auf Augenhöhe bis zum
             # rechten Bildrand).
+            #
+            # Schwelle bewusst 0 und nicht 8: Mit 8 fielen die schwächsten Randpixel der
+            # Silhouette aus dem zusammengesetzten Bild heraus, im Grundzustand blieben sie
+            # stehen. Beim Überblenden flackerte dadurch die Kontur — beim Igel 191 Pixel
+            # mit bis zu 20 Stufen Unterschied, alle mit Alpha unter 250, also genau der
+            # weiche Saum. Gegen freischwebende Streifen genügt der Umriss selbst.
             basis_alpha = np.array(rig_ziele[teile_ex[0]])[..., 3]
-            erlaubt = _binary_dilate(basis_alpha > 8, 2)
+            erlaubt = _binary_dilate(basis_alpha > 0, 2)
             a_q = np.array(quelle)
             a_q[..., 3] = np.where(erlaubt, a_q[..., 3], 0)
             quelle = Image.fromarray(a_q, "RGBA")
@@ -477,13 +483,41 @@ def rig_bauen(cfg: dict, ktx: Kontext) -> dict:
         # gesenkte Lider), damit das Bild um ein paar Pixel springt oder anders
         # skaliert wird und die Zustände in der App nicht mehr deckungsgleich sind.
         geo_id = ex.get("geometry_from") or geometrie_bezug(cfg, ex["state"])
-        b_state = bbox(rig_ziele.get(geo_id, quelle), 8)
-        h = max(1, round((b_state[3] - b_state[1]) * faktor))
-        w = max(1, round((b_state[2] - b_state[0]) * faktor))
+        b_geo = bbox(rig_ziele.get(geo_id, quelle), 8)
+        # "geometry_union": der Ausschnitt umfasst zusätzlich die genannten Zustände.
+        #
+        # Nötig, seit es GESTEN gibt. Ein Blinzeln bleibt innerhalb der Silhouette des
+        # Grundzustands — dessen Ausschnitt genügt. Eine erhobene Pfote, ein gehobener
+        # Flügel oder ein gedrehter Kopf ragen darüber hinaus; mit dem Ausschnitt des
+        # Grundzustands wären sie abgeschnitten (beim Schwan fehlten 36 % der Bildbreite).
+        #
+        # Umgekehrt darf der größere Ausschnitt die Figur nicht verschieben oder
+        # verkleinern: Die Zustände einer Familie werden in der App übereinandergelegt.
+        # Deshalb gilt der größere Ausschnitt für ALLE Exporte der Familie (auch für den
+        # Grundzustand), und die Platzierung hängt weiterhin am BEZUGSZUSTAND — seine
+        # Bodenlinie und seine Mitte bestimmen, wo die Figur landet. Der Zugewinn ist
+        # dadurch reiner, durchsichtiger Rand um dieselbe Figur an derselben Stelle.
+        b_state = b_geo
+        for uid in ex.get("geometry_union", []):
+            if uid not in rig_ziele:
+                continue
+            bu = bbox(rig_ziele[uid], 8)
+            b_state = (min(b_state[0], bu[0]), min(b_state[1], bu[1]),
+                       max(b_state[2], bu[2]), max(b_state[3], bu[3]))
+        # Passt der Ausschnitt nicht in die Breite (z. B. der Hirsch mit breitem Geweih auf
+        # schmaler Leinwand, oder ein gehobener Flügel), wird der MASSSTAB zurückgenommen —
+        # nicht nur die Bildgröße. Beides auseinanderlaufen zu lassen war ein Fehler: Die
+        # Bodenlinie und die gemeldete Figurenlage werden aus `faktor` gerechnet, das Bild
+        # aber aus der gekappten Breite. Beim Lux-Export am 2026-09-14 stand die Figur
+        # dadurch 14 px über der Bodenlinie und war 1,4 % zu klein.
         max_w = int(breite_app * (1 - 2 * rand_app))
-        if w > max_w:  # z. B. der Hirsch mit breitem Geweih auf schmaler Leinwand
-            schrumpf = max_w / w
-            w, h = max_w, max(1, round(h * schrumpf))
+        breite_ausschnitt = b_state[2] - b_state[0]
+        if breite_ausschnitt * faktor > max_w:
+            faktor = max_w / breite_ausschnitt
+            ktx.sag(f"  Maßstab wegen der Ausschnittbreite auf {faktor:.4f} zurückgenommen "
+                    f"({ex['file'].rsplit('/', 1)[-1]})")
+        h = max(1, round((b_state[3] - b_state[1]) * faktor))
+        w = max(1, round(breite_ausschnitt * faktor))
         klein = quelle.crop(b_state).resize((w, h), Image.LANCZOS)
         leinwand = Image.new("RGBA", (breite_app, hoehe_app), (0, 0, 0, 0))
         # Fußpunkt: entweder fest vorgegeben ("ground_line" = letzte Zeile mit Tier)
@@ -492,10 +526,16 @@ def rig_bauen(cfg: dict, ktx: Kontext) -> dict:
         boden_app = ex.get("ground_line")
         if boden_app is None:
             boden_app = hoehe_app - 1 - round(hoehe_app * rand_app)
-        oben = int(boden_app) + 1 - h
+        # Senkrecht am Bezugszustand ausrichten, nicht am Ausschnitt: Reicht eine Geste
+        # tiefer als der Grundzustand, soll trotzdem der Grundzustand auf der Bodenlinie
+        # stehen — sonst hebt die Geste die ganze Figur an.
+        oben = int(boden_app) + 1 - max(1, round((b_geo[3] - b_state[1]) * faktor))
         # Waagerecht an der Mitte des Bezugszustands ausrichten, nicht an der eigenen —
         # sonst springt ein Zustand seitlich, dessen Silhouette anders ausfällt.
         mitte_ref = (bb_ref[0] + bb_ref[2]) / 2
+        # Bei einem Ausschnitt aus mehreren Zuständen ist die Mitte des Ausschnitts
+        # gemeint — die Formel unten setzt daraus die Mitte des BEZUGSZUSTANDS auf die
+        # Leinwandmitte, egal wie unsymmetrisch die Geste ausfällt.
         mitte_state = (b_state[0] + b_state[2]) / 2
         links = round(breite_app / 2 + (mitte_state - mitte_ref) * faktor - w / 2)
         leinwand.alpha_composite(klein, (links, oben))
@@ -511,18 +551,29 @@ def rig_bauen(cfg: dict, ktx: Kontext) -> dict:
                 leinwand.save(p, lossless=True, quality=100, method=6)
             else:
                 leinwand.save(p, optimize=True)
+        # Wo der BEZUGSZUSTAND auf dieser Leinwand liegt. Die App braucht genau diese vier
+        # Zahlen, um ein Bild mit Gesten-Rand so einzupassen, dass die Figur dieselbe Größe
+        # und Stelle behält wie ohne Rand (siehe src/lib/luxAssets.tsx, Funktion `kasten`).
+        figur = [
+            links + round((b_geo[0] - b_state[0]) * faktor),
+            oben + round((b_geo[1] - b_state[1]) * faktor),
+            round((b_geo[2] - b_geo[0]) * faktor),
+            round((b_geo[3] - b_geo[1]) * faktor),
+        ]
         app.append(
             {
                 "datei": str(p),
                 "groesse": [breite_app, hoehe_app],
                 "tier_hoehe": h,
                 "bodenlinie_y": int(boden_app),
+                "figur_box": figur,
                 "sha256": sha256(p) if p.exists() else None,
             }
         )
         ktx.sag(
-            f"  App-Export {p.name}: Tierhöhe {h} px auf {breite_app}×{hoehe_app} px Leinwand, "
-            f"Bodenlinie y={int(boden_app)}"
+            f"  App-Export {p.name}: Ausschnitt {w}×{h} px auf {breite_app}×{hoehe_app} px "
+            f"Leinwand, Bodenlinie y={int(boden_app)}, Figur x {figur[0]}–{figur[0] + figur[2]}, "
+            f"y {figur[1]}–{figur[1] + figur[3]}"
         )
 
     # 7) Manifest, Prüfsummen, README
