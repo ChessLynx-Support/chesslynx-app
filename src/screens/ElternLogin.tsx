@@ -42,6 +42,8 @@ import {
 } from "react-native";
 import { elternAnmelden, elternKontoErstellen, passwortZuruecksetzen } from "../lib/auth";
 import { CONSENT_VERSION, COPPA_HINWEIS_VERSION } from "../lib/firebase";
+// Rechtstexte-Adressen zentral, sprachabhängig — siehe lib/sprache.ts.
+import { datenschutzUrl, nutzungsbedingungenUrl } from "../lib/sprache";
 import { merkeKindNicknameVor } from "../lib/storage";
 import { speichereElternEinstellungen } from "../lib/elternEinstellungen";
 
@@ -218,10 +220,10 @@ export function ElternLogin({ navigation }: any) {
               der Fortschritt in deinem Konto gesichert. Du kannst alles jederzeit im
               Eltern-Bereich einsehen und löschen.
             </Text>
-            <Pressable onPress={() => Linking.openURL("https://www.chesslynx.de/datenschutz")}>
+            <Pressable onPress={() => Linking.openURL(datenschutzUrl())}>
               <Text style={styles.consentLink}>Datenschutzerklärung ansehen</Text>
             </Pressable>
-            <Pressable onPress={() => Linking.openURL("https://www.chesslynx.de/nutzungsbedingungen")}>
+            <Pressable onPress={() => Linking.openURL(nutzungsbedingungenUrl())}>
               <Text style={styles.consentLink}>Nutzungsbedingungen ansehen</Text>
             </Pressable>
             <View style={styles.consentZeile}>

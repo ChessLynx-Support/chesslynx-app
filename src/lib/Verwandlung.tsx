@@ -60,6 +60,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Animated, Easing, StyleSheet, View } from "react-native";
 import type { ReactNode } from "react";
+import Svg, { Circle, Defs, RadialGradient, Stop } from "react-native-svg";
 import { Funkeln } from "../components/Funkeln";
 
 // Zeitpunkt (ms), an dem die Figur laut Sequenz unten eingerastet ist und das Funkeln
@@ -212,10 +213,13 @@ export function Verwandlung({
 
   const drehung = wackeln.interpolate({ inputRange: [-1, 1], outputRange: ["-6deg", "6deg"] });
   const absetzen = landung.interpolate({ inputRange: [0, 1], outputRange: [0, grossGroesse * 0.06] });
+  // Alle drei Lichtebenen sind gleich groß und füllen den Rahmen aus. Das ist seit dem
+  // Umbau auf Verläufe (2026-09-14, siehe unten) richtig so: Ein Verlauf ist an seinem Rand
+  // ohnehin durchsichtig, seine sichtbare Ausdehnung steuern die Stützpunkte — nicht die
+  // Kantenlänge. Verschieden große Kästen brächten dagegen die Gefahr zurück, dass eine
+  // Ebene über den Rahmen hinausragt und auf Android quadratisch abgeschnitten wird.
   const wrapGroesse = grossGroesse + 80;
-  const glowGroesse = grossGroesse + 40;
-  const ringGroesse = grossGroesse + 20;
-  const blitzGroesse = grossGroesse + 60;
+  const lichtGroesse = wrapGroesse;
 
   return (
     // Siehe Datei-Kommentar oben (Update 2026-09-10): kein Pressable/onPress mehr — die
@@ -224,48 +228,25 @@ export function Verwandlung({
     <View style={[styles.wrap, { width: wrapGroesse, height: wrapGroesse }]}>
       <Animated.View
         pointerEvents="none"
-        style={[
-          styles.glow,
-          {
-            width: glowGroesse,
-            height: glowGroesse,
-            borderRadius: glowGroesse / 2,
-            opacity: glowOpacity,
-            transform: [{ scale: glowSkalierung }],
-          },
-        ]}
-      />
+        style={[styles.ebene, { opacity: glowOpacity, transform: [{ scale: glowSkalierung }] }]}
+      >
+        <Lichtebene art="schein" groesse={lichtGroesse} />
+      </Animated.View>
       <Animated.View
         pointerEvents="none"
-        style={[
-          styles.ring,
-          {
-            width: ringGroesse,
-            height: ringGroesse,
-            borderRadius: ringGroesse / 2,
-            opacity: ringOpacity,
-            transform: [{ scale: ringSkalierung }],
-          },
-        ]}
-      />
+        style={[styles.ebene, { opacity: ringOpacity, transform: [{ scale: ringSkalierung }] }]}
+      >
+        <Lichtebene art="saum" groesse={lichtGroesse} />
+      </Animated.View>
       <Animated.View
         style={{ transform: [{ scale: figurSkalierung }, { rotate: drehung }, { translateY: absetzen }] }}
       >
         {zeigeFigur ? figur : tier}
       </Animated.View>
       {tier && (
-        <Animated.View
-          pointerEvents="none"
-          style={[
-            styles.blitz,
-            {
-              width: blitzGroesse,
-              height: blitzGroesse,
-              borderRadius: blitzGroesse / 2,
-              opacity: blitzOpacity,
-            },
-          ]}
-        />
+        <Animated.View pointerEvents="none" style={[styles.ebene, { opacity: blitzOpacity }]}>
+          <Lichtebene art="blitz" groesse={lichtGroesse} />
+        </Animated.View>
       )}
       {zeigeFunkeln && <Funkeln size={grossGroesse * 1.1} />}
     </View>
@@ -277,20 +258,88 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  glow: {
+  // Alle Lichtebenen liegen mittig übereinander; ihre Ausdehnung steckt im Verlauf selbst.
+  ebene: {
     position: "absolute",
-    backgroundColor: "#F4EDE0",
-  },
-  ring: {
-    position: "absolute",
-    borderWidth: 3,
-    borderColor: "#D7A52D", // Marken-Gold, siehe Funkeln.tsx
-  },
-  // Lichtblitz für den Bildtausch Tier → Figur (2026-09-12). Bewusst warmes Cremeweiß
-  // statt reinem Weiß, passend zum Lichtschein oben und zur App-Grundfarbe — Design-
-  // Grundsatz 3 (keine harten, grellen Signale für Kinder).
-  blitz: {
-    position: "absolute",
-    backgroundColor: "#FFFBF2",
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
+
+// ---------------------------------------------------------------------------------------
+// Die Lichtebenen
+// ---------------------------------------------------------------------------------------
+// Gerätetest 2026-09-14 (Nutzer: "Der weiße Kreis und der Ring wirken nicht gut"). Bis
+// hierher waren beide schlichte Views: eine cremefarben GEFÜLLTE Kreisfläche (#F4EDE0) und
+// ein Kreis mit 3 px Goldkontur. Drei Dinge gingen daran schief:
+//
+//  1. Eine Fläche mit gleichmäßiger Deckkraft hört an ihrem Rand abrupt auf. Licht tut das
+//     nie — es fällt ab. Das Auge las deshalb keinen Lichtschein, sondern eine aufgeklebte
+//     Scheibe.
+//  2. Deckendes Cremeweiß nahm der gemalten Kulisse darunter die Zeichnung weg. Ein
+//     Lichtschein muss den Untergrund aufhellen und sichtbar lassen.
+//  3. Ein exakter Kreis mit dünner Kontur ist die Formensprache eines Bedienelements — er
+//     las sich wie ein Fortschrittsring, zumal er unten angeschnitten war.
+//
+// Alle drei sind jetzt radiale Verläufe (`react-native-svg`, dieselbe Technik wie die
+// Nebel-Lichtungen in LuchsRevierKarte.tsx): deckend im Kern, bei 100 % des Radius auf null.
+// Damit gibt es keine Kante mehr, an der etwas aufhören könnte, und auch kein Problem, wenn
+// eine Ebene am unteren Bildrand angeschnitten wird. Die Animation selbst — Deckkraft,
+// Skalierung, Zeiten — ist unverändert; getauscht ist nur, was gezeichnet wird.
+//
+// Die Verlaufs-Kennung enthält die Art, weil alle Ebenen im Web-Build in DERSELBEN
+// DOM-Struktur landen: Zwei Verläufe mit gleicher `id` würden sich dort gegenseitig
+// überschreiben, und der Blitz bekäme die Farben des Lichtscheins.
+const LICHT: Record<string, { farbe: string; stopps: [number, string, number][] }> = {
+  // Warmes Ankündigungslicht: innen hell, nach außen schnell durchsichtig.
+  schein: {
+    farbe: "#FFE7AE",
+    stopps: [
+      [0, "#FFF8E6", 1],
+      [45, "#FFF8E6", 0.5],
+      [100, "#FFE7AE", 0],
+    ],
+  },
+  // Goldener Lichtsaum — der frühere "Magie-Puls". Kein Strich, sondern ein Ring aus Licht:
+  // durchsichtig in der Mitte, am hellsten bei 78 % des Radius, am Rand wieder auf null.
+  saum: {
+    farbe: "#D7A52D",
+    stopps: [
+      [52, "#D7A52D", 0],
+      [78, "#F0C45A", 0.6],
+      [100, "#D7A52D", 0],
+    ],
+  },
+  // Lichtblitz für den Bildtausch Tier → Figur (2026-09-12). Bewusst warmes Cremeweiß statt
+  // reinem Weiß — Design-Grundsatz 3 (keine harten, grellen Signale für Kinder). Die
+  // Mitte bleibt länger deckend als beim Schein, damit der Tausch darunter verborgen bleibt.
+  blitz: {
+    farbe: "#FFF3D6",
+    // Die Mitte bleibt bis 72 % des Radius voll deckend. Das ist kein Geschmackswert: Unter
+    // ihr wird das Bild getauscht (siehe TAUSCH_MS), und die Figur reicht bei der hier
+    // verwendeten Größe bis rund 68 % des Radius. Ein früher einsetzender Abfall ließe den
+    // Wechsel durchscheinen — genau das, was der Blitz verbergen soll.
+    stopps: [
+      [0, "#FFFDF6", 1],
+      [72, "#FFFBF2", 1],
+      [100, "#FFF3D6", 0],
+    ],
+  },
+};
+
+function Lichtebene({ art, groesse }: { art: keyof typeof LICHT; groesse: number }) {
+  const r = groesse / 2;
+  const kennung = `verwandlungLicht-${art}`;
+  return (
+    <Svg width={groesse} height={groesse}>
+      <Defs>
+        <RadialGradient id={kennung} cx="50%" cy="50%" r="50%">
+          {LICHT[art].stopps.map(([offset, farbe, deckung]) => (
+            <Stop key={offset} offset={`${offset}%`} stopColor={farbe} stopOpacity={deckung} />
+          ))}
+        </RadialGradient>
+      </Defs>
+      <Circle cx={r} cy={r} r={r} fill={`url(#${kennung})`} />
+    </Svg>
+  );
+}

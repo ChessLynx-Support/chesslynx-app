@@ -495,7 +495,18 @@ export function LuchsRevierKarte({
   };
 
   const hoehe = breite * MAP_ASPECT;
-  const oberlandHoehe = breite * OBERLAND_ASPECT;
+  // Gerätetest 2026-09-14 (Nutzer: "Übergang von der Saga-Karte immer noch deutlich
+  // sichtbar"): An der Naht stand eine genau EINEN Pixel hohe dunkle Linie quer über die
+  // ganze Breite — gemessen im Screenshot 203/206/178 gegenüber 228/229/222 in den Zeilen
+  // direkt darüber und darunter, mit Grünstich, also die Unterkante des Oberland-Bildes mit
+  // zu wenig Nebel darauf.
+  //
+  // Ursache: `breite * OBERLAND_ASPECT` ist krumm (bei 390 Punkten Breite 122,06). Das
+  // Oberland-Stück und das Nebel-SVG darin sind damit 122,06 Punkte hoch; die letzte,
+  // angeschnittene Zeile wird beim Zeichnen weichgerechnet und bekommt entsprechend weniger
+  // Nebeldeckung ab, während die Karte darunter ihre volle bekommt. Auf ganze Punkte
+  // gerundet fällt die Naht auf eine Pixelgrenze und das Problem entfällt.
+  const oberlandHoehe = Math.round(breite * OBERLAND_ASPECT);
   const burgtorDurchmesser = BURGTOR.durchmesserFrac * breite;
   const torOffen = steinbruecke !== "gesperrt";
   const nebelKlarungen = breite > 0 ? baueNebelKlarungen(status, breite, hoehe) : [];
@@ -572,7 +583,18 @@ export function LuchsRevierKarte({
               Höhenbands) wie die Oberkante der Karte — kein sichtbarer Nebel-Sprung an der
               Naht. Spiegelung auf dem inneren Bild, Maske auf der Gruppe, damit die Maske
               selbst ungespiegelt in Kartenkoordinaten bleibt. */}
-          <Svg width={breite} height={oberlandHoehe} style={StyleSheet.absoluteFillObject} pointerEvents="none">
+          {/* Einen Punkt höher als das Oberland-Stück selbst: Der Nebel des Oberlands und
+              der Nebel der Karte überlappen sich dadurch an der Naht, statt sich exakt zu
+              berühren. Selbst wenn die Rundung oben auf einem Gerät mit krummer
+              Pixeldichte nicht ganz aufgeht, bleibt so keine Zeile ohne Nebel. Der Nebel
+              ist deckend und in beiden Hälften aus derselben Textur an derselben Stelle
+              gezeichnet — die Überlappung ist deshalb unsichtbar. */}
+          <Svg
+            width={breite}
+            height={oberlandHoehe + 1}
+            style={{ position: "absolute", left: 0, top: 0 }}
+            pointerEvents="none"
+          >
             <Defs>
               {oberlandKlarungen.map((k, i) => (
                 <RadialGradient key={i} id={`oberlandKlarung-${i}`} cx="50%" cy="50%" r="50%">
@@ -595,8 +617,8 @@ export function LuchsRevierKarte({
                   <Stop key={i} offset={v.offset} stopColor={grauwert(v.wert)} stopOpacity={1} />
                 ))}
               </LinearGradient>
-              <Mask id="oberlandMaske" maskUnits="userSpaceOnUse" x={0} y={0} width={breite} height={oberlandHoehe}>
-                <Rect x={0} y={0} width={breite} height={oberlandHoehe} fill="url(#oberlandNebelHoehe)" />
+              <Mask id="oberlandMaske" maskUnits="userSpaceOnUse" x={0} y={0} width={breite} height={oberlandHoehe + 1}>
+                <Rect x={0} y={0} width={breite} height={oberlandHoehe + 1} fill="url(#oberlandNebelHoehe)" />
                 {oberlandKlarungen.map((k, i) => (
                   <Circle key={i} cx={k.cx} cy={k.cy} r={k.r} fill={`url(#oberlandKlarung-${i})`} />
                 ))}

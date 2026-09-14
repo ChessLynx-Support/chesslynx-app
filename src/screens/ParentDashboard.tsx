@@ -65,6 +65,8 @@ import {
   type ElternEinstellungen,
   type KindProfil,
 } from "../lib/firebase";
+// Rechtstexte-Adressen und Datenschutz-Kontakt zentral, sprachabhängig — siehe lib/sprache.ts.
+import { DATENSCHUTZ_MAIL, datenschutzUrl, impressumUrl } from "../lib/sprache";
 // Nutzer-Entscheidung 2026-09-09 ("Spielstand zurücksetzen" als echte Eltern-Funktion,
 // nicht nur lokaler Test-Reset): derselbe Startwert wie beim Neuanlegen eines
 // Kinderprofils (siehe storage.ts, getOrCreateAktivesKindId) — ein zurückgesetzter
@@ -934,15 +936,18 @@ export function ParentDashboard({ navigation }: any) {
             </Pressable>
           </View>
         )}
-        <Pressable onPress={() => Linking.openURL("https://www.chesslynx.de/datenschutz")}>
+        <Pressable onPress={() => Linking.openURL(datenschutzUrl())}>
           <Text style={styles.link}>Datenschutzerklärung ansehen</Text>
         </Pressable>
-        <Pressable onPress={() => Linking.openURL("https://www.chesslynx.de/impressum")}>
+        <Pressable onPress={() => Linking.openURL(impressumUrl())}>
           <Text style={styles.link}>Impressum ansehen</Text>
         </Pressable>
         <Text style={styles.caption}>Fragen zu deinen Daten oder eine Löschanfrage?</Text>
-        <Pressable onPress={() => Linking.openURL("mailto:privacy@chesslynx.de")}>
-          <Text style={styles.link}>Kontakt: privacy@chesslynx.de</Text>
+        {/* Korrektur 2026-09-14 (Guideline-1.3-Prüfung): Hier stand `privacy@chesslynx.de` —
+            diese Adresse existiert nicht, es gibt nur die `.com`-Fassung. Anfragen von Eltern
+            zu ihren Daten wären ins Leere gelaufen. Adresse jetzt zentral in lib/sprache.ts. */}
+        <Pressable onPress={() => Linking.openURL(`mailto:${DATENSCHUTZ_MAIL}`)}>
+          <Text style={styles.link}>Kontakt: {DATENSCHUTZ_MAIL}</Text>
         </Pressable>
       </View>
 
