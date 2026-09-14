@@ -93,6 +93,8 @@ import { loadBonusFortschrittLocal, loadQuestFortschrittLocal } from "../lib/sto
 import { pruefeSchlosstorStatus } from "../lib/gate";
 import { SCHILDKROETE_ASPEKT, SCHILDKROETE_BILD } from "../lib/schildkroete";
 import { QuestTierWegmarke, questTierWegmarkeAspekt } from "../lib/questTiere";
+import { GefaehrteWegmarke, gefaehrteWegmarkeAspekt } from "../lib/gefaehrtenZustaende";
+import type { GefaehrteId } from "../lib/gefaehrtenZustaende";
 import { AmbientLoop } from "./AmbientLoop";
 import { Gluehwuermchen } from "./Gluehwuermchen";
 
@@ -477,9 +479,8 @@ const AMBIENT_OBERLAND = [
 ] as const;
 
 export type GefaehrtenEintrag = {
-  id: "eichhoernchen" | "fuchs" | "dachs" | "adlerin" | "wolf" | "wisent";
+  id: GefaehrteId;
   name: string;
-  bild: ReturnType<typeof require>;
   /** Fußpunkt als Anteil der OBERLAND-Maße. */
   fx: number;
   fy: number;
@@ -502,71 +503,64 @@ const GEFAEHRTEN_ROH = [
   {
     id: "eichhoernchen",
     name: "Eichhörnchen-Lichtung",
-    bild: require("../../assets/figuren/gefaehrten/chesslynx_eichhoernchen_wegmarke.webp"),
     fx: 1130 / 1658,
     fy: 1155 / O,
     artFaktor: 0.78,
-    aspekt: 320 / 215,
+    aspekt: gefaehrteWegmarkeAspekt("eichhoernchen"),
   },
   {
     id: "fuchs",
     name: "Fuchsbau",
-    bild: require("../../assets/figuren/gefaehrten/chesslynx_fuchs_wegmarke.webp"),
     // 2026-09-14, vierte Korrekturrunde: noch einmal 35 Zeilen tiefer (vorher 1090). Der Weg
     // ist dort 821–1157 breit, x 940 liegt darin.
     fx: 940 / 1658,
     fy: 1125 / O,
     artFaktor: 0.96,
-    aspekt: 320 / 224,
+    aspekt: gefaehrteWegmarkeAspekt("fuchs"),
   },
   {
     id: "dachs",
     name: "Dachshöhle",
-    bild: require("../../assets/figuren/gefaehrten/chesslynx_dachs_wegmarke.webp"),
     fx: 760 / 1658,
     fy: 1015 / O,
     artFaktor: 0.9,
-    aspekt: 320 / 198,
+    aspekt: gefaehrteWegmarkeAspekt("dachs"),
   },
   {
     id: "adlerin",
     name: "Adlerhorst",
-    bild: require("../../assets/figuren/gefaehrten/chesslynx_adlerin_wegmarke.webp"),
     // 2026-09-14, letzte Runde: 1030 → 1075 → 1035 und 14 Zeilen tiefer. Der Weg läuft auf
     // y 892 von x 844 bis 1093; 1035 liegt darin, rechts der Wegmitte (968), aber nicht mehr
     // am äußersten Rand wie bei 1075.
     fx: 1035 / 1658,
     fy: 892 / O,
     artFaktor: 1.0,
-    aspekt: 320 / 172,
+    aspekt: gefaehrteWegmarkeAspekt("adlerin"),
   },
   {
     id: "wolf",
     name: "Wolfsfeste",
-    bild: require("../../assets/figuren/gefaehrten/chesslynx_wolf_wegmarke.webp"),
     // 2026-09-14, letzte Runde: nach unten und rechts (vorher 1160 · 710). Auf y 710 liegt
     // die Kehre noch breit (x 976–1220); dreißig Zeilen tiefer ist der Weg dort schon nach
     // rechts abgebogen (x 1126–1288), und 1205 steht mittig darauf.
     fx: 1205 / 1658,
     fy: 740 / O,
     artFaktor: 1.08,
-    aspekt: 320 / 193,
+    aspekt: gefaehrteWegmarkeAspekt("wolf"),
   },
   {
     id: "wisent",
     name: "Wisent — vor dem Schlosstor",
-    bild: require("../../assets/figuren/gefaehrten/chesslynx_wisent_wegmarke.webp"),
     fx: 1017 / 1658,
     fy: 552 / O,
     artFaktor: 1.15,
-    aspekt: 320 / 204,
+    aspekt: gefaehrteWegmarkeAspekt("wisent"),
   },
 ] as const;
 
 export const GEFAEHRTEN: GefaehrtenEintrag[] = GEFAEHRTEN_ROH.map((g) => ({
   id: g.id,
   name: g.name,
-  bild: g.bild,
   fx: g.fx,
   fy: g.fy,
   aspekt: g.aspekt,
@@ -1007,7 +1001,7 @@ export function LuchsRevierKarte({
             return (
               <Wegmarke
                 key={g.id}
-                bild={g.bild}
+                gefaehrte={g.id}
                 left={g.fx * breite}
                 top={g.fy * oberlandHoehe}
                 breite={gBreite}
@@ -1216,6 +1210,7 @@ export function LuchsRevierKarte({
 function Wegmarke({
   bild,
   tier,
+  gefaehrte,
   gruesst = false,
   left,
   top,
@@ -1229,6 +1224,12 @@ function Wegmarke({
   bild?: ReturnType<typeof require>;
   /** Quest-Tier mit Zuständen; schließt `bild` aus. */
   tier?: QuestId;
+  /**
+   * Gefährte mit Zuständen; schließt `bild` und `tier` aus. Seit 2026-09-14 blinzeln auch
+   * die sechs Gefährten — vorher stand hier je ein Standbild (siehe
+   * src/lib/gefaehrtenZustaende.tsx).
+   */
+  gefaehrte?: GefaehrteId;
   /** Nur für `tier`: Das Tier, das als nächstes dran ist, grüßt in ruhigen Abständen. */
   gruesst?: boolean;
   /** Glühwürmchen anhalten, solange die Karte nicht sichtbar ist. */
@@ -1287,6 +1288,19 @@ function Wegmarke({
             breite={breite}
             blinzeln={zustand !== "gesperrt"}
             gruesst={gruesst}
+          />
+        </View>
+      ) : gefaehrte ? (
+        // Dieselbe Regel wie bei den Quest-Tieren: Wer noch im Nebel steht, blinzelt nicht.
+        // Heute sind alle sechs Gefährten gesperrt — die Reviere werden erst in Update 1
+        // spielbar; sichtbar wird das Blinzeln also zunächst nur in der Testansicht
+        // „gefaehrtenVorschau". Die Verdrahtung steht trotzdem schon, weil sie sonst zum
+        // Zeitpunkt der Freischaltung als eigener Arbeitsschritt wieder auftauchen würde.
+        <View style={{ opacity: zustand === "gesperrt" ? GESPERRT_OPACITY : 1 }}>
+          <GefaehrteWegmarke
+            id={gefaehrte}
+            breite={breite}
+            blinzeln={zustand !== "gesperrt"}
           />
         </View>
       ) : (

@@ -27,14 +27,39 @@ import {
   type User,
 } from "firebase/auth";
 import { elternEinstellungenPfad, holeAuth, holeDb } from "./firebase";
+import { sprache } from "./sprache";
 import { vergesseVorgemerktenKindNickname } from "./storage";
 
 // Paket 5 (2026-09-11): `holeAuth()` statt einer beim App-Start erzeugten Auth-Instanz —
 // Firebase startet erst, wenn eine dieser Funktionen im Eltern-Bereich aufgerufen wird
 // (siehe firebase.ts).
 
+/**
+ * Setzt die Sprache der Firebase-Mails (Bestätigung, Passwort-Reset) auf die Sprache, in
+ * der die App gerade läuft — die bewusste Wahl aus dem Eltern-Bereich, sonst die
+ * Gerätesprache (siehe `lib/sprache.ts`).
+ *
+ * BEWUSST VOR JEDEM VERSAND und nicht einmalig bei der Initialisierung: `holeAuth()` läuft
+ * pro App-Start genau einmal. Eine Umstellung im Dashboard käme dort nie an, das Elternteil
+ * bekäme die Mail weiter in der zuerst erkannten Sprache.
+ *
+ * Ersetzt `useDeviceLanguage()` aus firebase.ts, das zwei Fehler hatte: Es kannte
+ * `lib/sprache.ts` nicht, und es liest `navigator.language` — eine Browser-Eigenschaft, die
+ * React Native nicht hat. `languageCode` blieb nativ `null`, Firebase nahm die
+ * Vorlagensprache des Projekts, und deutsche Eltern bekamen eine englische Mail (am
+ * 2026-09-14 an einer ausgelieferten Bestätigungsmail belegt, Link mit `&lang=en`).
+ *
+ * Die Vorlagensprache in der Firebase-Konsole bleibt die Rückfallebene für alles, was
+ * nicht über diesen Weg läuft. Sie kann immer nur EINE Sprache sein — für den
+ * DE+EN-Simultanlaunch reicht sie deshalb nicht aus.
+ */
+function mailSpracheSetzen(): void {
+  holeAuth().languageCode = sprache();
+}
+
 export async function elternKontoErstellen(email: string, passwort: string): Promise<User> {
   const cred = await createUserWithEmailAndPassword(holeAuth(), email.trim(), passwort);
+  mailSpracheSetzen();
   // Double-Opt-In (compliance_paket_2026-09-10.md, „Email plus“): Bestätigungsmail sofort.
   // Ein Fehler hier (z. B. Netz weg) verhindert die Kontoerstellung nicht — der
   // Bestätigungs-Screen bietet „erneut senden“ an.
@@ -57,6 +82,7 @@ export async function elternAbmelden(): Promise<void> {
 
 /** „Passwort vergessen?“ — Firebase verschickt die Mail (Vorlage in der Konsole). */
 export async function passwortZuruecksetzen(email: string): Promise<void> {
+  mailSpracheSetzen();
   await sendPasswordResetEmail(holeAuth(), email.trim());
 }
 
@@ -64,6 +90,7 @@ export async function passwortZuruecksetzen(email: string): Promise<void> {
 export async function bestaetigungsMailErneutSenden(): Promise<void> {
   const user = holeAuth().currentUser;
   if (!user) throw new Error("kein-nutzer");
+  mailSpracheSetzen();
   await sendEmailVerification(user);
 }
 

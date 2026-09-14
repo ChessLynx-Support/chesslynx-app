@@ -1,8 +1,8 @@
 {
   "character": "schildkroete",
   "display_name": "Schildkröte",
-  "datum": "2026-09-12",
-  "rig_dir": "Schildkroete/Rig/V3",
+  "datum": "2026-09-14",
+  "rig_dir": "Schildkroete/Rig/V2",
   "canvas": {
     "size": 2048,
     "margin": 0.08,
@@ -11,11 +11,12 @@
   "states": [
     {
       "id": "S0_standing",
-      "file": "Schildkroete/V1/schildkroete_freigestellt_kandidat_v1.png"
+      "file": "Schildkroete/Rig/V2/states/turtle_S0_standing.png",
+      "freigegeben_am": "2026-09-11"
     },
     {
       "id": "S0b_blink",
-      "file": "Schildkroete/Zustaende/S0b_blink_quelle.png",
+      "file": "Schildkroete/Rig/V2/states/turtle_S0b_blink.png",
       "registered_to": "S0_standing",
       "change_region": [
         400,
@@ -24,16 +25,20 @@
         350
       ],
       "max_abweichung": 14,
-      "produktion": "Male das hochgeladene Bild des ChessLynx-Charakters neu — als blinzelnde Fassung desselben Moments.\n\nBEIDE Augen sind geschlossen: die Lider gesenkt, als ruhige Bogenlinie sichtbar, die Wimpern zeigen nach unten. Von Augenweiß, Iris und Pupille ist nichts mehr zu sehen. Ein kurzer Lidschlag — kein Zwinkern, kein Zukneifen, kein Lächeln.\n\nDas neue Bild MUSS sich vom hochgeladenen sichtbar unterscheiden, und zwar genau an dieser Stelle. Ein Bild, das aussieht wie die Vorlage, ist kein gültiges Ergebnis — dann bitte noch einmal, deutlicher.\n\nGRÖSSE UND UMRISS — hier scheitern solche Bilder meistens:\nAuch wenn sich nur ein Detail ändert, neigt man dazu, die ganze Figur neu zu zeichnen und sie dabei fülliger zu machen. Genau das soll nicht passieren. Der Zustand wird im Wechsel mit der Vorlage gezeigt; jede Änderung an Umriss oder Größe fällt dann als Zucken auf.\n- Die Figur behält ihre GESAMTHÖHE und ihre GESAMTBREITE, auf den Pixel genau denselben Abstand zu allen vier Rändern.\n- Sie wird NICHT breiter und NICHT fülliger: gleiche Körperbreite, gleiche Kopfgröße, gleiche Gesichtsform, gleiche Bauchform, gleiche Beinstärke. Auch Panzerrand, Kopf, Schwanz und Füße behalten Form und Lage.\n- Die Füße stehen an genau denselben Stellen auf derselben waagerechten Linie.\n- Farbe und Helligkeit bleiben exakt wie in der Vorlage — nicht dunkler, nicht satter, nicht kontrastreicher.\nGegenprobe vor der Ausgabe: Lege dein Ergebnis gedanklich über die Vorlage. Deckt sich der Umriss? Wenn die Figur runder, breiter, höher oder dunkler geworden ist, noch einmal.\n\nGleich bleibt dagegen alles Übrige, so genau wie möglich:\n- Haltung, Stand, Größe und Position im Bild, Abstand zu allen vier Rändern\n- Kopfhaltung und Blickrichtung\n- Brauen und Wangen\n- Maul und Nasenlöcher\n- Haut- und Panzerzeichnung\n- Farben, Licht, Schattierung, Detailgrad\n\nFORMAT:\n- PNG mit ECHTEM Alphakanal, Hintergrund tatsächlich transparent. Ein ins Bild gemaltes Karo- oder Schachbrettmuster ist KEIN transparenter Hintergrund und unbrauchbar; eine weiße Fläche ebenso wenig.\n- gleiche Bildgröße wie die Vorlage, quadratisch, nichts angeschnitten\n- kein Boden, keine Kulisse, kein Schlagschatten auf einer Fläche\n- kein Text, keine Zahlen, keine Symbole, kein Wasserzeichen\n\nAls Vorlage dient ausschließlich das hochgeladene Bild, sonst nichts."
+      "produktion": "[NICHT BESTELLEN — dieser Zustand ist seit 2026-09-11 fertig und freigegeben, siehe rig_status. Text nur als Herkunftsbeleg.]\n\nMale das hochgeladene Bild des ChessLynx-Charakters neu — als blinzelnde Fassung desselben Moments.\n\nBEIDE Augen sind geschlossen: die Lider gesenkt, als ruhige Bogenlinie sichtbar, die Wimpern zeigen nach unten. Von Augenweiß, Iris und Pupille ist nichts mehr zu sehen. Ein kurzer Lidschlag — kein Zwinkern, kein Zukneifen, kein Lächeln.\n\nDas neue Bild MUSS sich vom hochgeladenen sichtbar unterscheiden, und zwar genau an dieser Stelle. Ein Bild, das aussieht wie die Vorlage, ist kein gültiges Ergebnis — dann bitte noch einmal, deutlicher.\n\nGRÖSSE UND UMRISS — hier scheitern solche Bilder meistens:\nAuch wenn sich nur ein Detail ändert, neigt man dazu, die ganze Figur neu zu zeichnen und sie dabei fülliger zu machen. Genau das soll nicht passieren. Der Zustand wird im Wechsel mit der Vorlage gezeigt; jede Änderung an Umriss oder Größe fällt dann als Zucken auf.\n- Die Figur behält ihre GESAMTHÖHE und ihre GESAMTBREITE, auf den Pixel genau denselben Abstand zu allen vier Rändern.\n- Sie wird NICHT breiter und NICHT fülliger: gleiche Körperbreite, gleiche Kopfgröße, gleiche Gesichtsform, gleiche Bauchform, gleiche Beinstärke. Auch Panzerrand, Kopf, Schwanz und Füße behalten Form und Lage.\n- Die Füße stehen an genau denselben Stellen auf derselben waagerechten Linie.\n- Farbe und Helligkeit bleiben exakt wie in der Vorlage — nicht dunkler, nicht satter, nicht kontrastreicher.\nGegenprobe vor der Ausgabe: Lege dein Ergebnis gedanklich über die Vorlage. Deckt sich der Umriss? Wenn die Figur runder, breiter, höher oder dunkler geworden ist, noch einmal.\n\nGleich bleibt dagegen alles Übrige, so genau wie möglich:\n- Haltung, Stand, Größe und Position im Bild, Abstand zu allen vier Rändern\n- Kopfhaltung und Blickrichtung\n- Brauen und Wangen\n- Maul und Nasenlöcher\n- Haut- und Panzerzeichnung\n- Farben, Licht, Schattierung, Detailgrad\n\nFORMAT:\n- PNG mit ECHTEM Alphakanal, Hintergrund tatsächlich transparent. Ein ins Bild gemaltes Karo- oder Schachbrettmuster ist KEIN transparenter Hintergrund und unbrauchbar; eine weiße Fläche ebenso wenig.\n- gleiche Bildgröße wie die Vorlage, quadratisch, nichts angeschnitten\n- kein Boden, keine Kulisse, kein Schlagschatten auf einer Fläche\n- kein Text, keine Zahlen, keine Symbole, kein Wasserzeichen\n\nAls Vorlage dient ausschließlich das hochgeladene Bild, sonst nichts.",
+      "freigegeben_am": "2026-09-11",
+      "nicht_bestellen": "Zustand liegt fertig und freigegeben im Rig V2 vor. Der Auftragstext ist nur noch Beleg der Herkunft. Frühere Pfadangabe: Schildkroete/Zustaende/S0b_blink_quelle.png"
     },
     {
       "id": "S2_retracted",
-      "file": "Schildkroete/Zustaende/S2_retracted_quelle.png",
-      "scale_rel": 0.625
+      "file": "Schildkroete/Rig/V2/states/turtle_S2_retracted.png",
+      "scale_rel": 0.625,
+      "freigegeben_am": "2026-09-11",
+      "nicht_bestellen": "Zustand liegt fertig und freigegeben im Rig V2 vor. Der Auftragstext ist nur noch Beleg der Herkunft. Frühere Pfadangabe: Schildkroete/Zustaende/S2_retracted_quelle.png"
     },
     {
       "id": "S3_peek",
-      "file": "Schildkroete/Zustaende/S3_peek_quelle.png",
+      "file": "Schildkroete/Rig/V2/states/turtle_S3_peek.png",
       "same_transform_as": "S2_retracted",
       "registered_to": "S2_retracted",
       "change_region": [
@@ -42,7 +47,9 @@
         860,
         520
       ],
-      "max_abweichung": 2
+      "max_abweichung": 2,
+      "freigegeben_am": "2026-09-11",
+      "nicht_bestellen": "Zustand liegt fertig und freigegeben im Rig V2 vor. Der Auftragstext ist nur noch Beleg der Herkunft. Frühere Pfadangabe: Schildkroete/Zustaende/S3_peek_quelle.png"
     }
   ],
   "layers": [
@@ -200,5 +207,6 @@
     "Panzer in S2/S3 etwas weicher gemalt als der Panzerrand in S0."
   ],
   "prioritaet": 2,
-  "prioritaet_grund": "Zweitpose ist Launch-1.0-Bedarf (Kapitel „Die ganze Partie\", Scope-Freeze 19.10.)"
+  "prioritaet_grund": "Zweitpose ist Launch-1.0-Bedarf (Kapitel „Die ganze Partie\", Scope-Freeze 19.10.)",
+  "rig_status": "FERTIG UND FREIGEGEBEN. Das Zustands-Rig der Schildkröte ist am 2026-09-11 auf dem älteren, spec-getriebenen Weg (turtle_rig_production_spec_v2.json) gebaut und von Christian sichtfreigegeben worden; rights.md ist ergänzt, die App-Zustände sind nach assets/figuren/chesslynx_turtle_zustand_*.png exportiert, der Launch-Blocker „zweite Pose\" ist damit erledigt (Beleg: claude/schildkroete_state_rig_v2_pruefung_2026-09-11.md). Diese Konfiguration beschrieb bis zum 2026-09-14 einen NEUBAU als V3 mit Quelldateien unter Schildkroete/Zustaende/, die es nie gegeben hat — dadurch meldete `rig_master.py prompts` drei Bild-Aufträge, die längst erledigt sind. Die Zustände zeigen jetzt auf die vorhandenen, freigegebenen V2-Dateien. `rig_master.py build schildkroete` NICHT ohne eigene Entscheidung laufen lassen: Es würde die freigegebenen Ebenen neu berechnen. Die Auftragstexte unten bleiben als Beleg stehen, sind aber NICHT zu bestellen."
 }

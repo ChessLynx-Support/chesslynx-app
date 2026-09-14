@@ -10,6 +10,8 @@
 //   3. Double-Opt-In: darfCloudNutzen; Registrierung verschickt die Bestätigungsmail und
 //      übersteht einen Fehler dabei; vorgemerkter Kind-Nickname.
 //   4. Passwort vergessen: Reset-Mail an die bereinigte Adresse.
+//   6. Mailsprache: folgt der App-Sprache (lib/sprache.ts) und wird vor JEDEM Versand
+//      gesetzt — nicht einmalig bei der Initialisierung, und nicht über useDeviceLanguage().
 //   5. Kontolöschung/Spielstand: welche lokalen Schlüssel gelöscht werden und welche bleiben.
 //
 // Ausführen: `node verify/test-konto-datenschutz.cjs` im Projektverzeichnis (nach npm install).
@@ -123,7 +125,7 @@ test("Fortschritt speichern/laden (Quest, Bonus) startet Firebase nicht", async 
   assert.equal(anzahl("initializeApp"), 0);
 });
 
-test("holeDb/holeAuth starten Firebase genau einmal, Mails in Gerätesprache", async () => {
+test("holeDb/holeAuth starten Firebase genau einmal, ohne useDeviceLanguage", async () => {
   const fb = require(path.join(SRC, "lib", "firebase.ts"));
   assert.equal(fb.istFirebaseGestartet(), false);
   fb.holeDb();
@@ -134,7 +136,11 @@ test("holeDb/holeAuth starten Firebase genau einmal, Mails in Gerätesprache", a
   assert.equal(anzahl("initializeApp"), 1);
   assert.equal(anzahl("getFirestore"), 1);
   assert.equal(anzahl("initializeAuth"), 1);
-  assert.equal(anzahl("useDeviceLanguage"), 1);
+  // Früher stand hier 1. `useDeviceLanguage()` liest `navigator.language`, das es in
+  // React Native nicht gibt — die Mailsprache blieb nativ leer und Firebase nahm die
+  // Vorlagensprache des Projekts. Gesetzt wird sie jetzt in auth.ts vor jedem Versand.
+  assert.equal(anzahl("useDeviceLanguage"), 0, "useDeviceLanguage wird nicht mehr benutzt");
+  assert.equal(fb.holeAuth().languageCode, null, "bei der Initialisierung noch nicht gesetzt");
 });
 
 test("keine Datei importiert mehr db/auth/firebaseApp; initializeApp nur in holeFirebaseApp", async () => {
@@ -206,6 +212,34 @@ test("Passwort vergessen: Reset-Mail an die bereinigte Adresse", async () => {
   const auth = require(path.join(SRC, "lib", "auth.ts"));
   await auth.passwortZuruecksetzen("  eltern@example.org ");
   assert.equal(aufrufe.filter((a) => a.name === "sendPasswordResetEmail").pop().args[0], "eltern@example.org");
+});
+
+test("Mailsprache folgt der App-Sprache und wird vor jedem Versand gesetzt", async () => {
+  const auth = require(path.join(SRC, "lib", "auth.ts"));
+  const spr = require(path.join(SRC, "lib", "sprache.ts"));
+  const fb = require(path.join(SRC, "lib", "firebase.ts"));
+
+  // Alle drei Wege, auf denen eine Mail hinausgeht, einzeln geprüft — der Fehler vom
+  // 2026-09-14 saß in keinem davon, sondern in der einmaligen Initialisierung.
+  await spr.setzeSprache("de");
+  await auth.elternKontoErstellen("a@b.de", "Geheim1!");
+  assert.equal(fb.holeAuth().languageCode, "de", "Registrierung");
+
+  await spr.setzeSprache("en");
+  await auth.passwortZuruecksetzen("a@b.de");
+  assert.equal(fb.holeAuth().languageCode, "en", "Passwort vergessen");
+
+  await spr.setzeSprache("de");
+  await auth.bestaetigungsMailErneutSenden();
+  assert.equal(fb.holeAuth().languageCode, "de", "Bestätigung erneut senden");
+
+  // Der eigentliche Regressionsschutz: Eine Umstellung NACH dem ersten Versand muss
+  // ankommen. Genau das konnte die alte Lösung nicht, weil holeAuth() nur einmal läuft.
+  await spr.setzeSprache("en");
+  await auth.bestaetigungsMailErneutSenden();
+  assert.equal(fb.holeAuth().languageCode, "en", "Umstellung wirkt auch nachträglich");
+
+  await spr.setzeSprache("auto");
 });
 
 test("Kind-Nickname vormerken / holen / vergessen; leer wird nicht vorgemerkt", async () => {

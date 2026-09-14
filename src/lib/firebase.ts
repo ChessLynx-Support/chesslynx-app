@@ -19,7 +19,6 @@ import { initializeApp, type FirebaseApp, type FirebaseOptions } from "firebase/
 import {
   browserLocalPersistence,
   initializeAuth,
-  useDeviceLanguage,
   type Auth,
 } from "firebase/auth";
 // `getReactNativePersistence` bewusst getrennt importiert, damit die Unterdrückung genau
@@ -86,9 +85,19 @@ export function holeAuth(): Auth {
       persistence:
         Platform.OS === "web" ? browserLocalPersistence : getReactNativePersistence(AsyncStorage),
     });
-    // Mails (Bestätigung, Passwort-Reset) in der Gerätesprache — DE oder EN, passend zum
-    // Simultan-Launch. Die Vorlagen selbst pflegt Christian in der Firebase-Konsole.
-    useDeviceLanguage(authInstanz);
+    // Die Sprache der Firebase-Mails wird hier BEWUSST NICHT gesetzt, sondern in
+    // `auth.ts` unmittelbar vor jedem Versand (`mailSpracheSetzen()`). Zwei Gründe,
+    // beide am 2026-09-14 an einer echt ausgelieferten Bestätigungsmail belegt:
+    //
+    // 1. Hier stünde die Sprache des ERSTEN Eltern-Bereich-Besuchs fest. Stellt ein
+    //    Elternteil danach im Dashboard um, bekäme es die Mail trotzdem in der alten
+    //    Sprache — `holeAuth()` läuft pro App-Start nur ein einziges Mal.
+    // 2. Der frühere Aufruf `useDeviceLanguage(authInstanz)` konnte das ohnehin nicht
+    //    leisten. Er liest `navigator.languages[0] ?? navigator.language`, also eine
+    //    Browser-Eigenschaft, die es in React Native nicht gibt: `languageCode` blieb
+    //    nativ immer `null`, Firebase fiel auf die Vorlagensprache des Projekts zurück,
+    //    und die stand auf Englisch. Deutsche Eltern bekamen eine englische
+    //    Bestätigungsmail — und die Sprachwahl aus `lib/sprache.ts` war nie beteiligt.
   }
   return authInstanz;
 }

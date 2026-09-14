@@ -830,12 +830,30 @@ def auftragstexte(dateien: list[Path], ktx: "Kontext") -> tuple[str, int]:
     mit_offen = [e for e in geladen if e[3]]
     offen_gesamt = sum(len(e[3]) for e in geladen)
 
+    # Herkunftszeile: „offen" heißt hier nur „Datei liegt nicht unter --grafiken". Wird das
+    # Skript gegen einen unvollständig nachgebauten Grafiken-Baum laufen gelassen (etwa in
+    # einer Cloud-Sitzung), meldet es erledigte Aufträge als offen — oder, schlimmer, offene
+    # als erledigt. Genau das ist am 2026-09-14 passiert: Die Schildkröte stand stundenlang
+    # fälschlich unter „fertig". Die Zahl der tatsächlich gefundenen Bilddateien macht einen
+    # solchen Fehlstand auf einen Blick sichtbar.
+    try:
+        gefunden = sum(1 for _ in ktx.grafiken.rglob("*.png")) + \
+                   sum(1 for _ in ktx.grafiken.rglob("*.webp"))
+    except OSError:
+        gefunden = -1
+    herkunft = (f"Ermittelt gegen `{ktx.grafiken}` — dort {gefunden} Bilddateien gefunden. "
+                "„Offen\" heißt: Die Zieldatei liegt nicht in diesem Baum. Weicht die Zahl "
+                "stark von der letzten Fassung ab, wurde gegen einen unvollständigen Baum "
+                "erzeugt; dann die Datei verwerfen und auf dem Rechner neu erzeugen.")
+
     zeilen = [
         "# Auftragstexte fürs Bild-Tool",
         "",
         f"**Stand: {datetime.now().strftime('%Y-%m-%d %H:%M')} — {offen_gesamt} offene Aufträge.** "
         "Steht oben eine ältere Uhrzeit oder eine andere Zahl, ist es eine veraltete Kopie; "
         "die gültige Fassung liegt unter `Grafiken\\auftragstexte_bildtool.md`.",
+        "",
+        herkunft,
         "",
         "Automatisch erzeugt aus `scripts/rig_configs/*.json` und `scripts/auftraege_ui/*.json` "
         "durch `scripts/rig_master.py`. "
