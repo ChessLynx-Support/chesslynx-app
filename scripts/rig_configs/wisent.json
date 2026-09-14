@@ -51,7 +51,7 @@
       "versuche": 2,
       "herkunft": "Lieferung des Bild-Tools vom 2026-09-14 (vierter Anlauf), danach zwei mechanische Nachbearbeitungen: Farbkorrektur je Kanal am Körper eingemessen, und Körper unterhalb y 820-1000 bitgenau aus dem Master übernommen. Keine zweite Generierung.",
       "erzeugt_am": "2026-09-14",
-      "freigabe": "OFFEN — Christian noch nicht vorgelegt",
+      "freigabe": "FREIGEGEBEN durch Christian, 2026-09-14",
       "versatz_pruefen": false,
       "max_abweichung_grund": "Gemessen 33,20/255. ACHTUNG, die Zahl bedeutet hier etwas anderes als bei den übrigen Zuständen: max_abweichung prüft, ob ein ABGELEITETER Zustand (Blinzeln, Sprechen) bis auf eine kleine Region mit dem Grundzustand identisch ist — dort liegen die Werte bei 0,9 bis 7,7/255. W1 ist dagegen eine POSENÄNDERUNG; die Zahl misst die gewollte Bewegung selbst und wird umso größer, je deutlicher der Kopf gehoben ist. Sie taugt hier nicht als Gütemaß. Der Wert steht auf 36, damit der Bau durchläuft; die eigentliche Garantie ist strukturell: unterhalb y 1000 ist der Zustand bitgenau der Master (0,00/255, Silhouetten-XOR 0), die Pfotenlinie liegt auf derselben Zeile. Sauberer wäre eine eigene Prüfung für Posen-Zustände statt einer hochgesetzten Toleranz — offener Punkt in rig_master.py.",
       "lieferung_roh": "Wisent/Zustaende/Quellen/wisent_W1_kopf_heben_lieferung_v3.png",
@@ -168,5 +168,12 @@
     }
   },
   "prioritaet": 9,
-  "prioritaet_grund": "Endgegner, Phase 10 — Update 1, hinter den Landesherren"
+  "prioritaet_grund": "Endgegner, Phase 10 — Update 1, hinter den Landesherren",
+  "freigabe": {
+    "stufe": "APPROVED FOR PRODUCTION",
+    "durch": "Christian",
+    "datum": "2026-09-14",
+    "umfang": "Grundzustand, S0b_blink, S1_sprechen, W1_kopf_heben, W2_schnauben und das Rig-Paket V1",
+    "beleg": "Grafiken/Wisent/rights.md, Abschnitt E"
+  }
 }
