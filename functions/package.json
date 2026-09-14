@@ -2,7 +2,7 @@
   "name": "chesslynx-functions",
   "description": "Cloud Functions für ChessLynx (Quittungsprüfung In-App-Kauf, siehe src/index.ts)",
   "engines": {
-    "node": "20"
+    "node": "22"
   },
   "main": "lib/index.js",
   "scripts": {
