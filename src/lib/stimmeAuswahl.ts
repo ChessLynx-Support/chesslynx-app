@@ -10,7 +10,7 @@
 //
 // Statt hier blind eine andere feste Stimmen-ID einzutragen (die auf dem jeweiligen
 // Gerät/Browser sowieso anders heißen kann), bekommt der Elternteil hier eine echte
-// Auswahl mit Vorhören: `listeDeutscheStimmen()` fragt alle auf dem aktuellen
+// Auswahl mit Vorhören: `listeStimmen()` fragt alle auf dem aktuellen
 // Testgerät/Browser bekannten deutschen Stimmen ab, `stimmeVorhoeren()` spricht damit
 // einen Beispielsatz, und eine bewusst gewählte Stimme wird hier gespeichert und hat in
 // luxStimme.ts Vorrang vor der automatischen Bestenauswahl.
@@ -21,8 +21,17 @@
 // Konto-übergreifendes Datum, muss ohne Firebase-Netzwerk funktionieren.
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Speech from "expo-speech";
+import { sprache } from "./sprache";
 
-const SCHLUESSEL = "chesslynx:bevorzugteStimmeId";
+// Der Speicherschlüssel trägt seit 2026-09-14 die Sprache, weil die gewählte Stimme
+// sprachgebunden ist: Eine deutsche Stimme kann keinen englischen Satz sprechen. Ohne
+// Trennung würde beim Sprachwechsel eine unpassende Stimme aus dem Speicher geholt und
+// Lux klänge auf Englisch wie ein deutscher Vorleser mit englischen Wörtern.
+// Der alte, sprachlose Schlüssel wird bewusst NICHT migriert — er stammt aus der Zeit, als
+// es nur Deutsch gab, und eine Neuwahl im Eltern-Dashboard ist ein Griff.
+function schluessel(): string {
+  return `chesslynx:bevorzugteStimmeId:${sprache()}`;
+}
 
 // Design-Vorgabe 3.1, Schritt 3 (siehe luxStimme.ts) — hier als einzige Quelle definiert
 // und von luxStimme.ts importiert, damit das Vorhören unten exakt so klingt wie Lux
@@ -33,9 +42,24 @@ const SCHLUESSEL = "chesslynx:bevorzugteStimmeId";
 // 2026-09-07 ("Sprechgeschwindigkeit ist gut", siehe luxStimme.ts-Kommentar dort) ab.
 // 0.85 -> 0.95, bewusst nur ein kleiner Schritt (kein Sprung auf 1.0/Normalgeschwindigkeit),
 // um für Kinderohren weiterhin klar artikuliert zu bleiben.
-export const STIMME_OPTIONEN = { language: "de-DE", rate: 0.95, pitch: 1.1 } as const;
+// Tempo und Tonhöhe gelten für beide Sprachen gleich (Design-Vorgabe 3.1 ist keine
+// Eigenschaft der Sprache, sondern der Zielgruppe). Nur das Sprach-Kennzeichen wechselt.
+const KLANG = { rate: 0.95, pitch: 1.1 } as const;
 
-const VORHOER_SATZ = "Hallo, ich bin Lux! Hörst du mich gerne so sprechen?";
+/**
+ * Sprechoptionen für die aktuelle Sprache. Seit 2026-09-14 eine Funktion statt einer
+ * Konstante: `language` muss zur Oberflächensprache passen, sonst liest die Engine
+ * englische Sätze mit deutscher Aussprache vor (und umgekehrt).
+ */
+export function stimmeOptionen() {
+  return { language: sprache() === "en" ? "en-US" : "de-DE", ...KLANG };
+}
+
+function vorhoerSatz(): string {
+  return sprache() === "en"
+    ? "Hi, I'm Lux! Do you like how I sound?"
+    : "Hallo, ich bin Lux! Hörst du mich gerne so sprechen?";
+}
 
 export type StimmenOption = {
   identifier: string;
@@ -54,7 +78,7 @@ export type StimmenOption = {
 let manuelleStimme: string | undefined;
 
 export async function leseBevorzugteStimmeId(): Promise<string | undefined> {
-  const gespeichert = await AsyncStorage.getItem(SCHLUESSEL);
+  const gespeichert = await AsyncStorage.getItem(schluessel());
   manuelleStimme = gespeichert ?? undefined;
   return manuelleStimme;
 }
@@ -62,10 +86,10 @@ export async function leseBevorzugteStimmeId(): Promise<string | undefined> {
 export async function setzeBevorzugteStimmeId(id: string | undefined): Promise<void> {
   manuelleStimme = id;
   if (id) {
-    await AsyncStorage.setItem(SCHLUESSEL, id);
+    await AsyncStorage.setItem(schluessel(), id);
   } else {
     // "Automatisch" (Reset) — die Bestenauswahl in luxStimme.ts greift wieder.
-    await AsyncStorage.removeItem(SCHLUESSEL);
+    await AsyncStorage.removeItem(schluessel());
   }
 }
 
@@ -76,16 +100,17 @@ export function bevorzugteStimmeIdSynchron(): string | undefined {
 }
 
 /**
- * Alle dem Gerät/Browser bekannten deutschen Stimmen, für die Auswahl-Liste im
+ * Alle dem Gerät/Browser bekannten Stimmen der aktuellen Sprache, für die Auswahl-Liste im
  * Eltern-Dashboard. Kann auf manchen Plattformen leer zurückkommen (siehe
  * `ermittleBevorzugteStimme` in luxStimme.ts) — das Dashboard zeigt dann statt einer
  * Liste einen entsprechenden Hinweis, statt eine leere Liste ohne Erklärung anzuzeigen.
  */
-export async function listeDeutscheStimmen(): Promise<StimmenOption[]> {
+export async function listeStimmen(): Promise<StimmenOption[]> {
+  const praefix = sprache() === "en" ? "en" : "de";
   try {
     const stimmen = await Speech.getAvailableVoicesAsync();
     return stimmen
-      .filter((s) => s.language?.toLowerCase().startsWith("de"))
+      .filter((s) => s.language?.toLowerCase().startsWith(praefix))
       .map((s) => ({
         identifier: s.identifier,
         name: s.name || s.identifier,
@@ -101,7 +126,7 @@ export async function listeDeutscheStimmen(): Promise<StimmenOption[]> {
  * durchprobieren kann. */
 export function stimmeVorhoeren(identifier: string) {
   Speech.stop();
-  Speech.speak(VORHOER_SATZ, { ...STIMME_OPTIONEN, voice: identifier });
+  Speech.speak(vorhoerSatz(), { ...stimmeOptionen(), voice: identifier });
 }
 
 export function vorhoerenStoppen() {

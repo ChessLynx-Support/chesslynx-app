@@ -20,7 +20,8 @@
 
 import { useEffect, useState } from "react";
 import * as Speech from "expo-speech";
-import { STIMME_OPTIONEN, bevorzugteStimmeIdSynchron, leseBevorzugteStimmeId } from "./stimmeAuswahl";
+import { stimmeOptionen, bevorzugteStimmeIdSynchron, leseBevorzugteStimmeId } from "./stimmeAuswahl";
+import { sprache } from "./sprache";
 
 // Design-Vorgabe 3.1, Schritt 3: etwas langsamer und eine Idee höher als die
 // Systemstimme im Standard — für Kinderohren klarer artikuliert, ohne kindisch/
@@ -62,8 +63,12 @@ let stimmenSucheGestartet = false;
 async function ermittleBevorzugteStimme(): Promise<string | undefined> {
   try {
     const stimmen = await Speech.getAvailableVoicesAsync();
-    const deutsche = stimmen.filter((s) => s.language?.toLowerCase().startsWith("de"));
-    if (deutsche.length === 0) return undefined;
+    // Seit 2026-09-14 sprachabhängig: Bei englischer Oberfläche werden englische Stimmen
+    // gesucht. Eine deutsche Stimme, die englische Sätze vorliest, ist kein Schönheitsfehler
+    // — Kinder, die gerade erst zuhören lernen, verstehen sie schlicht nicht.
+    const praefix = sprache() === "en" ? "en" : "de";
+    const passende = stimmen.filter((s) => s.language?.toLowerCase().startsWith(praefix));
+    if (passende.length === 0) return undefined;
     // "Enhanced"/"Premium" (iOS-Bezeichnungen) klingen hörbar natürlicher als "Default" —
     // wo vorhanden, bevorzugt wählen. Android liefert meist keine differenzierte
     // `quality`-Angabe; dort bleibt es bei der ersten gefundenen deutschen Stimme (i. d. R.
@@ -72,7 +77,7 @@ async function ermittleBevorzugteStimme(): Promise<string | undefined> {
     // kennt modellabhängig ggf. nicht beide Werte, "Premium" soll aber nicht an einem
     // reinen TS-Typfehler scheitern.)
     const beste =
-      deutsche.find((s) => String(s.quality) === "Enhanced" || String(s.quality) === "Premium") ?? deutsche[0];
+      passende.find((s) => String(s.quality) === "Enhanced" || String(s.quality) === "Premium") ?? passende[0];
     return beste.identifier;
   } catch {
     // getAvailableVoicesAsync() ist nicht auf jeder Plattform/jedem Gerät garantiert
@@ -121,7 +126,7 @@ export function sprich(zeile: string, optionen?: { onFertig?: () => void }) {
   // Ereignis würde dort versehentlich als `true` gelesen und die Absicherung gegen zu frühe
   // Ende-Meldungen aushebeln. Hier wird deshalb garantiert ohne Argumente aufgerufen.
   Speech.speak(fuerSprachausgabe(zeile), {
-    ...STIMME_OPTIONEN,
+    ...stimmeOptionen(),
     voice: stimme,
     onDone: () => optionen?.onFertig?.(),
   });

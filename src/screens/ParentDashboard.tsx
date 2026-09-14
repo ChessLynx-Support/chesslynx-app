@@ -103,7 +103,7 @@ import { HINWEISE_STANDARD, leseHinweiseAktiv, setzeHinweiseAktiv } from "../lib
 import {
   type StimmenOption,
   leseBevorzugteStimmeId,
-  listeDeutscheStimmen,
+  listeStimmen,
   setzeBevorzugteStimmeId,
   stimmeVorhoeren,
   vorhoerenStoppen,
@@ -325,7 +325,7 @@ export function ParentDashboard({ navigation }: any) {
   useEffect(() => {
     let abgebrochen = false;
     (async () => {
-      const [stimmen, gewaehlteId] = await Promise.all([listeDeutscheStimmen(), leseBevorzugteStimmeId()]);
+      const [stimmen, gewaehlteId] = await Promise.all([listeStimmen(), leseBevorzugteStimmeId()]);
       if (abgebrochen) return;
       setVerfuegbareStimmen(stimmen);
       setBevorzugteStimmeIdState(gewaehlteId);
