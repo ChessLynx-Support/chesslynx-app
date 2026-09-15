@@ -200,7 +200,12 @@ export const REFERENZ_BREITE = 390;
 export const REFERENZ_HOEHE = 620;
 
 export type QuestId = "quest1" | "quest2" | "quest3" | "quest4" | "quest5" | "quest6";
-type WegmarkeStatus = "erledigt" | "naechstes" | "gesperrt";
+// "offen" (neu, Update-1-Vorzug 2026-09-15): erreichbar und voll aufgedeckt, aber weder
+// "als Nächstes markiert" (kein Glühwürmchen-Kranz, der ist für die lineare Quest-Reihenfolge
+// gedacht) noch "erledigt" (kein Häkchen-Abzeichen, das hieße fälschlich "schon geschafft").
+// Für die Gefährten-Reviere, die man in beliebiger Reihenfolge besuchen kann, ohne dass "war
+// schon da" bedeutet "fertig damit".
+type WegmarkeStatus = "erledigt" | "naechstes" | "gesperrt" | "offen";
 
 const GOLD = "#D7A52D";
 const SAGE = "#8FA888";
@@ -853,6 +858,12 @@ type Props = {
   // bildschirmfüllenden Rahmen und reicht die Breite hier herein; die eigene Messung bleibt nur
   // als Rückfall für Aufrufer ohne Vorgabe.
   breiteVorgabe?: number;
+  // Update-1-Vorzug (2026-09-15, siehe claude/update1_vorzug_plan_2026-09-15.md): macht die
+  // fünf Gefährten-Reviere zum ersten Mal antippbar. Bewusst OHNE den Wisent-Torwächter an
+  // dieser Stelle (Wisent-Kampf ist ein eigener, weiter entfernter Screen, Segment 18 — nicht
+  // Teil dieses Schritts). Ohne diese Prop bleiben alle sechs wie bisher gesperrt/nur per
+  // Testansicht sichtbar.
+  onSelectGefaehrte?: (id: GefaehrteId) => void;
 };
 
 export function LuchsRevierKarte({
@@ -862,6 +873,7 @@ export function LuchsRevierKarte({
   onHoehen,
   onSteinbrueckeWartet,
   breiteVorgabe,
+  onSelectGefaehrte,
 }: Props) {
   // Schleifen laufen nur, solange die Karte wirklich vorn ist — vier gleichzeitig laufende
   // Lottie-Ansichten kosten auf Android sonst auch dann Leistung, wenn ein Quest-Screen
@@ -1005,10 +1017,15 @@ export function LuchsRevierKarte({
     // wirkungslos — `klarungsFarben` rechnet sie gegen die Umgebung und sie verschwindet.
     // Sie bleibt trotzdem auf diesem Wert, damit der Anlauf der Nebel-Einblendung unten am
     // Eichhörnchen nicht doch noch Schleier auf die Figur legt.
+    // Update-1-Vorzug (2026-09-15): Die fünf echten Reviere (nicht der Wisent-Torwächter,
+    // siehe Props-Kommentar bei `onSelectGefaehrte`) sind, sobald `onSelectGefaehrte` gesetzt
+    // ist, genauso erreichbar wie jede andere offene Station — sie sollen dann auch genauso
+    // klar aus dem Nebel treten, nicht mehr nur "neugierig machend" durchschimmern.
     const gefaehrtenLichtung = gefaehrtenVorschau ? NEBEL_KLARUNG_VOLL : NEBEL_KLARUNG_BURGTOR;
     for (const g of GEFAEHRTEN) {
+      const lichtung = onSelectGefaehrte && g.id !== "wisent" ? NEBEL_KLARUNG_VOLL : gefaehrtenLichtung;
       oberlandKlarungen.push(
-        figurLichtung(g.fx * breite, g.fy * oberlandHoehe, g.breiteFrac * breite, g.aspekt, gefaehrtenLichtung)
+        figurLichtung(g.fx * breite, g.fy * oberlandHoehe, g.breiteFrac * breite, g.aspekt, lichtung)
       );
     }
   }
@@ -1049,9 +1066,10 @@ export function LuchsRevierKarte({
             );
           })}
           {/* Die fünf Gefährten. Bewusst dieselbe `Wegmarke`-Komponente wie alle anderen
-              Stationen — sie bringt Fußpunkt-Verankerung und Bodenschatten mit, und wenn die
-              Reviere in Update 1 spielbar werden, genügt hier ein `zustand` und ein
-              `onPress`. Bis dahin: gesperrt, also gedimmt und nicht antippbar. */}
+              Stationen — sie bringt Fußpunkt-Verankerung und Bodenschatten mit. Update-1-
+              Vorzug (2026-09-15): sobald `onSelectGefaehrte` gesetzt ist, sind sie echt
+              antippbar (siehe Props-Kommentar) — ohne die Prop bleibt das Verhalten wie zuvor
+              (gesperrt, nur per Testansicht sichtbar). */}
           {/* Von hinten nach vorn: Die Liste läuft von unten (nah) nach oben (fern); gezeichnet
               wird umgekehrt, damit eine näher stehende Figur eine weiter entfernte überdeckt
               und nicht andersherum. Auf dem Zickzack des Weges stehen die Stationen dicht
@@ -1059,6 +1077,11 @@ export function LuchsRevierKarte({
               hinter ihr den Berg hinaufgeht. */}
           {[...GEFAEHRTEN].reverse().map((g) => {
             const gBreite = g.breiteFrac * breite;
+            // Update-1-Vorzug (2026-09-15): die fünf echten Reviere bekommen "offen" (voll
+            // aufgedeckt, antippbar, aber ohne Häkchen/Glühwürmchen — siehe WegmarkeStatus-
+            // Kommentar oben) plus ein echtes onPress zur neuen Revier-Route. Der Wisent-
+            // Torwächter bleibt bewusst unverändert (siehe Props-Kommentar oben).
+            const echtesRevier = onSelectGefaehrte && g.id !== "wisent";
             return (
               <Wegmarke
                 key={g.id}
@@ -1067,10 +1090,8 @@ export function LuchsRevierKarte({
                 top={g.fy * oberlandHoehe}
                 breite={gBreite}
                 hoehe={gBreite * g.aspekt}
-                // "erledigt" heißt hier NUR volle Deckkraft — kein `onPress` wird
-                // übergeben, die Wegmarke bleibt also in jedem Fall nicht antippbar.
-                // Glühwürmchen bekommt sie ebenfalls nicht, die hängen an "naechstes".
-                zustand={gefaehrtenVorschau ? "erledigt" : "gesperrt"}
+                zustand={echtesRevier ? "offen" : gefaehrtenVorschau ? "erledigt" : "gesperrt"}
+                onPress={echtesRevier ? () => onSelectGefaehrte(g.id) : undefined}
               />
             );
           })}
@@ -1361,10 +1382,10 @@ function Wegmarke({
         </View>
       ) : gefaehrte ? (
         // Dieselbe Regel wie bei den Quest-Tieren: Wer noch im Nebel steht, blinzelt nicht.
-        // Heute sind alle sechs Gefährten gesperrt — die Reviere werden erst in Update 1
-        // spielbar; sichtbar wird das Blinzeln also zunächst nur in der Testansicht
-        // „gefaehrtenVorschau". Die Verdrahtung steht trotzdem schon, weil sie sonst zum
-        // Zeitpunkt der Freischaltung als eigener Arbeitsschritt wieder auftauchen würde.
+        // Seit dem Update-1-Vorzug (2026-09-15) blinzeln die fünf echten Reviere (Zustand
+        // "offen") wie jede andere erreichbare Station; der Wisent-Torwächter bleibt vorerst
+        // gesperrt, sichtbar wird sein Blinzeln also weiterhin nur in der Testansicht
+        // „gefaehrtenVorschau".
         <View style={{ opacity: zustand === "gesperrt" ? GESPERRT_OPACITY : 1 }}>
           <GefaehrteWegmarke
             id={gefaehrte}
