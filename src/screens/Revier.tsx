@@ -36,13 +36,12 @@
 // ohne Sprechblase, also erfundener Dialog ohne Text, den ich hier nicht auf eigene Faust
 // ergänze (dieselbe Begründung wie bei der fehlenden Begrüßung oben). Zwinkern braucht
 // dagegen keinen Text: die Zustandsdefinition selbst nennt es "Reaktion auf Lob". Unten löst
-// `zwinkernAusloeser` bei der Adlerin genau das aus, sobald beim Wiederbetreten des Reviers
-// mehr Sterne stehen als beim letzten Verlassen — ein neuer Stern, kein spezifisches
-// Klick-Ereignis, damit es unabhängig davon funktioniert, über welche Spalte er kam. Rabe
-// hat zwar ebenfalls ein geliefertes Zwinkern-Bild, aber der frische Export wich beim
-// Grundzustand vom bereits ausgelieferten ab (siehe lib/gefaehrtenZustaende.tsx) — bleibt
-// deshalb vorerst außen vor. Eichhörnchen, Dachs und Wolf haben kein Zwinkern-Bild geliefert
-// bekommen, `zwinkernAusloeser` wirkt dort ohnehin nicht (siehe GefaehrteWegmarke-Kommentar).
+// `zwinkernAusloeser` bei Adlerin UND Rabe (seit 2026-09-15, siehe lib/gefaehrtenZustaende.tsx
+// und claude/rabe_v2_master_korrektur_2026-09-15.md) genau das aus, sobald beim Wiederbetreten
+// des Reviers mehr Sterne stehen als beim letzten Verlassen — ein neuer Stern, kein
+// spezifisches Klick-Ereignis, damit es unabhängig davon funktioniert, über welche Spalte er
+// kam. Eichhörnchen, Dachs und Wolf haben kein Zwinkern-Bild geliefert bekommen,
+// `zwinkernAusloeser` wirkt dort ohnehin nicht (siehe GefaehrteWegmarke-Kommentar).
 
 import { useCallback, useRef, useState } from "react";
 import { Pressable, SafeAreaView, StyleSheet, Text, View } from "react-native";

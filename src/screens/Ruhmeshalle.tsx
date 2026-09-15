@@ -38,16 +38,28 @@
 // ("Blinzeln abschaltbar, etwa für Standbilder in der Ruhmeshalle") genau das ab, was dort
 // als künftiger Verwendungszweck vorgesehen war — ein ruhiges Standbild statt der auf der
 // Karte blinzelnden Wegmarke.
+//
+// E5 "Rangaufstieg" (2026-09-15, Christian: "E5 Option A passt für mich"): kein eigenes Bild
+// — der Moment, in dem ein Gefährte (bzw. der Wisent) HIER neu ankommt, bekommt stattdessen
+// einmalig denselben Funkeln-Effekt, den QuestGeschafft.tsx bereits für "Quest geschafft"
+// verwendet (components/Funkeln.tsx, bild-unabhängig, Marken-Gold). Bewusst EINMALIG pro
+// Gefährte, nicht bei jedem Ruhmeshalle-Besuch erneut — dafür sorgt das persistierte
+// "schon gefeiert"-Set in `holeUndMarkiereRangaufstiege` (storage.ts): der erste Besuch NACH
+// der Graduierung feiert, jeder weitere zeigt nur noch das ruhige Standbild. Ein reiner
+// Vorher/Nachher-Vergleich innerhalb dieser Komponente (wie der Zwinkern-Auslöser in
+// Revier.tsx) hätte genau den ersten, wichtigsten Besuch verpasst — siehe Kommentar dort in
+// storage.ts.
 
 import { useCallback, useState } from "react";
 import { Pressable, SafeAreaView, StyleSheet, View } from "react-native";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import Svg, { Circle, Path, Rect } from "react-native-svg";
 import { WaldHintergrund } from "../components/WaldHintergrund";
+import { Funkeln } from "../components/Funkeln";
 import { GefaehrteWegmarke, gefaehrteWegmarkeAspekt, type GefaehrteId } from "../lib/gefaehrtenZustaende";
 import { FarnZurueckIcon } from "../lib/freispielIcons";
 import { ladeEndlosmodusFortschritt, istRevierAbgeschlossen, type EndlosmodusFortschritt } from "../lib/endlosmodusFortschritt";
-import { loadBonusFortschrittLocal } from "../lib/storage";
+import { loadBonusFortschrittLocal, holeUndMarkiereRangaufstiege } from "../lib/storage";
 
 /** Die fünf Reviere, in derselben Reihenfolge wie auf der Karte/in Revier.tsx — der Wisent
  *  wird bewusst separat behandelt (eigener Sonderplatz, siehe Konzept-Kommentar oben). */
@@ -66,11 +78,27 @@ export default function Ruhmeshalle() {
   const navigation = useNavigation<any>();
   const [fortschritt, setFortschritt] = useState<EndlosmodusFortschritt>({});
   const [wisentGeschafft, setWisentGeschafft] = useState(false);
+  // Siehe E5-Kommentar oben: IDs, für die JETZT (dieser Besuch) einmalig gefunkelt wird.
+  const [frischGradiert, setFrischGradiert] = useState<Set<GefaehrteId>>(new Set());
 
   useFocusEffect(
     useCallback(() => {
-      ladeEndlosmodusFortschritt().then(setFortschritt);
-      loadBonusFortschrittLocal("wisentKampf").then(setWisentGeschafft);
+      (async () => {
+        const [f, wisentJetztGeschafft] = await Promise.all([
+          ladeEndlosmodusFortschritt(),
+          loadBonusFortschrittLocal("wisentKampf"),
+        ]);
+        setFortschritt(f);
+        setWisentGeschafft(wisentJetztGeschafft);
+
+        const gradierteIds: GefaehrteId[] = RUHMESHALLE_GEFAEHRTEN.filter((id) => istRevierAbgeschlossen(id, f));
+        if (wisentJetztGeschafft) gradierteIds.push("wisent");
+
+        const neu = await holeUndMarkiereRangaufstiege(gradierteIds);
+        if (neu.length > 0) {
+          setFrischGradiert((vorher) => new Set([...vorher, ...(neu as GefaehrteId[])]));
+        }
+      })();
     }, [])
   );
 
@@ -93,6 +121,7 @@ export default function Ruhmeshalle() {
                 key={id}
                 id={id}
                 gradiert={istRevierAbgeschlossen(id, fortschritt)}
+                funkeln={frischGradiert.has(id)}
               />
             ))}
           </View>
@@ -100,7 +129,13 @@ export default function Ruhmeshalle() {
               Ort laut Konzept — "der Wisent thront erst am gegenüberliegenden, noch
               unerforschten Kartenrand"), siehe Kopfkommentar. */}
           <View style={styles.wisentPlatz}>
-            <GefaehrtenPlatz id="wisent" gradiert={wisentGeschafft} breite={WISENT_BREITE} vernebelt={!wisentGeschafft} />
+            <GefaehrtenPlatz
+              id="wisent"
+              gradiert={wisentGeschafft}
+              breite={WISENT_BREITE}
+              vernebelt={!wisentGeschafft}
+              funkeln={frischGradiert.has("wisent")}
+            />
           </View>
         </View>
       </SafeAreaView>
@@ -113,11 +148,15 @@ function GefaehrtenPlatz({
   gradiert,
   breite = FIGUR_BREITE,
   vernebelt = false,
+  funkeln = false,
 }: {
   id: GefaehrteId;
   gradiert: boolean;
   breite?: number;
   vernebelt?: boolean;
+  /** E5 Rangaufstieg (siehe Datei-Kommentar oben): einmaliger Funkeln-Ausbruch über der
+   *  frisch gradierten Figur, nur beim allerersten Besuch danach. */
+  funkeln?: boolean;
 }) {
   const aspekt = gefaehrteWegmarkeAspekt(id);
   const hoehe = breite * aspekt;
@@ -128,7 +167,10 @@ function GefaehrtenPlatz({
   return (
     <View style={styles.rahmen} accessibilityLabel={label}>
       {gradiert ? (
-        <GefaehrteWegmarke id={id} breite={breite} blinzeln={false} />
+        <View style={styles.mitFunkeln}>
+          {funkeln && <Funkeln size={Math.max(breite, hoehe) * 1.3} />}
+          <GefaehrteWegmarke id={id} breite={breite} blinzeln={false} />
+        </View>
       ) : (
         <View style={[styles.leererPlatz, { width: breite, height: hoehe }]}>
           {vernebelt && <NebelschleierIcon size={Math.min(breite, hoehe) * 0.6} />}
@@ -204,6 +246,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "flex-end",
   },
+  // Zentrierender Wrapper für den Funkeln-Ausbruch (E5) — dieselbe Struktur wie in
+  // QuestGeschafft.tsx: Funkeln positioniert sich absolut und zentriert sich über die
+  // flex-Zentrierung dieses Wrappers, die Figur bleibt als normales Geschwister-Element.
+  mitFunkeln: { alignItems: "center", justifyContent: "center" },
   leererPlatz: {
     borderRadius: 10,
     borderWidth: 2,

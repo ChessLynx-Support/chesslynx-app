@@ -175,6 +175,35 @@ export async function setWisentKuerAlleDreiGezeigt(): Promise<void> {
   await AsyncStorage.setItem(WISENT_KUER_ALLE_DREI_GEZEIGT_KEY, "1");
 }
 
+// --- Ruhmeshalle: Rangaufstiegs-Funkeln (2026-09-15, E5) -----------------------------------
+//
+// "Rangaufstieg" (E5) hat laut e3_e5_produktionsauftraege_2026-09-15.md Option A: kein neues
+// Bild, sondern derselbe Funkeln-Effekt (components/Funkeln.tsx), einmalig beim Übertritt
+// eines Gefährten (bzw. des Wisents) in die Ruhmeshalle. Bewusst EIN persistiertes
+// "schon gefeiert"-Set statt eines reinen Vorher/Nachher-Vergleichs innerhalb der Komponente
+// (wie beim Zwinkern-Auslöser in Revier.tsx): Ruhmeshalle.tsx lädt den Gradierungsstand bei
+// jedem `useFocusEffect` frisch, aber gerade der ALLERERSTE Besuch nach der Graduierung soll
+// trotzdem funkeln — ein Komponenten-interner Vergleich hätte keinen Baseline-Wert von VOR
+// diesem ersten Laden und würde genau diesen wichtigsten Moment verpassen. Analog
+// WISENT_KUER_ALLE_DREI_GEZEIGT_KEY oben, nur als Set von Gefährten-IDs statt eines einzelnen
+// Flags.
+const RUHMESHALLE_GEFEIERT_KEY = "chesslynx:ruhmeshalleGefeiert";
+
+/**
+ * Nimmt die aktuell gradierten Gefährten-/Wisent-IDs entgegen, markiert alle noch nicht
+ * gefeierten davon als gefeiert (persistiert) und gibt genau die zurück, die JETZT neu
+ * hinzugekommen sind — das sind die, für die `Ruhmeshalle.tsx` einmalig funkeln soll.
+ */
+export async function holeUndMarkiereRangaufstiege(gradierteIds: string[]): Promise<string[]> {
+  const raw = await AsyncStorage.getItem(RUHMESHALLE_GEFEIERT_KEY);
+  const bereitsGefeiert: string[] = raw ? JSON.parse(raw) : [];
+  const neu = gradierteIds.filter((id) => !bereitsGefeiert.includes(id));
+  if (neu.length > 0) {
+    await AsyncStorage.setItem(RUHMESHALLE_GEFEIERT_KEY, JSON.stringify([...bereitsGefeiert, ...neu]));
+  }
+  return neu;
+}
+
 /**
  * Liefert die ID des "aktiven" Kinderprofils für ein Elternkonto — für den MVP-Kern
  * reicht ein Kind pro Familie (siehe firebase.ts, Abschnitt zu den Firestore-Pfaden).
@@ -260,6 +289,7 @@ export function istSpielstandSchluessel(k: string): boolean {
     k === WILLKOMMEN_GESEHEN_KEY ||
     k === GANZE_PARTIE_ETAPPE_KEY ||
     k === WISENT_KUER_ALLE_DREI_GEZEIGT_KEY ||
+    k === RUHMESHALLE_GEFEIERT_KEY ||
     k.startsWith(KEY_PREFIX) ||
     k.startsWith(BONUS_KEY_PREFIX) ||
     k.startsWith(KUER_VARIANTE_KEY_PREFIX) ||
