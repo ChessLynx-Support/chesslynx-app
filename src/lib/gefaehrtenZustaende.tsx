@@ -36,8 +36,8 @@
 // Sprechen), bleiben also unverändert bei Grundzustand + Blinzeln.
 //
 // -------------------------------------------------------------------------------------
-// E3 "Freude" (seit 2026-09-15, bisher Eichhörnchen, Dachs, Wolf und Adlerin) — ersetzt den
-// Grundzustand, sobald das Revier abgeschlossen ist
+// E3 "Freude" (seit 2026-09-15, bei allen fünf Gefährten — Eichhörnchen, Dachs, Wolf,
+// Adlerin und Rabe) — ersetzt den Grundzustand, sobald das Revier abgeschlossen ist
 // -------------------------------------------------------------------------------------
 // Anders als Zwinkern (einmalige Geste, siehe oben) ist Freude ein eigener VOLLBILD-Zustand
 // (`S3_freude` im Rig, siehe `scripts/rig_configs/<tier>.json`) — Kopf sichtbar nach hinten
@@ -84,6 +84,7 @@
 // kommen deshalb jetzt aus `gefaehrteWegmarkeAspekt()` statt aus fest eingetragenen
 // Brüchen — sonst stünde die Figur um bis zu 2 % verzerrt auf der Karte.
 
+import { Image } from "react-native";
 import { ZustandsFigur, useGeste, GESTE_EINMAL } from "../components/ZustandsTier";
 import type { Leinwand } from "../components/ZustandsTier";
 
@@ -102,9 +103,9 @@ type WegmarkenBilder = {
    *  Datei-Kommentar oben) — bei den übrigen Gefährten bewusst `undefined`. */
   zwinkern?: ReturnType<typeof require>;
   /** E3 Freude-Vollbild — ersetzt `grund`, sobald das Revier abgeschlossen ist (siehe
-   *  Datei-Kommentar oben). Stand 2026-09-15 bei Eichhörnchen, Dachs, Wolf und Adlerin
-   *  geliefert UND exportiert; bei Rabe und Wisent bewusst `undefined`, bis die E3-Lieferung
-   *  da ist (Wisent ohnehin ohne E3-Auftrag, siehe Produktionsauftragsdoku). */
+   *  Datei-Kommentar oben). Stand 2026-09-15 bei allen fünf Gefährten (Eichhörnchen, Dachs,
+   *  Wolf, Adlerin, Rabe) geliefert UND exportiert; nur beim Wisent bewusst `undefined`
+   *  (kein E3-Auftrag für ihn, siehe Produktionsauftragsdoku). */
   freude?: ReturnType<typeof require>;
   leinwand: Leinwand;
 };
@@ -120,6 +121,7 @@ export const GEFAEHRTE_WEGMARKE: Record<GefaehrteId, WegmarkenBilder> = {
     grund: require("../../assets/figuren/gefaehrten/wegmarken/chesslynx_rabe_wegmarke_grund.webp"),
     blinzeln: require("../../assets/figuren/gefaehrten/wegmarken/chesslynx_rabe_wegmarke_blinzeln.webp"),
     zwinkern: require("../../assets/figuren/gefaehrten/wegmarken/chesslynx_rabe_wegmarke_zwinkern.webp"),
+    freude: require("../../assets/figuren/gefaehrten/wegmarken/chesslynx_rabe_wegmarke_freude.webp"),
     leinwand: { breite: 171, hoehe: 326, figur: [3, 3, 165, 320] },
   },
   dachs: {
@@ -152,6 +154,44 @@ export const GEFAEHRTE_WEGMARKE: Record<GefaehrteId, WegmarkenBilder> = {
 export function gefaehrteWegmarkeAspekt(id: GefaehrteId): number {
   const [, , breite, hoehe] = GEFAEHRTE_WEGMARKE[id].leinwand.figur;
   return hoehe / breite;
+}
+
+// -------------------------------------------------------------------------------------
+// E4 "Ruhmeshallen-Porträt" (seit 2026-09-15, bei allen fünf Gefährten — Eichhörnchen, Rabe,
+// Dachs, Adlerin, Wolf; bewusst NICHT beim Wisent, kein E4-Auftrag für ihn)
+// -------------------------------------------------------------------------------------
+// Kein eigenes KI-Bild: `scripts/kopfausschnitt.py` schneidet aus jeder bereits freigegebenen
+// Standfigur reproduzierbar einen Kopf-/Schulter-Ausschnitt (Kante = 1,157 × Figurenbreite,
+// zentriert auf die Kopfmitte, siehe claude/kopfausschnitt_lieferungen_einpassen_2026-09-14.md
+// und claude/e3_e5_produktionsauftraege_2026-09-15.md). Der Ausschnitt ist DURCH KONSTRUKTION
+// immer QUADRATISCH — deshalb hier kein `leinwand`/`figur`-Rechteck wie bei den Wegmarken
+// oben, sondern eine einzige Breite, die zugleich die Höhe ist. Christian, 2026-09-15: "so
+// lassen, eine Formel für alle fünf Gefährten" — bewusst keine Sonderbehandlung fürs
+// Eichhörnchen trotz des dort etwas kleiner wirkenden Kopfes (breite buschige Rute treibt die
+// GESAMT-Figurenbreite hoch, siehe Produktionsauftragsdoku).
+const GEFAEHRTE_PORTRAET: Record<Exclude<GefaehrteId, "wisent">, ReturnType<typeof require>> = {
+  eichhoernchen: require("../../assets/figuren/gefaehrten/portraets/chesslynx_eichhoernchen_portraet.webp"),
+  rabe: require("../../assets/figuren/gefaehrten/portraets/chesslynx_rabe_portraet.webp"),
+  dachs: require("../../assets/figuren/gefaehrten/portraets/chesslynx_dachs_portraet.webp"),
+  adlerin: require("../../assets/figuren/gefaehrten/portraets/chesslynx_adlerin_portraet.webp"),
+  wolf: require("../../assets/figuren/gefaehrten/portraets/chesslynx_wolf_portraet.webp"),
+};
+
+/** Ruhmeshallen-Porträt eines Gefährten (siehe Kommentar oben) — `breite` ist zugleich die
+ *  Höhe, der Ausschnitt ist immer quadratisch. Statisch, kein Blinzeln/Zwinkern/Freude-Layer
+ *  (anders als `GefaehrteWegmarke`): das Porträt ist ein fertiges Einzelbild, keine
+ *  Zustandsfamilie. */
+export function GefaehrtenPortraet({ id, breite }: { id: Exclude<GefaehrteId, "wisent">; breite: number }) {
+  return (
+    <Image
+      source={GEFAEHRTE_PORTRAET[id]}
+      style={{ width: breite, height: breite }}
+      resizeMode="contain"
+      // Derselbe Android-Fix wie in ZustandsTier.tsx/pieceMasters.tsx/questTiere.tsx: ohne
+      // diese Prop blendet Android das Bild beim ersten Anzeigen 300 ms lang ein.
+      fadeDuration={0}
+    />
+  );
 }
 
 /**

@@ -49,6 +49,13 @@
 // Vorher/Nachher-Vergleich innerhalb dieser Komponente (wie der Zwinkern-Auslöser in
 // Revier.tsx) hätte genau den ersten, wichtigsten Besuch verpasst — siehe Kommentar dort in
 // storage.ts.
+//
+// E4 "Ruhmeshallen-Porträt" (2026-09-15, Christian nach Vorschau: "so lassen, eine Formel für
+// alle fünf Gefährten"): die fünf regulären Plätze zeigen hier seit heute `GefaehrtenPortraet`
+// (Kopf-/Schulter-Ausschnitt, siehe lib/gefaehrtenZustaende.tsx) statt der vollen Stand-
+// Wegmarke — kein neues KI-Bild, ein deterministischer Ausschnitt aus der ohnehin
+// freigegebenen Standfigur (`scripts/kopfausschnitt.py`). Der Wisent-Sonderplatz bleibt bei
+// der vollen Wegmarke, dafür gibt es keinen E4-Auftrag.
 
 import { useCallback, useState } from "react";
 import { Pressable, SafeAreaView, StyleSheet, View } from "react-native";
@@ -56,7 +63,7 @@ import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import Svg, { Circle, Path, Rect } from "react-native-svg";
 import { WaldHintergrund } from "../components/WaldHintergrund";
 import { Funkeln } from "../components/Funkeln";
-import { GefaehrteWegmarke, gefaehrteWegmarkeAspekt, type GefaehrteId } from "../lib/gefaehrtenZustaende";
+import { GefaehrteWegmarke, GefaehrtenPortraet, gefaehrteWegmarkeAspekt, type GefaehrteId } from "../lib/gefaehrtenZustaende";
 import { FarnZurueckIcon } from "../lib/freispielIcons";
 import { ladeEndlosmodusFortschritt, istRevierAbgeschlossen, type EndlosmodusFortschritt } from "../lib/endlosmodusFortschritt";
 import { loadBonusFortschrittLocal, holeUndMarkiereRangaufstiege } from "../lib/storage";
@@ -158,7 +165,11 @@ function GefaehrtenPlatz({
    *  frisch gradierten Figur, nur beim allerersten Besuch danach. */
   funkeln?: boolean;
 }) {
-  const aspekt = gefaehrteWegmarkeAspekt(id);
+  // E4 (siehe Datei-Kommentar oben): die fünf regulären Plätze sind quadratische Porträts,
+  // nur der Wisent-Sonderplatz behält die hochformatige Wegmarken-Silhouette bei — deshalb
+  // hier `id === "wisent"` statt eines Bool-Flags: TypeScript engt `id` dadurch in beiden
+  // Zweigen unten korrekt ein (Porträt-Komponente nimmt bewusst kein `"wisent"` an).
+  const aspekt = id === "wisent" ? gefaehrteWegmarkeAspekt(id) : 1;
   const hoehe = breite * aspekt;
   const label = gradiert
     ? `${GEFAEHRTE_LABEL[id]}, in der Ruhmeshalle`
@@ -169,7 +180,11 @@ function GefaehrtenPlatz({
       {gradiert ? (
         <View style={styles.mitFunkeln}>
           {funkeln && <Funkeln size={Math.max(breite, hoehe) * 1.3} />}
-          <GefaehrteWegmarke id={id} breite={breite} blinzeln={false} />
+          {id === "wisent" ? (
+            <GefaehrteWegmarke id={id} breite={breite} blinzeln={false} />
+          ) : (
+            <GefaehrtenPortraet id={id} breite={breite} />
+          )}
         </View>
       ) : (
         <View style={[styles.leererPlatz, { width: breite, height: hoehe }]}>
