@@ -1,0 +1,136 @@
+// Update-1-Vorzug (2026-09-15, Christian: "Ich möchte es versuchen, die Inhalte aus Update 1
+// ins Release zu packen. Wir schaffen das"): Erster Baustein der Gefährten-Reviere — bisher
+// gab es dafür überhaupt keine Route, nur den `__DEV__`-Schalter "Gefährten-Vorschau" in
+// LuchsRevierKarte.tsx, der die Wegmarken zeigte, aber nicht antippbar machte (siehe
+// claude/status_technik_code.md: "Wer die Reviere baut, ergänzt in RootNavigator.tsx echte
+// Routen und in LuchsRevierKarte.tsx ein onPress je Gefährte").
+//
+// Bewusst EIN generischer Screen für alle fünf Gefährten (Eichhörnchen, Rabe, Dachs, Adlerin,
+// Wolf) statt fünf eigener Dateien — sie unterscheiden sich nur in `gefaehrteId`, genauso wie
+// die sechs Quests sich eine gemeinsame Board.tsx teilen, aber eigene Quest*.tsx-Hüllen haben.
+//
+// Bewusste Auslassungen in diesem ersten Schritt (siehe claude/update1_vorzug_plan_2026-09-15.md):
+//   - Kulisse: `WaldHintergrund` ohne `variante` (dieselbe Platzhalter-Kulisse wie Bonuskapitel/
+//     Schlossvorplatz) statt der eigentlichen Revier-Illustration (Asset E1) — die ist noch
+//     nicht beauftragt.
+//   - Keine gesprochene Begrüßung: Die App ist bewusst textfrei UND stimmenfrei nur mit
+//     geprüften, freigegebenen Sprechzeilen (siehe decisions.md, "Konjunktiv vermeiden" etc.) —
+//     für "Kind betritt ein Revier zum ersten Mal" gibt es noch keine freigegebene Zeile
+//     (status_konzept_story.md: "Zeile für 'Kind tippt auf vernebeltes Revier' … fehlt — Update
+//     1"). Neue Kind-Dialoge erfinde ich hier nicht auf eigene Faust.
+// Update-1-Vorzug, Fortsetzung (2026-09-15, Christian: "Endlosmodus-Verdrahtung (27 fertige
+// Stellungen) ... prüfen und ggf. aktualisieren"): der oben noch als offen beschriebene
+// Endlosmodus-Einstieg ist jetzt da — für sieben der neun Fokus-Spalten (siehe
+// lib/endlosmodusSpalten.ts, status "bereit"; die restlichen zwei — Figurenwert und Matt in
+// 2 — brauchen eine andere Interaktionsart als "eine Figur zieht einmal" und sind bewusst
+// noch nicht verdrahtet, siehe dortiger Kommentar). Unterhalb des Gefährten erscheint pro
+// spielbarer Spalte eine Kachel mit Titel + erreichten Sternen; Antippen öffnet
+// EndlosmodusSpalte.tsx. Reviere ohne spielbare Spalte (aktuell keins) zeigen nichts an.
+//
+// Weiterhin bewusst ausgelassen (siehe Abschnitt oben): Revier-Kulisse (Platzhalter bleibt),
+// gesprochene Begrüßung (keine freigegebene Zeile).
+
+import { useCallback, useState } from "react";
+import { Pressable, SafeAreaView, StyleSheet, Text, View } from "react-native";
+import { useFocusEffect, useNavigation, useRoute } from "@react-navigation/native";
+import { WaldHintergrund } from "../components/WaldHintergrund";
+import { GefaehrteWegmarke, type GefaehrteId } from "../lib/gefaehrtenZustaende";
+import { FarnZurueckIcon } from "../lib/freispielIcons";
+import { Sternensaeule } from "../lib/sternenleiter";
+import { spaltenFuerGefaehrte } from "../lib/endlosmodusSpalten";
+import { ladeEndlosmodusFortschritt, sterneInSpalte, type EndlosmodusFortschritt } from "../lib/endlosmodusFortschritt";
+
+/** Name je Revier — dieselben Namen wie in LuchsRevierKarte.tsx (GEFAEHRTEN_ROH), nur hier für
+ *  den Screen selbst gebraucht (z. B. `accessibilityLabel`, kein sichtbarer Text). */
+const REVIER_NAME: Record<GefaehrteId, string> = {
+  eichhoernchen: "Eichhörnchen-Lichtung",
+  rabe: "Rabenfels",
+  dachs: "Dachshöhle",
+  adlerin: "Adlerhorst",
+  wolf: "Wolfsfeste",
+  // Wisent hat keinen eigenen Revier-Screen dieser Art (Wisent-Kampf ist ein eigener,
+  // separater Screen an anderer Stelle der Karte, Segment 18) — hier nur der Vollständigkeit
+  // halber im Record, damit `GefaehrteId` nicht zwei leicht unterschiedliche Aufzählungen
+  // braucht.
+  wisent: "Wisent-Weide",
+};
+
+export type RevierParams = { gefaehrteId: GefaehrteId };
+
+export default function Revier() {
+  const navigation = useNavigation<any>();
+  const route = useRoute<any>();
+  const gefaehrteId: GefaehrteId = route.params?.gefaehrteId ?? "eichhoernchen";
+  const spielbareSpalten = spaltenFuerGefaehrte(gefaehrteId).filter((s) => s.status === "bereit");
+
+  const [fortschritt, setFortschritt] = useState<EndlosmodusFortschritt>({});
+  useFocusEffect(
+    useCallback(() => {
+      ladeEndlosmodusFortschritt().then(setFortschritt);
+    }, [])
+  );
+
+  return (
+    <View style={styles.wurzel}>
+      <WaldHintergrund />
+      <SafeAreaView style={styles.safe} pointerEvents="box-none">
+        <Pressable
+          onPress={() => navigation.navigate("KidHome")}
+          accessibilityLabel="Zurück zur Karte"
+          hitSlop={{ top: 12, left: 12, right: 12, bottom: 12 }}
+          style={styles.zurueck}
+        >
+          <FarnZurueckIcon size={26} />
+        </Pressable>
+        <View style={styles.mitte}>
+          <View pointerEvents="none" accessibilityLabel={REVIER_NAME[gefaehrteId]}>
+            <GefaehrteWegmarke id={gefaehrteId} breite={200} blinzeln />
+          </View>
+          {spielbareSpalten.length > 0 && (
+            <View style={styles.spaltenReihe}>
+              {spielbareSpalten.map((spalte) => (
+                <Pressable
+                  key={spalte.id}
+                  onPress={() => navigation.navigate("EndlosmodusSpalte", { spalteId: spalte.id })}
+                  accessibilityLabel={spalte.titel}
+                  style={styles.spaltenKachel}
+                >
+                  <Text style={styles.spaltenTitel}>{spalte.titel}</Text>
+                  <Sternensaeule wert={sterneInSpalte(fortschritt, spalte.id)} groesse={12} />
+                </Pressable>
+              ))}
+            </View>
+          )}
+        </View>
+      </SafeAreaView>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  wurzel: { flex: 1, backgroundColor: "#DCE7C8" },
+  safe: { flex: 1 },
+  zurueck: {
+    position: "absolute",
+    top: 20,
+    left: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "rgba(247,241,228,0.9)",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 10,
+  },
+  mitte: { flex: 1, alignItems: "center", justifyContent: "center" },
+  spaltenReihe: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: 10, marginTop: 20, maxWidth: 320 },
+  spaltenKachel: {
+    minWidth: 96,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 14,
+    backgroundColor: "rgba(247,241,228,0.85)",
+    alignItems: "center",
+  },
+  spaltenTitel: { fontSize: 13, fontWeight: "600", color: "#4A4038", marginBottom: 6, textAlign: "center" },
+});

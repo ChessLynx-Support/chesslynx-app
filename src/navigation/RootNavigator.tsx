@@ -130,6 +130,19 @@ import { WillkommensSequenz } from "../screens/WillkommensSequenz";
 // LuchsRevierKarte — schließt Freispiel-Schritt #76/#77 ("Navigation zum Freispiel-Screen").
 import GanzePartie from "../bonus/GanzePartie";
 import Steinbruecke from "../screens/Steinbruecke";
+// Update-1-Vorzug (2026-09-15, siehe claude/update1_vorzug_plan_2026-09-15.md): erste echte
+// Route für die Gefährten-Reviere — vorher gab es dafür überhaupt keinen Screen, nur den
+// __DEV__-Vorschauschalter in LuchsRevierKarte.tsx. Ein gemeinsamer, generischer Screen für
+// alle fünf Gefährten (siehe dortiger Datei-Kopfkommentar für den bewussten Funktionsumfang
+// dieses ersten Schritts).
+import Revier from "../screens/Revier";
+import type { RevierParams } from "../screens/Revier";
+// Update-1-Vorzug, Fortsetzung (2026-09-15, Christian: "Endlosmodus-Verdrahtung (27 fertige
+// Stellungen) ... prüfen und ggf. aktualisieren"): Screen für eine einzelne Endlosmodus-
+// Fokus-Spalte, aufgerufen aus Revier.tsx heraus — siehe dortiger Kommentar und
+// lib/endlosmodusSpalten.ts für den vollen Stand (7 von 9 Spalten spielbar).
+import EndlosmodusSpalte from "../screens/EndlosmodusSpalte";
+import type { EndlosmodusSpalteParams } from "../screens/EndlosmodusSpalte";
 // Ladebildschirm/Intro (Nutzerwunsch, siehe claude/lux_begruessungsvideo_freistellung_
 // konzept.md, Abschnitt "Ladebildschirm") — läuft jetzt VOR der Willkommens-Sequenz, siehe
 // screens/LadeBildschirm.tsx für die volle Begründung (Video 1 unverändert, Überblendung
@@ -206,6 +219,12 @@ export type RootStackParamList = {
   // Paket 3: Schildkröten-Wegpunkt (Bots/Puzzles-Wahl). `nachKapitel` = direkt aus dem
   // Kapitel-Abschluss kommend (erste Begrüßung statt Wiederkehr-Zeile).
   Steinbruecke: { nachKapitel?: boolean } | undefined;
+  // Update-1-Vorzug (2026-09-15, siehe Import-Kommentar oben): Gefährten-Revier, generisch
+  // für alle fünf. `gefaehrteId` sagt, welcher Gefährte/welches Revier gezeigt wird.
+  Revier: RevierParams;
+  // Update-1-Vorzug, Fortsetzung (2026-09-15, siehe Import-Kommentar oben): eine einzelne
+  // Endlosmodus-Fokus-Spalte innerhalb eines Reviers.
+  EndlosmodusSpalte: EndlosmodusSpalteParams;
   // Nur für Schritt 2 (siehe Import-Kommentar oben) — wieder entfernen, sobald der
   // Vorversuch geprüft und abgeschlossen ist.
   RigProbe: undefined;
@@ -342,6 +361,7 @@ function KidHome({ navigation, route }: any) {
           onSelectQuest={(quest) => navigation.navigate(QUEST_ROUTEN[quest])}
           onSelectSchlossvorplatz={() => navigation.navigate("Schlossvorplatz")}
           onSelectSteinbruecke={() => navigation.navigate("Steinbruecke")}
+          onSelectGefaehrte={(gefaehrteId) => navigation.navigate("Revier", { gefaehrteId })}
           onHoehen={setKartenHoehen}
           onSteinbrueckeWartet={zeigeSteinbruecke}
           breiteVorgabe={sichtBreite}
@@ -479,6 +499,8 @@ const ZURUECK_ZUR_KARTE = new Set<string>([
   "Steinbruecke",
   "GanzePartie",
   "FreispielScreen",
+  "Revier",
+  "EndlosmodusSpalte",
 ]);
 
 function zurueckZurKarte(): boolean {
@@ -615,6 +637,8 @@ export function RootNavigator() {
             <Stack.Screen name="FreispielPartie" component={FreispielPartie} />
             <Stack.Screen name="GanzePartie" component={GanzePartie} />
             <Stack.Screen name="Steinbruecke" component={Steinbruecke} />
+            <Stack.Screen name="Revier" component={Revier} />
+            <Stack.Screen name="EndlosmodusSpalte" component={EndlosmodusSpalte} />
             </Stack.Navigator>
           </NavigationContainer>
           <BrandWatermark
