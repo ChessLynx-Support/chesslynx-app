@@ -29,8 +29,22 @@
 //
 // Weiterhin bewusst ausgelassen (siehe Abschnitt oben): Revier-Kulisse (Platzhalter bleibt),
 // gesprochene Begrüßung (keine freigegebene Zeile).
+//
+// Zustands-Rig-Verdrahtung (2026-09-15, Christian: "Erst Zustands-Rig verdrahten"): Im Rig
+// liegt neben Blinzeln auch ein SPRECHEN-Zustand je Gefährte und, bei Adlerin und Rabe, ein
+// ZWINKERN. Sprechen bleibt weiterhin unexportiert — das wäre ein offener Mund ohne Ton und
+// ohne Sprechblase, also erfundener Dialog ohne Text, den ich hier nicht auf eigene Faust
+// ergänze (dieselbe Begründung wie bei der fehlenden Begrüßung oben). Zwinkern braucht
+// dagegen keinen Text: die Zustandsdefinition selbst nennt es "Reaktion auf Lob". Unten löst
+// `zwinkernAusloeser` bei der Adlerin genau das aus, sobald beim Wiederbetreten des Reviers
+// mehr Sterne stehen als beim letzten Verlassen — ein neuer Stern, kein spezifisches
+// Klick-Ereignis, damit es unabhängig davon funktioniert, über welche Spalte er kam. Rabe
+// hat zwar ebenfalls ein geliefertes Zwinkern-Bild, aber der frische Export wich beim
+// Grundzustand vom bereits ausgelieferten ab (siehe lib/gefaehrtenZustaende.tsx) — bleibt
+// deshalb vorerst außen vor. Eichhörnchen, Dachs und Wolf haben kein Zwinkern-Bild geliefert
+// bekommen, `zwinkernAusloeser` wirkt dort ohnehin nicht (siehe GefaehrteWegmarke-Kommentar).
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { Pressable, SafeAreaView, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect, useNavigation, useRoute } from "@react-navigation/native";
 import { WaldHintergrund } from "../components/WaldHintergrund";
@@ -64,10 +78,31 @@ export default function Revier() {
   const spielbareSpalten = spaltenFuerGefaehrte(gefaehrteId).filter((s) => s.status === "bereit");
 
   const [fortschritt, setFortschritt] = useState<EndlosmodusFortschritt>({});
+
+  // Zwinkern-Auslöser (siehe Datei-Kommentar oben): `vorherigeSterneRef` hält den zuletzt
+  // gesehenen Sternestand dieses Reviers über mehrere Fokus-Wechsel hinweg (Kind spielt eine
+  // Spalte, kehrt zurück) — beginnt bei `null`, damit das allererste Laden nie als "neuer
+  // Stern" zählt. Steigt die Summe gegenüber dem letzten Laden, zählt `zwinkernAusloeser`
+  // eins hoch; `GefaehrteWegmarke` liest daraus ein einmaliges Zwinkern aus (nur bei
+  // Gefährten mit exportiertem Zwinkern-Bild, aktuell nur Adlerin).
+  const vorherigeSterneRef = useRef<number | null>(null);
+  const [zwinkernAusloeser, setZwinkernAusloeser] = useState(0);
+
   useFocusEffect(
     useCallback(() => {
-      ladeEndlosmodusFortschritt().then(setFortschritt);
-    }, [])
+      ladeEndlosmodusFortschritt().then((f) => {
+        setFortschritt(f);
+        const summe = spielbareSpalten.reduce((acc, s) => acc + sterneInSpalte(f, s.id), 0);
+        if (vorherigeSterneRef.current !== null && summe > vorherigeSterneRef.current) {
+          setZwinkernAusloeser((n) => n + 1);
+        }
+        vorherigeSterneRef.current = summe;
+      });
+      // spielbareSpalten bewusst nicht in den Deps: Sie hängt nur von `gefaehrteId` ab (fest
+      // pro Bildschirm-Instanz, siehe Datei-Kommentar oben) und wäre bei jedem Rendern eine
+      // neue Array-Referenz.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [gefaehrteId])
   );
 
   return (
@@ -84,7 +119,12 @@ export default function Revier() {
         </Pressable>
         <View style={styles.mitte}>
           <View pointerEvents="none" accessibilityLabel={REVIER_NAME[gefaehrteId]}>
-            <GefaehrteWegmarke id={gefaehrteId} breite={200} blinzeln />
+            <GefaehrteWegmarke
+              id={gefaehrteId}
+              breite={200}
+              blinzeln
+              zwinkernAusloeser={zwinkernAusloeser}
+            />
           </View>
           {spielbareSpalten.length > 0 && (
             <View style={styles.spaltenReihe}>

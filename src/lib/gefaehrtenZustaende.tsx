@@ -11,15 +11,29 @@
 // Diese Datei ist die Gegenstelle dazu, gebaut wie der Wegmarken-Teil von questTiere.tsx.
 //
 // -------------------------------------------------------------------------------------
-// Warum nur Grundzustand und Blinzeln
+// Warum nur Grundzustand, Blinzeln — und seit 2026-09-15 bei Adlerin UND Rabe auch Zwinkern
 // -------------------------------------------------------------------------------------
-// Im Rig liegt je Gefährte auch ein SPRECHEN-Zustand (bei der Adlerin zusätzlich ein
-// Zwinkern, beim Wisent Kopfheben und Schnauben). Exportiert ist davon nichts: Die
-// Reviere werden erst in Update 1 spielbar, und auf der Karte spricht niemand. Eine Datei,
-// die kein Screen anzeigt, ist Bundle-Gewicht ohne Gegenwert — dieselbe Begründung, mit
-// der beim Grundzustand der Quest-Tiere rund 1 MB eingespart wurde
-// (claude/zustaende_app_einbindung_2026-09-13.md). Die Zustände sind gebaut und
-// freigegeben; sie zu exportieren ist ein Einzeiler in der jeweiligen rig_config.
+// Im Rig liegt je Gefährte auch ein SPRECHEN-Zustand (bei Adlerin und Rabe zusätzlich ein
+// Zwinkern, beim Wisent Kopfheben und Schnauben). Sprechen bleibt weiterhin unexportiert:
+// Die App ist bewusst textfrei/stimmenfrei nur mit geprüften, freigegebenen Sprechzeilen,
+// und für "Gefährte spricht im Revier" gibt es noch keine — siehe screens/Revier.tsx-
+// Kommentar. Eine Datei, die kein Screen anzeigt, ist Bundle-Gewicht ohne Gegenwert
+// (claude/zustaende_app_einbindung_2026-09-13.md).
+//
+// Zwinkern braucht dagegen KEINEN Text — die Zustandsdefinition selbst nennt es "Reaktion
+// auf Lob". Für die Adlerin ist es seit 2026-09-15 exportiert und verdrahtet: screens/
+// Revier.tsx löst es aus, sobald im Revier ein neuer Stern erreicht wird (`zwinkernAusloeser`
+// unten). Beim Raben war es zunächst zurückgestellt: der frische Export wich beim
+// Grundzustand um 77 % der Pixel von der ausgelieferten Wegmarke ab. Ursache war NICHT (wie
+// zunächst vermutet) eine unvollständig nachgezogene Kopfausschnitt-Korrektur, sondern ein
+// falsches Master-Bild — die als Master abgelegte Datei war per Prüfsumme bitgleich mit der
+// ausdrücklich ABGELEHNTEN Rabe-Lieferung, nicht mit der freigegebenen (siehe
+// `scripts/rig_configs/rabe.json`, Feld `korrektur_2026_09_15`, und
+// `claude/rabe_v2_master_korrektur_2026-09-15.md`). Nach Umstellung auf das tatsächlich
+// freigegebene Master-Bild registriert sich Rabe wieder sauber (Versatz 0,0 px, Abweichung
+// 1–4/255, wie ursprünglich), Zwinkern ist jetzt ebenfalls exportiert und verdrahtet.
+// Eichhörnchen, Dachs und Wolf haben ohnehin kein Zwinkern-Bild geliefert bekommen (nur
+// Sprechen), bleiben also unverändert bei Grundzustand + Blinzeln.
 //
 // -------------------------------------------------------------------------------------
 // Die Leinwand ist größer als die Figur
@@ -54,7 +68,7 @@
 // kommen deshalb jetzt aus `gefaehrteWegmarkeAspekt()` statt aus fest eingetragenen
 // Brüchen — sonst stünde die Figur um bis zu 2 % verzerrt auf der Karte.
 
-import { ZustandsFigur } from "../components/ZustandsTier";
+import { ZustandsFigur, useGeste, GESTE_EINMAL } from "../components/ZustandsTier";
 import type { Leinwand } from "../components/ZustandsTier";
 
 export type GefaehrteId =
@@ -68,6 +82,9 @@ export type GefaehrteId =
 type WegmarkenBilder = {
   grund: ReturnType<typeof require>;
   blinzeln: ReturnType<typeof require>;
+  /** Nur bei Adlerin und Rabe geliefert UND exportiert (Stand 2026-09-15, siehe
+   *  Datei-Kommentar oben) — bei den übrigen Gefährten bewusst `undefined`. */
+  zwinkern?: ReturnType<typeof require>;
   leinwand: Leinwand;
 };
 
@@ -80,6 +97,7 @@ export const GEFAEHRTE_WEGMARKE: Record<GefaehrteId, WegmarkenBilder> = {
   rabe: {
     grund: require("../../assets/figuren/gefaehrten/wegmarken/chesslynx_rabe_wegmarke_grund.webp"),
     blinzeln: require("../../assets/figuren/gefaehrten/wegmarken/chesslynx_rabe_wegmarke_blinzeln.webp"),
+    zwinkern: require("../../assets/figuren/gefaehrten/wegmarken/chesslynx_rabe_wegmarke_zwinkern.webp"),
     leinwand: { breite: 171, hoehe: 326, figur: [3, 3, 165, 320] },
   },
   dachs: {
@@ -90,7 +108,8 @@ export const GEFAEHRTE_WEGMARKE: Record<GefaehrteId, WegmarkenBilder> = {
   adlerin: {
     grund: require("../../assets/figuren/gefaehrten/wegmarken/chesslynx_adlerin_wegmarke_grund.webp"),
     blinzeln: require("../../assets/figuren/gefaehrten/wegmarken/chesslynx_adlerin_wegmarke_blinzeln.webp"),
-    leinwand: { breite: 178, hoehe: 326, figur: [2, 3, 173, 320] },
+    zwinkern: require("../../assets/figuren/gefaehrten/wegmarken/chesslynx_adlerin_wegmarke_zwinkern.webp"),
+    leinwand: { breite: 178, hoehe: 326, figur: [3, 3, 172, 320] },
   },
   wolf: {
     grund: require("../../assets/figuren/gefaehrten/wegmarken/chesslynx_wolf_wegmarke_grund.webp"),
@@ -111,22 +130,33 @@ export function gefaehrteWegmarkeAspekt(id: GefaehrteId): number {
 }
 
 /**
- * Ein Gefährte als Wegmarke auf der Saga-Karte. `breite` ist die Breite des TIERES.
+ * Ein Gefährte als Wegmarke auf der Saga-Karte ODER im Revier-Screen. `breite` ist die
+ * Breite des TIERES.
  *
- * Anders als die Quest-Tiere grüßt hier niemand: Die Gefährten haben keinen Gesten-
- * Zustand, und der offene Mund allein — ohne Sprechblase und ohne Ton — läse sich nicht
- * als Gruß, sondern als Fehler. Bis die Reviere spielbar sind, blinzeln sie nur.
+ * Auf der Karte grüßt weiterhin niemand: Die Gefährten haben dort keinen Gesten-Zustand,
+ * der offene Mund allein — ohne Sprechblase und ohne Ton — läse sich nicht als Gruß,
+ * sondern als Fehler. Im Revier gibt es seit 2026-09-15 EINE Ausnahme: `zwinkernAusloeser`
+ * löst bei Adlerin und Rabe ein einmaliges Zwinkern aus (Reaktion auf Lob, siehe
+ * screens/Revier.tsx) — kein Sprechen, kein erfundener Dialog, nur eine stumme Geste mit
+ * bereits freigegebenem Bildmaterial. Bei jeder anderen Aufrufstelle bzw. jedem anderen
+ * Gefährten bleibt die Prop wirkungslos (kein exportiertes Zwinkern-Bild, siehe
+ * `GEFAEHRTE_WEGMARKE` oben) — kein Sonderfall nötig.
  */
 export function GefaehrteWegmarke({
   id,
   breite,
   blinzeln = true,
+  zwinkernAusloeser,
 }: {
   id: GefaehrteId;
   breite: number;
   blinzeln?: boolean;
+  /** Ändert sich der Wert (z. B. ein hochgezählter Zähler), zwinkert die Figur einmal —
+   *  siehe Funktionskommentar. */
+  zwinkernAusloeser?: unknown;
 }) {
   const w = GEFAEHRTE_WEGMARKE[id];
+  const zwinkertJetzt = useGeste(w.zwinkern ? zwinkernAusloeser : undefined, GESTE_EINMAL);
   return (
     <ZustandsFigur
       leinwand={w.leinwand}
@@ -134,6 +164,7 @@ export function GefaehrteWegmarke({
       grund={w.grund}
       blinzeln={blinzeln ? w.blinzeln : undefined}
       idle={blinzeln}
+      ebenen={w.zwinkern ? [{ bild: w.zwinkern, aktiv: zwinkertJetzt }] : undefined}
     />
   );
 }

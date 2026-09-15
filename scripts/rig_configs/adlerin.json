@@ -181,7 +181,26 @@
         "S0_standing",
         "02_lider_zu"
       ]
+    },
+    {
+      "canvas": [
+        178,
+        326
+      ],
+      "margin": 0.0092,
+      "rel_height": 1.0,
+      "geometry_union": [
+        "S0_standing",
+        "S2_zwinkern"
+      ],
+      "state": "S2_zwinkern",
+      "file": "assets/figuren/gefaehrten/wegmarken/chesslynx_adlerin_wegmarke_zwinkern.webp",
+      "zweck": "Zwinkern — Reaktion auf Lob (ein neuer Stern im Revier), als Grundzustand plus Differenz-Ebene zusammengesetzt wie beim Blinzeln. Siehe Zustandsdefinition oben: \"Reaktion auf Lob\".",
+      "compose": [
+        "S0_standing",
+        "04_zwinkern"
+      ]
     }
   ],
-  "app_export_hinweis": "Bewusst nur die WEGMARKEN-Familie (Saga-Karte) und darin nur Grundzustand und Blinzeln. Der Sprechzustand ist fertig und im Rig, wird aber erst exportiert, wenn es einen Screen gibt, der ihn zeigt — die Reviere werden erst in Update 1 spielbar. Dasselbe gilt für die große 768er-Familie der Quest-Tiere: Die Gefährten erscheinen heute nur auf der Karte. Jede Datei, die niemand anzeigt, ist Bundle-Gewicht ohne Gegenwert (Begründung wie beim Grundzustand der Quest-Tiere, claude/zustaende_app_einbindung_2026-09-13.md)."
+  "app_export_hinweis": "Bewusst nur die WEGMARKEN-Familie (Saga-Karte) und darin Grundzustand, Blinzeln und Zwinkern. Der Sprechzustand bleibt unexportiert, solange es keine freigegebene Dialogzeile für ihn gibt (siehe screens/Revier.tsx-Kommentar) — eine Datei, die kein Screen anzeigt, ist Bundle-Gewicht ohne Gegenwert. Das Zwinkern dagegen braucht keinen Text: Es ist ab 2026-09-15 als Lob-Reaktion verdrahtet (screens/Revier.tsx löst es aus, sobald im Revier ein neuer Stern erreicht wird, siehe dortigen Kommentar) — die Reviere sind seit demselben Tag ohnehin spielbar, der frühere Exportvorbehalt ist damit erfüllt."
 }
