@@ -366,11 +366,13 @@ export default function Quest2() {
           }}
           // Bugfix (Opus-Review Befund 1.3): onTrapTap führt jetzt genauso zum nächsten
           // Screen wie der korrekte Zug — zwei gleichwertige Wege (siehe Quest1.tsx).
+          // Update 2026-09-15: Die frühere Verzögerung von 950 ms steckte hier als Kopie in
+          // vier Quest-Dateien und schnitt beim Gerätetest Lux' Stopp!-Erklärung ab. Das
+          // Abwarten liegt jetzt in QuestMoveScreen (Animation, dann Sprechende); hier bleibt
+          // nur noch, WAS danach passieren soll.
           onTrapTap={() => {
-            setTimeout(() => {
-              setLineIndex(0);
-              setScreen(5);
-            }, 950);
+            setLineIndex(0);
+            setScreen(5);
           }}
         />
       )}

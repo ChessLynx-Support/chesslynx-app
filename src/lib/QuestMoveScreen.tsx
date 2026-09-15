@@ -110,6 +110,19 @@ const NOTBREMSE_VORFUEHRUNG_MS = 2500;
 /** Lob-Zeilen sind die längsten Zeilen im Ablauf — plus deren Anlauf. */
 const NOTBREMSE_LOB_MS = 4000;
 
+/**
+ * Dauer der Stopp!-Animation in Board.tsx (`setTimeout(() => setTrappedKey(null), 900)`).
+ * Der Screenwechsel nach dem Antippen eines Stopp!-Feldes darf frühestens danach kommen,
+ * sonst verschwindet die Animation, bevor das Kind sie gesehen hat.
+ */
+const STOPP_ANIMATION_MS = 900;
+
+/** Notbremse für den Stopp!-Übergang, falls die Sprachausgabe ihr Ende nicht meldet. */
+const NOTBREMSE_STOPP_MS = 4000;
+
+/** Notbremse für den Abschluss eines Screens ohne Übungsphase (Screen 4/5). */
+const NOTBREMSE_ABSCHLUSS_MS = 3000;
+
 // ---------------------------------------------------------------------------------------
 // Neu (2026-09-08, Auto-Demo-Vorführung + Übungsphase, siehe claude/quest_review_
 // automatik_vollbrett_vorschlag.md, Abschnitt 3): Screen 2 ("Bewegung entdecken") bekommt
@@ -296,9 +309,16 @@ export function QuestMoveScreen({
       // gewartet, bis sie WIRKLICH zu Ende gesprochen ist.
       sobaldLuxFertigIst(onSolved, NOTBREMSE_LOB_MS, LOB_ANLAUF_MS);
     } else {
-      // Ohne Übungsphase (Screen 4/5 aller Quests) gibt es keine "fertig"-Sprechzeile —
-      // hier wäre jedes Warten reine, vom Kind spürbare Wartezeit ohne Gegenwert.
-      onSolved();
+      // Ohne Übungsphase (Screen 4/5 aller Quests) gibt es zwar keine eigene
+      // "fertig"-Sprechzeile — die Zeile des Screens selbst läuft aber oft noch. Beim
+      // Android-Gerätetest am 2026-09-14 hat der Nutzer genau das gemeldet: Auf dem
+      // Schlagen-Screen wechselte die Ansicht, während Lux noch sprach.
+      //
+      // Die frühere Annahme ("hier wäre jedes Warten reine Wartezeit ohne Gegenwert") galt
+      // nur für den Fall, dass gar nicht gesprochen wird. Genau den kostet das hier fast
+      // nichts: Schweigt Lux, löst `sobaldLuxFertigIst` nach ATEMPAUSE_MS aus — eine
+      // Atempause von 400 ms, kein Warten.
+      sobaldLuxFertigIst(onSolved, NOTBREMSE_ABSCHLUSS_MS);
     }
   }
 
@@ -353,6 +373,21 @@ export function QuestMoveScreen({
       // Betreten des Screens, die Auskunft "spricht" ist hier also belastbar.
       onDemoDone={() => sobaldLuxFertigIst(() => wechselPhase("interaktiv"), NOTBREMSE_VORFUEHRUNG_MS)}
       onCorrectMove={(target) => {
+        // HÄNGER-SCHUTZ (Gerätetest 2026-09-15). Unten gibt es Zweige für "interaktiv" und
+        // "uebung" — für "vorfuehrung" und "fertig" keinen. Ein Tap in einer dieser beiden
+        // Phasen führte den Zug trotzdem aus: `gameRef` und `aktuellerOrt` wanderten weiter,
+        // danach passierte nichts mehr. Kein Phasenwechsel, kein `onSolved` — der Screen blieb
+        // stehen und war nur noch über Zurück verlassbar.
+        //
+        // Erreichbar war das, weil `Board.tsx` Taps allein während `animatingTo` sperrt, also
+        // während der Vorführ-Animation. Davor, während Lux die Regel erklärt, leuchten die
+        // Zielfelder bereits und nehmen Taps an. Genau dort hat der Nutzer getippt.
+        //
+        // Der Zug wird deshalb gar nicht erst ausgeführt. Die Sprechzeile schaltet durch den
+        // Tap weiterhin weiter (Design-Vorgabe 3.3) — das läuft über den Sprechzeilen-Hook,
+        // nicht über diesen Weg.
+        if (phase !== "interaktiv" && phase !== "uebung") return;
+
         const real: BoardSquare = { row: target.row + rowOffset, col: target.col + colOffset };
         const result = tryMove(gameRef.current, aktuellerOrt, real);
         if (!result.ok) return;
@@ -386,7 +421,24 @@ export function QuestMoveScreen({
           }
         }
       }}
-      onTrapTap={onTrapTap}
+      // Update 2026-09-15: Bis hierher lag hinter `onTrapTap` in jeder Quest-Datei ein
+      // eigenes `setTimeout(..., 950)` — vier Kopien derselben Schätzung. Beim
+      // Android-Gerätetest schnitt sie Lux' Erklärung ab ("Stopp!" in Quest 1).
+      //
+      // Die Ausnahme war am 2026-09-14 bewusst gesetzt worden, mit der Begründung: Das Kind
+      // hat gerade selbst getippt, und Design-Vorgabe 3.3 sagt, ein Tipp während laufender
+      // Sprachausgabe soll weiterschalten. Der Denkfehler darin: Der Tipp gilt der VORHERIGEN
+      // Zeile. Die Erklärung, warum das Feld gesperrt ist, läuft danach noch — und genau die
+      // schnitt der Zeitgeber ab. Abgeschnitten wurde also ausgerechnet der Lehrinhalt.
+      //
+      // Jetzt: erst die 900-ms-Stopp!-Animation aus Board.tsx abwarten (als Anlauf), dann
+      // das Sprechende. Das ist `max(Animation, Sprechende)` — die Animation bleibt
+      // sichtbar, die Zeile bleibt vollständig.
+      onTrapTap={
+        onTrapTap
+          ? () => sobaldLuxFertigIst(onTrapTap, NOTBREMSE_STOPP_MS, STOPP_ANIMATION_MS)
+          : undefined
+      }
     />
   );
 }

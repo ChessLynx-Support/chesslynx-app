@@ -163,7 +163,13 @@ function screenScripts(): Record<Exclude<ScreenId, 2>, string[]> {
     // gesprochene Zeile. Aufgeteilt in zwei kurze Sätze, Kausalsatz gestrichen statt in
     // Bildsprache übersetzt (die Blockade selbst ist gleich sichtbar).
     t("Manchmal steht eine Figur auf dem Weg.", "Sometimes another piece is in the way."),
-    t("Dann kommt keine andere Figur daran vorbei.", "Then no other piece can get past."),
+    // Korrektur (Gerätetest 2026-09-15, Nutzer): "keine andere Figur" war schlicht falsch —
+    // der Springer überspringt Blockaden, und genau den lernt das Kind in Quest 4 kennen.
+    // Die Aussage gilt nur für unseren Bauern, also sagt sie das jetzt auch.
+    t(
+      "Dann kommt unser Bauer nicht daran vorbei, der Weg ist blockiert.",
+      "Then our pawn can't get past it — the path is blocked."
+    ),
     t("Der Bauer kann nicht geradeaus über eine andere Figur springen.", "The pawn can't jump straight over another piece."),
     t("Versuch es ruhig einmal aus.", "Go ahead and try it."),
   ],
@@ -525,11 +531,13 @@ export default function Quest1() {
           // 900ms-Ring-Animation in Board.tsx. Jetzt führt das Ausprobieren des blockierten
           // Feldes genauso zum nächsten Screen wie der korrekte Zug — kurze Verzögerung,
           // damit die Stopp!-Animation noch sichtbar ist, bevor der Screen wechselt.
+          // Update 2026-09-15: Die frühere Verzögerung von 950 ms steckte hier als Kopie in
+          // vier Quest-Dateien und schnitt beim Gerätetest Lux' Stopp!-Erklärung ab. Das
+          // Abwarten liegt jetzt in QuestMoveScreen (Animation, dann Sprechende); hier bleibt
+          // nur noch, WAS danach passieren soll.
           onTrapTap={() => {
-            setTimeout(() => {
-              setLineIndex(0);
-              setScreen(5);
-            }, 950);
+            setLineIndex(0);
+            setScreen(5);
           }}
         />
       )}

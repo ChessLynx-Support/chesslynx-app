@@ -91,7 +91,7 @@ import { useTestAnsicht } from "../lib/testAnsicht";
 import Svg, { Circle, Defs, G, Image as SvgBild, LinearGradient, Mask, Path, RadialGradient, Rect, Stop } from "react-native-svg";
 import { loadBonusFortschrittLocal, loadQuestFortschrittLocal } from "../lib/storage";
 import { pruefeSchlosstorStatus } from "../lib/gate";
-import { SCHILDKROETE_ASPEKT, SCHILDKROETE_BILD } from "../lib/schildkroete";
+import { SCHILDKROETE_ASPEKT, SchildkroeteWegmarke } from "../lib/schildkroete";
 import { QuestTierWegmarke, questTierWegmarkeAspekt } from "../lib/questTiere";
 import { GefaehrteWegmarke, gefaehrteWegmarkeAspekt } from "../lib/gefaehrtenZustaende";
 import type { GefaehrteId } from "../lib/gefaehrtenZustaende";
@@ -237,7 +237,7 @@ export type WegmarkenEintrag = {
   aspekt: number;
 };
 
-// Paket 11d (2026-09-13) — vier dezente Umgebungsschleifen (Lottie, siehe AmbientLoop.tsx).
+// Paket 11d (2026-09-13) — dezente Umgebungsschleifen (Lottie, siehe AmbientLoop.tsx).
 // Sie sind Hintergrundleben, keine Information: `pointerEvents="none"`, kein Ton, und sie
 // liegen im JSX VOR den Wegmarken und vor dem Nebelband — dadurch legt sich der Nebel auch
 // über sie, statt dass eine Schleife mitten im vernebelten Teil unnatürlich klar blinkt.
@@ -250,6 +250,17 @@ export type WegmarkenEintrag = {
 //
 // Die versetzten Startverzögerungen sind wichtig: Laufen mehrere Schleifen im Gleichtakt,
 // fällt die Wiederholung sofort als "Maschine" auf.
+//
+// 2026-09-15 — vier weitere Schleifen ergänzt (Gerätetest: "die Lottie-Schleifen sehe ich
+// kaum"). Anders als die ersten vier sitzen sie nicht irgendwo in der Landschaft, sondern
+// auf einem konkreten Motiv von `luchsrevier_wisentfeste.webp` (1658x2636). Die fx/fy sind
+// AM BILD ABGEMESSEN, nicht geschätzt — der Rauch steht über der Schornsteinspitze bei
+// 0.9215/0.538, die Blasen im dunkleren Wasser UNTER dem Wasserfall (im Fall selbst wäre
+// weiß auf weiß unsichtbar). Wer die Karte austauscht, muss hier neu messen.
+//
+// Damit laufen acht Schleifen gleichzeitig. Falls das auf schwachen Android-Geräten ruckelt,
+// ist der richtige Hebel, die vier alten zu entschlacken (sie sind die großflächigen) —
+// nicht die neuen, die den Gerätetest-Befund beheben.
 const AMBIENT_SCHLEIFEN = [
   {
     name: "baum",
@@ -289,6 +300,49 @@ const AMBIENT_SCHLEIFEN = [
     groesseFrac: 0.14,
     verzoegerungMs: 3900,
     tempo: 0.9,
+    deckkraft: 0.65,
+  },
+  {
+    // Über dem Schornstein des Häuschens rechts. Der Ausschnitt ist bewusst hoch gesetzt
+    // (fy 0.500 statt der gemessenen Spitze 0.538): Rauch steigt, das Motiv braucht den
+    // Platz nach oben, nicht mittig um den Schornstein herum.
+    name: "rauch",
+    quelle: require("../../assets/lottie/chesslynx-chimney-smoke.json"),
+    fx: 0.9215,
+    fy: 0.5,
+    groesseFrac: 0.2,
+    verzoegerungMs: 700,
+    tempo: 0.7,
+    deckkraft: 0.85,
+  },
+  {
+    name: "blasen",
+    quelle: require("../../assets/lottie/chesslynx-waterfall-bubbles.json"),
+    fx: 0.659,
+    fy: 0.675,
+    groesseFrac: 0.16,
+    verzoegerungMs: 1900,
+    tempo: 0.9,
+    deckkraft: 0.8,
+  },
+  {
+    name: "glitzern",
+    quelle: require("../../assets/lottie/chesslynx-river-sparkle.json"),
+    fx: 0.491,
+    fy: 0.889,
+    groesseFrac: 0.18,
+    verzoegerungMs: 3200,
+    tempo: 0.85,
+    deckkraft: 0.7,
+  },
+  {
+    name: "fischringe",
+    quelle: require("../../assets/lottie/chesslynx-fish-rings.json"),
+    fx: 0.401,
+    fy: 0.9,
+    groesseFrac: 0.14,
+    verzoegerungMs: 4500,
+    tempo: 0.8,
     deckkraft: 0.65,
   },
 ] as const;
@@ -970,7 +1024,7 @@ export function LuchsRevierKarte({
       {breite > 0 && (
         <ImageBackground source={oberland} style={{ width: breite, height: oberlandHoehe }} resizeMode="cover">
           <Wegmarke
-            bild={SCHILDKROETE_BILD}
+            schildkroete
             left={turtleX}
             top={SCHILDKROETE_WEGPUNKT.fy * oberlandHoehe}
             breite={turtleBreite}
@@ -1218,6 +1272,7 @@ function Wegmarke({
   bild,
   tier,
   gefaehrte,
+  schildkroete,
   gruesst = false,
   left,
   top,
@@ -1227,7 +1282,7 @@ function Wegmarke({
   onPress,
   pausiert = false,
 }: {
-  /** Standbild — für Wegmarken ohne Zustandsfamilie (Schildkröte). */
+  /** Standbild — für Wegmarken ganz ohne Zustandsfamilie. */
   bild?: ReturnType<typeof require>;
   /** Quest-Tier mit Zuständen; schließt `bild` aus. */
   tier?: QuestId;
@@ -1237,6 +1292,13 @@ function Wegmarke({
    * src/lib/gefaehrtenZustaende.tsx).
    */
   gefaehrte?: GefaehrteId;
+  /**
+   * Die Schildkröte mit Zuständen; schließt `bild`, `tier` und `gefaehrte` aus. Nachgezogen
+   * 2026-09-15 (Christian-Befund beim Testen: "Schildkröte schließt nicht die Augen") — das
+   * Zustands-Rig lag seit dem 2026-09-11 fertig im Archiv, war aber nie exportiert/verdrahtet.
+   * Siehe src/lib/schildkroete.tsx.
+   */
+  schildkroete?: boolean;
   /** Nur für `tier`: Das Tier, das als nächstes dran ist, grüßt in ruhigen Abständen. */
   gruesst?: boolean;
   /** Glühwürmchen anhalten, solange die Karte nicht sichtbar ist. */
@@ -1309,6 +1371,12 @@ function Wegmarke({
             breite={breite}
             blinzeln={zustand !== "gesperrt"}
           />
+        </View>
+      ) : schildkroete ? (
+        // Dieselbe Regel wie bei Tieren und Gefährten: gesperrt = kein Blinzeln, sie steht
+        // noch im Nebel.
+        <View style={{ opacity: zustand === "gesperrt" ? GESPERRT_OPACITY : 1 }}>
+          <SchildkroeteWegmarke breite={breite} blinzeln={zustand !== "gesperrt"} />
         </View>
       ) : (
         <Image
