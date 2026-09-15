@@ -52,7 +52,15 @@ export function fromAlgebraic(a: AlgebraicSquare): BoardSquare {
  * siehe Beispiel-FENs weiter unten.
  */
 export function createPosition(fen: string): Chess {
-  return new Chess(fen);
+  // `skipValidation`, weil die Übungsstellungen der sechs Quests BEWUSST KEINE KÖNIGE
+  // enthalten (siehe den Block über QUEST1_POSITIONS). chess.js besteht sonst auf je einem
+  // König pro Seite und wirft `Invalid FEN: missing black king`.
+  //
+  // Die Abschaltung ist hier ungefährlich, weil `createPosition` AUSSCHLIESSLICH von
+  // `lib/QuestMoveScreen.tsx` benutzt wird (drei Aufrufstellen, am 2026-09-14 projektweit
+  // geprüft). Bonuskapitel, Endlosmodus, Freispiel und die Schach-/Matt-Screens von Quest 6
+  // laden ihre Stellungen über eigene Wege und behalten die volle Validierung.
+  return new Chess(fen, { skipValidation: true });
 }
 
 /**
@@ -104,6 +112,124 @@ export function tryMove(game: Chess, from: BoardSquare, to: BoardSquare): MoveRe
  * der schwarze König ist reine Pflichtfigur für eine gültige FEN und taucht in der
  * UI nicht auf (kein Gegner-Rendering für Screen 2/3).
  */
+/**
+ * Zugseite zurück auf Weiß patchen — die Übungsfigur soll sofort wieder ziehen dürfen.
+ *
+ * 2026-09-14 aus `QuestMoveScreen.tsx` hierher verlegt: zusammen mit `waehleVorschlagZiel`
+ * bildet diese Funktion die Übungsschleife, und genau deren Zusammenspiel hat den Absturz
+ * vom 2026-09-14 erzeugt (siehe Block über QUEST1_POSITIONS). In einer TSX-Datei mit
+ * React-Importen war sie von `verify/*.cjs` aus nicht ladbar und damit ungetestet. Hier ist
+ * sie es — `verify/test-quest-uebungsschleife.cjs` spielt die Schleife durch.
+ */
+export function mitWeissAmZug(fen: string): string {
+  const teile = fen.split(" ");
+  teile[1] = "w";
+  return teile.join(" ");
+}
+
+// Bugfix (2026-09-10, Kurztest-Feedback: "Turm bleibt hängen bei der Eichel", "Läufer:
+// die Eichel sollte nicht nur [auf einem] entfernten [Feld] liegen"): `vorschlagZiel` nahm
+// bisher IMMER `legalTargets[0]` — die Reihenfolge, in der chess.js legale Zielfelder
+// liefert, ist ein reines Bibliotheks-Detail (siehe android_geraetetest_2026-09-09.md,
+// Punkt 12: alle Linienfelder VOR allen Reihenfeldern) und zeigte dadurch über alle
+// Übungsrunden hinweg immer dieselbe Richtung (Turm: nur die a-Linie hinauf) bzw. beim
+// Läufer bevorzugt das am weitesten entfernte Feld einer Diagonale statt eines in der Nähe.
+// Der damals dokumentierte, aber nie umgesetzte Fix-Vorschlag ("zwischen den tatsächlich
+// nutzbaren Richtungen abwechseln") ist jetzt hier tatsächlich umgesetzt, und zwar generisch
+// über die Vorzeichen der Zeilen-/Spaltendifferenz zur aktuellen Position — funktioniert
+// dadurch gleichermaßen für Turm (4 Richtungen), Läufer (4 Diagonalen), Dame (8) und in
+// abgeschwächter Form auch den Springer (mehrere Sprünge können sich einen Vorzeichen-
+// "Oktanten" teilen, was hier keinen Schaden anrichtet, da ohnehin nur EIN Zielfeld pro
+// Runde vorgeschlagen wird).
+//
+// Zweiter Bugfix (2026-09-10, Kurztest-Feedback nach dem ersten Fix: "Auch hier ist die
+// Eichel immer direkt ein Feld weiter"): Die erste Fassung wählte innerhalb der gewählten
+// Richtung IMMER das nächstgelegene Feld. Für Turm/Läufer/Dame ist das nächstgelegene Feld
+// einer freien Linie aber rein geometrisch IMMER genau ein Feld entfernt (jedes Feld davor
+// wäre sonst selbst schon blockiert und käme als Legalzug gar nicht erst vor) — die Eichel
+// zeigte dadurch ausnahmslos jede Runde einen Ein-Feld-Schritt, nie einen weiteren Zug über
+// mehrere Felder. Jetzt wandert der Abstand INNERHALB einer Richtung mit jedem vollen
+// Durchlauf aller Richtungen eine Stufe weiter (`tiefe` unten) — Runde 0..n-1 zeigt jede
+// Richtung einmal ganz nah, danach (Runde n..2n-1) jede Richtung einen Schritt weiter usw.,
+// gedeckelt auf das jeweils am weitesten entfernte tatsächlich vorhandene Feld dieser
+// Richtung.
+export function waehleVorschlagZiel(
+  legalTargets: BoardSquare[],
+  von: BoardSquare,
+  rundenIndex: number
+): BoardSquare | undefined {
+  if (!legalTargets.length) return undefined;
+
+  const richtungsSchluessel = (ziel: BoardSquare) =>
+    `${Math.sign(ziel.row - von.row)},${Math.sign(ziel.col - von.col)}`;
+
+  const richtungen: string[] = [];
+  for (const ziel of legalTargets) {
+    const schluessel = richtungsSchluessel(ziel);
+    if (!richtungen.includes(schluessel)) richtungen.push(schluessel);
+  }
+
+  // Gerätetest 2026-09-11 (Nutzer: "Die Haselnuss liegt meist direkt an Läufer, Turm, Dame
+  // dran. Sie sollte häufig weit oder ganz weit weg sein."): bisher wuchs der Abstand erst
+  // nach einem vollen Durchlauf aller Richtungen — bei 5 Übungsrunden und bis zu 8 Richtungen
+  // blieb die Nuss deshalb praktisch immer auf dem Nachbarfeld. Jetzt:
+  //  - bevorzugt werden Richtungen mit langem freien Weg (mind. 3 Felder), reihum,
+  //  - der Abstand folgt einem festen Muster mit Schwerpunkt auf weit/ganz weit.
+  // Für Figuren mit nur einem Schritt je Richtung (König, Bauer, Springer) ändert sich nichts.
+  const feldAbstand = (ziel: BoardSquare) => Math.max(Math.abs(ziel.row - von.row), Math.abs(ziel.col - von.col));
+  const laengeJeRichtung = (r: string) =>
+    Math.max(...legalTargets.filter((z) => richtungsSchluessel(z) === r).map(feldAbstand));
+  const langeRichtungen = richtungen.filter((r) => laengeJeRichtung(r) >= 3);
+  const auswahlRichtungen = langeRichtungen.length ? langeRichtungen : richtungen;
+  const gewaehlteRichtung = auswahlRichtungen[rundenIndex % auswahlRichtungen.length];
+  const kandidaten = legalTargets
+    .filter((ziel) => richtungsSchluessel(ziel) === gewaehlteRichtung)
+    .sort((a, b) => feldAbstand(a) - feldAbstand(b));
+
+  // Abstands-Muster je Runde: ganz weit, weit, mittel, ganz weit, weit … (als Anteil des
+  // längsten Feldes dieser Richtung; 1 = ganz außen).
+  const ABSTANDS_MUSTER = [1, 0.67, 0.5, 1, 0.67];
+  const anteil = ABSTANDS_MUSTER[rundenIndex % ABSTANDS_MUSTER.length];
+  const index = Math.max(0, Math.min(kandidaten.length - 1, Math.round(anteil * (kandidaten.length - 1))));
+  return kandidaten[index];
+}
+
+/**
+ * ÜBUNGSSTELLUNGEN DER SECHS QUESTS — BEWUSST OHNE KÖNIGE (2026-09-14).
+ *
+ * Diese Stellungen lehren EINE Figur und ihre Bewegung, sonst nichts. Könige waren darin nie
+ * Lehrinhalt, sondern nur Füllfiguren, weil chess.js sie sonst nicht lud. Genau daraus sind
+ * drei Fehler entstanden:
+ *
+ *  1. 2026-09-08: Der weiße Füllkönig stand auf e1 und blockierte die angeblich freie
+ *     1. Reihe — der Turm war "ab e-h nicht auswählbar". Behoben, indem er nach h4 zog.
+ *  2. 2026-09-10: Derselbe Fehler steckte noch in zwei weiteren Stellungen, beim ersten Fix
+ *     übersehen. Nochmals behoben.
+ *  3. 2026-09-14 (Gerätetest, ABSTURZ): Seit die Vorschlags-Eichel weite Felder bevorzugt,
+ *     zieht das Kind den Turm nach a8 — Schach für den schwarzen König auf e8. Die
+ *     Übungsschleife setzt die Zugseite danach zurück auf Weiß (`mitWeissAmZug` in
+ *     QuestMoveScreen.tsx), wodurch eine nach Schachregeln UNMÖGLICHE Stellung entsteht:
+ *     Schwarz im Schach, Weiß am Zug. chess.js lädt die klaglos und bietet folgerichtig an,
+ *     den König zu schlagen. Die Eichel zeigte auf genau dieses Feld; nach `Rxe8` enthielt
+ *     die FEN keinen schwarzen König mehr und `createPosition` warf
+ *     `Invalid FEN: missing black king` — die App stürzte ab. Gemessen und reproduziert.
+ *
+ * Alle drei haben dieselbe Wurzel: eine Figur auf dem Brett, die dort inhaltlich nichts zu
+ * suchen hat. Ohne Könige gibt es kein Schach, keinen schlagbaren König, keine unmögliche
+ * Stellung — und die Übungsfigur erreicht wirklich jedes Feld, das ihr Zugmuster erlaubt.
+ * Das ist zugleich der pädagogische Zweck: Das Kind soll spüren, wie weit Turm, Läufer und
+ * Dame ziehen und wie der Springer springt.
+ *
+ * PREIS: `createPosition` lädt mit `skipValidation` (siehe dort). Die Flags `isCheck` /
+ * `isCheckmate` / `isStalemate` aus `tryMove` sind in kingless Stellungen ohne Aussage —
+ * `QuestMoveScreen.tsx` wertet sie nicht aus (am 2026-09-14 geprüft), aber wer sie dort
+ * künftig benutzen will, muss das hier zuerst lesen.
+ *
+ * AUSGENOMMEN: `QUEST6_POSITIONS.schachBruecke` und `.mattMoment` behalten ihre Könige —
+ * dort IST Schach der Lehrinhalt, und sie laufen über `quest6/SchachAufgabe.tsx`, nicht über
+ * QuestMoveScreen. In QUEST6_POSITIONS.screen2/screen4Check/screen5Capture bleibt der WEISSE
+ * König stehen: Er ist dort die Übungsfigur.
+ */
 export const QUEST1_POSITIONS = {
   // Screen 2: einfacher Schritt geradeaus, Bauer noch nicht gezogen -> auch Doppelschritt legal.
   //
@@ -129,7 +255,7 @@ export const QUEST1_POSITIONS = {
   // bei, der Bug bestand deshalb nach einem erneuten Gerätetest weiterhin ("zieht zu weit").
   // Tatsächlich behoben (2026-09-09, zweite Runde): Quest1.tsx Screen 2 jetzt wirklich auf
   // `uebungsrunden={4}` umgestellt, siehe dortiger Bugfix-Kommentar an der Aufrufstelle.
-  screen2: "7k/8/8/8/8/8/4P3/4K3 w - - 0 1",
+  screen2: "8/8/8/8/8/8/4P3/8 w - - 0 1",
   // Screen 4: Blockade DIREKT vor dem Bauern (e3) -> der Bauer hat dadurch KEINEN
   // legalen Zug mehr (weder Einzel- noch Doppelschritt, da e3 den Weg für beide sperrt).
   // Korrektur (Opus-Review, 2026-09-07, Abschnitt 3.2 "Didaktische Progression", siehe
@@ -147,7 +273,7 @@ export const QUEST1_POSITIONS = {
   // Figur (N statt n) — eine Blockade-Stelle soll immer eine eigene Figur zeigen, nicht
   // eine gegnerische (siehe Board.tsx-Kommentar zu blockerAt/blockerIcon). Für die
   // Zuglogik macht die Farbe keinen Unterschied.
-  screen4Blocked: "4k3/8/8/8/8/4N3/4P3/4K3 w - - 0 1",
+  screen4Blocked: "8/8/8/8/8/4N3/4P3/8 w - - 0 1",
   // Screen 5: gegnerische Figur schräg vorne (f3) -> legalTargetsFor enthält
   // automatisch das Schlagfeld, weil chess.js Bauern-Schlagzüge korrekt generiert.
   // Wichtig: ein e2-Bauer schlägt nur auf d3/f3 (ein Feld diagonal), nicht auf d4/f4 —
@@ -163,7 +289,7 @@ export const QUEST1_POSITIONS = {
   // Filter), aber inhaltlich falsch: die Szene sollte ein neutrales Übungsfeld sein,
   // kein verstecktes Schach. König jetzt auf h1 (außerhalb des Springer-Zielmusters),
   // Rest der Stellung unverändert.
-  screen5Capture: "4k3/8/8/8/8/5n2/4P3/7K w - - 0 1",
+  screen5Capture: "8/8/8/8/8/5n2/4P3/8 w - - 0 1",
 } as const;
 
 /**
@@ -187,7 +313,7 @@ export const QUEST2_POSITIONS = {
   // ungeprüft "as-is" beibehalten wurden. König jetzt ebenfalls auf h4 (dasselbe etablierte
   // Muster "König auf einem Feld außerhalb des Übungswegs") — die 1. Reihe ist dadurch jetzt
   // tatsächlich komplett frei bis h1.
-  screen2: "4k3/8/8/8/7K/8/8/R7 w - - 0 1",
+  screen2: "8/8/8/8/8/8/8/R7 w - - 0 1",
   // Screen 4: eigener Bauer auf a3 blockiert die Linie nach zwei freien Feldern (a2) ->
   // chess.js liefert a2 + die freie 1. Reihe als Legalzüge, a3 (und alles dahinter) bleibt
   // nicht erreichbar. a3 selbst ist das Stopp!-Zielfeld (dort steht ja schon eine Figur,
@@ -202,7 +328,7 @@ export const QUEST2_POSITIONS = {
   // h4 (analog zum bereits etablierten Muster "König auf einem Feld außerhalb des
   // Übungswegs", siehe QUEST1_POSITIONS.screen5Capture-Kommentar) — die 1. Reihe ist
   // dadurch tatsächlich, wie beabsichtigt, komplett frei bis h1.
-  screen4Blocked: "4k3/8/8/8/7K/P7/8/R7 w - - 0 1",
+  screen4Blocked: "8/8/8/8/8/P7/8/R7 w - - 0 1",
   // Screen 5: gegnerischer Springer auf a4, Weg dorthin frei -> a4 ist ein echter,
   // legaler Schlagzug.
   //
@@ -211,7 +337,7 @@ export const QUEST2_POSITIONS = {
   // Springer auf a4 untergebracht ("n6K") — geprüft, dass der Springer von a4 aus h4 NICHT
   // angreift (Sprungmuster von a4: b6/b2/c5/c3), der weiße König steht dort also nicht im
   // Schach.
-  screen5Capture: "4k3/8/8/8/n6K/8/8/R7 w - - 0 1",
+  screen5Capture: "8/8/8/8/n7/8/8/R7 w - - 0 1",
 } as const;
 
 /**
@@ -223,14 +349,14 @@ export const QUEST2_POSITIONS = {
  */
 export const QUEST3_POSITIONS = {
   // Screen 2: offenes Feld -> Läufer darf auf beiden Diagonalen beliebig weit ziehen.
-  screen2: "4k3/8/8/8/3B4/8/8/7K w - - 0 1",
+  screen2: "8/8/8/8/3B4/8/8/8 w - - 0 1",
   // Screen 4: eigener Bauer auf f6 (zwei Diagonalfelder entfernt) blockiert genau diese
   // eine Diagonale nach einem freien Feld (e5) -> f6 ist das Stopp!-Zielfeld, die andere
   // Diagonale bleibt komplett frei.
-  screen4Blocked: "4k3/8/5P2/8/3B4/8/8/7K w - - 0 1",
+  screen4Blocked: "8/8/5P2/8/3B4/8/8/8 w - - 0 1",
   // Screen 5: gegnerischer Springer auf f6 (gleiches Feld wie oben, jetzt gegnerisch) ->
   // legaler Schlagzug am Ende der offenen Diagonale.
-  screen5Capture: "4k3/8/5n2/8/3B4/8/8/7K w - - 0 1",
+  screen5Capture: "8/8/5n2/8/3B4/8/8/8 w - - 0 1",
 } as const;
 
 /**
@@ -241,7 +367,7 @@ export const QUEST3_POSITIONS = {
  */
 export const QUEST4_POSITIONS = {
   // Screen 2: offenes Feld -> alle 8 Sprungfelder des Springermusters sind erreichbar.
-  screen2: "4k3/8/8/8/3N4/8/8/7K w - - 0 1",
+  screen2: "8/8/8/8/3N4/8/8/8 w - - 0 1",
   // Screen 4: eigene Figur auf d5, direkt "im Weg" auf dem Weg nach oben — chess.js
   // liefert unverändert alle 8 Sprungfelder, weil der Springer nicht durch Zwischenfelder
   // blockiert wird. Genau das ist die zu vermittelnde Überraschung.
@@ -253,7 +379,7 @@ export const QUEST4_POSITIONS = {
   // "im Weg" für den Sprung nach e6) und Quest4.tsx beschränkt den ZielfeldMarker per
   // onlyTarget auf genau dieses eine Sprungfeld (e6) — analog zum onlyTarget-Muster der
   // Stopp!-Screens in Quest 2/3/5.
-  screen4Blocked: "4k3/8/8/3P4/3N4/8/8/7K w - - 0 1",
+  screen4Blocked: "8/8/8/3P4/3N4/8/8/8 w - - 0 1",
 } as const;
 // Hinweis: es gab hier früher zusätzlich ein `screen5Capture` ("4k3/8/2n5/8/3N4/8/8/7K w
 // - - 0 1", gegnerischer Springer auf c6). Wie Quest4.tsx oben dokumentiert, wurden Screen
@@ -271,13 +397,13 @@ export const QUEST4_POSITIONS = {
 export const QUEST5_POSITIONS = {
   // Screen 2: offenes Feld -> Dame darf auf allen vier geraden UND vier diagonalen
   // Richtungen ziehen (Turm + Läufer kombiniert).
-  screen2: "4k3/8/8/8/3Q4/8/8/7K w - - 0 1",
+  screen2: "8/8/8/8/3Q4/8/8/8 w - - 0 1",
   // Screen 4: eigener Bauer auf d6 blockiert nur die senkrechte Linie nach einem freien
   // Feld (d5) -> d6 ist das Stopp!-Zielfeld, alle anderen sieben Richtungen bleiben frei.
-  screen4Blocked: "4k3/8/3P4/8/3Q4/8/8/7K w - - 0 1",
+  screen4Blocked: "8/8/3P4/8/3Q4/8/8/8 w - - 0 1",
   // Screen 5: gegnerischer Springer auf f6 (Ende der offenen a1-h8-Diagonale) -> legaler
   // Schlagzug.
-  screen5Capture: "4k3/8/5n2/8/3Q4/8/8/7K w - - 0 1",
+  screen5Capture: "8/8/5n2/8/3Q4/8/8/8 w - - 0 1",
 } as const;
 
 /**
@@ -289,18 +415,18 @@ export const QUEST5_POSITIONS = {
  */
 export const QUEST6_POSITIONS = {
   // Screen 2: offenes Feld -> König darf alle 8 Nachbarfelder betreten.
-  screen2: "4k3/8/8/8/3K4/8/8/8 w - - 0 1",
+  screen2: "8/8/8/8/3K4/8/8/8 w - - 0 1",
   // Screen 4: gegnerischer Springer auf c6 gibt Schach (Springer deckt d4 ab) -> von den
   // 8 Nachbarfeldern bleibt e5 illegal (weiterhin vom Springer bedroht), die übrigen 7
   // lösen das Schach auf ("wegziehen"). Springer bewusst als Angreifer statt einer
   // Linienfigur gewählt, damit die Bedrohung innerhalb des kleinen Anzeigefensters
   // überhaupt sichtbar bleibt (bei Turm/Dame/Läufer stünde die angreifende Figur weit
   // außerhalb des Fensters).
-  screen4Check: "7k/8/2n5/8/3K4/8/8/8 w - - 0 1",
+  screen4Check: "8/8/2n5/8/3K4/8/8/8 w - - 0 1",
   // Screen 5: gegnerischer (ungedeckter) Springer direkt neben dem König auf e5, KEIN
   // Schach (Springer deckt d4 nicht ab, siehe QUEST5_POSITIONS-Kommentar zur selben
   // Prüfung) -> normales Schlagen, wie bei jeder anderen Figur auch.
-  screen5Capture: "7k/8/8/4n3/3K4/8/8/8 w - - 0 1",
+  screen5Capture: "8/8/8/4n3/3K4/8/8/8 w - - 0 1",
   // --- Paket 2 (2026-09-11): Quest-6-Erweiterung, Vorlage quest6_matt_bruecke_umsetzung_
   // 2026-09-10.md. Alle FENs am 11.09. gegen das in der App installierte chess.js 1.4.0
   // geprüft (verify/test-quest6-logic.cjs). `screen4Check` oben wird seitdem nicht mehr

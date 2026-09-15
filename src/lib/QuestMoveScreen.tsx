@@ -48,7 +48,14 @@
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { Board, type BoardConfig } from "../quest1/Board";
-import { createPosition, legalTargetsFor, tryMove, type BoardSquare } from "./chessEngine";
+import {
+  createPosition,
+  legalTargetsFor,
+  mitWeissAmZug,
+  tryMove,
+  waehleVorschlagZiel,
+  type BoardSquare,
+} from "./chessEngine";
 import { useLuxSpricht } from "./luxStimme";
 
 // ---------------------------------------------------------------------------------------
@@ -118,7 +125,8 @@ const NOTBREMSE_LOB_MS = 4000;
 // Technische Kernschwierigkeit der Übungsphase: chess.js lässt nach einem ausgeführten Zug
 // nur noch die GEGENSEITE ziehen (normales Partie-Verhalten) — für "dieselbe Figur zieht
 // gleich nochmal" muss die Zugseite im FEN nach jedem erfolgreichen Zug wieder auf Weiß
-// zurückgesetzt werden, siehe `mitWeissAmZug` unten. Alle kuratierten Quest-Stellungen
+// zurückgesetzt werden, siehe `mitWeissAmZug` in chessEngine.ts (2026-09-14 dorthin verlegt,
+// damit die Übungsschleife testbar ist). Alle kuratierten Quest-Stellungen
 // (chessEngine.ts) haben ohnehin weder Rochaderecht noch ein En-passant-Feld ("- -" im
 // FEN) — das Patchen des reinen Zugfelds ist hier deshalb unbedenklich und ändert an der
 // eigentlichen Stellung nichts.
@@ -131,11 +139,6 @@ const NOTBREMSE_LOB_MS = 4000;
 // Übungsphase mit jeder Runde ändern.
 // ---------------------------------------------------------------------------------------
 
-function mitWeissAmZug(fen: string): string {
-  const teile = fen.split(" ");
-  teile[1] = "w";
-  return teile.join(" ");
-}
 
 export type QuestPhase = "vorfuehrung" | "interaktiv" | "uebung" | "fertig";
 
@@ -172,73 +175,6 @@ function alsArray(at: BoardSquare | BoardSquare[] | undefined): BoardSquare[] {
   return Array.isArray(at) ? at : [at];
 }
 
-// Bugfix (2026-09-10, Kurztest-Feedback: "Turm bleibt hängen bei der Eichel", "Läufer:
-// die Eichel sollte nicht nur [auf einem] entfernten [Feld] liegen"): `vorschlagZiel` nahm
-// bisher IMMER `legalTargets[0]` — die Reihenfolge, in der chess.js legale Zielfelder
-// liefert, ist ein reines Bibliotheks-Detail (siehe android_geraetetest_2026-09-09.md,
-// Punkt 12: alle Linienfelder VOR allen Reihenfeldern) und zeigte dadurch über alle
-// Übungsrunden hinweg immer dieselbe Richtung (Turm: nur die a-Linie hinauf) bzw. beim
-// Läufer bevorzugt das am weitesten entfernte Feld einer Diagonale statt eines in der Nähe.
-// Der damals dokumentierte, aber nie umgesetzte Fix-Vorschlag ("zwischen den tatsächlich
-// nutzbaren Richtungen abwechseln") ist jetzt hier tatsächlich umgesetzt, und zwar generisch
-// über die Vorzeichen der Zeilen-/Spaltendifferenz zur aktuellen Position — funktioniert
-// dadurch gleichermaßen für Turm (4 Richtungen), Läufer (4 Diagonalen), Dame (8) und in
-// abgeschwächter Form auch den Springer (mehrere Sprünge können sich einen Vorzeichen-
-// "Oktanten" teilen, was hier keinen Schaden anrichtet, da ohnehin nur EIN Zielfeld pro
-// Runde vorgeschlagen wird).
-//
-// Zweiter Bugfix (2026-09-10, Kurztest-Feedback nach dem ersten Fix: "Auch hier ist die
-// Eichel immer direkt ein Feld weiter"): Die erste Fassung wählte innerhalb der gewählten
-// Richtung IMMER das nächstgelegene Feld. Für Turm/Läufer/Dame ist das nächstgelegene Feld
-// einer freien Linie aber rein geometrisch IMMER genau ein Feld entfernt (jedes Feld davor
-// wäre sonst selbst schon blockiert und käme als Legalzug gar nicht erst vor) — die Eichel
-// zeigte dadurch ausnahmslos jede Runde einen Ein-Feld-Schritt, nie einen weiteren Zug über
-// mehrere Felder. Jetzt wandert der Abstand INNERHALB einer Richtung mit jedem vollen
-// Durchlauf aller Richtungen eine Stufe weiter (`tiefe` unten) — Runde 0..n-1 zeigt jede
-// Richtung einmal ganz nah, danach (Runde n..2n-1) jede Richtung einen Schritt weiter usw.,
-// gedeckelt auf das jeweils am weitesten entfernte tatsächlich vorhandene Feld dieser
-// Richtung.
-function waehleVorschlagZiel(
-  legalTargets: BoardSquare[],
-  von: BoardSquare,
-  rundenIndex: number
-): BoardSquare | undefined {
-  if (!legalTargets.length) return undefined;
-
-  const richtungsSchluessel = (ziel: BoardSquare) =>
-    `${Math.sign(ziel.row - von.row)},${Math.sign(ziel.col - von.col)}`;
-
-  const richtungen: string[] = [];
-  for (const ziel of legalTargets) {
-    const schluessel = richtungsSchluessel(ziel);
-    if (!richtungen.includes(schluessel)) richtungen.push(schluessel);
-  }
-
-  // Gerätetest 2026-09-11 (Nutzer: "Die Haselnuss liegt meist direkt an Läufer, Turm, Dame
-  // dran. Sie sollte häufig weit oder ganz weit weg sein."): bisher wuchs der Abstand erst
-  // nach einem vollen Durchlauf aller Richtungen — bei 5 Übungsrunden und bis zu 8 Richtungen
-  // blieb die Nuss deshalb praktisch immer auf dem Nachbarfeld. Jetzt:
-  //  - bevorzugt werden Richtungen mit langem freien Weg (mind. 3 Felder), reihum,
-  //  - der Abstand folgt einem festen Muster mit Schwerpunkt auf weit/ganz weit.
-  // Für Figuren mit nur einem Schritt je Richtung (König, Bauer, Springer) ändert sich nichts.
-  const feldAbstand = (ziel: BoardSquare) => Math.max(Math.abs(ziel.row - von.row), Math.abs(ziel.col - von.col));
-  const laengeJeRichtung = (r: string) =>
-    Math.max(...legalTargets.filter((z) => richtungsSchluessel(z) === r).map(feldAbstand));
-  const langeRichtungen = richtungen.filter((r) => laengeJeRichtung(r) >= 3);
-  const auswahlRichtungen = langeRichtungen.length ? langeRichtungen : richtungen;
-  const gewaehlteRichtung = auswahlRichtungen[rundenIndex % auswahlRichtungen.length];
-  const kandidaten = legalTargets
-    .filter((ziel) => richtungsSchluessel(ziel) === gewaehlteRichtung)
-    .sort((a, b) => feldAbstand(a) - feldAbstand(b));
-
-  // Abstands-Muster je Runde: ganz weit, weit, mittel, ganz weit, weit … (als Anteil des
-  // längsten Feldes dieser Richtung; 1 = ganz außen).
-  const ABSTANDS_MUSTER = [1, 0.67, 0.5, 1, 0.67];
-  const anteil = ABSTANDS_MUSTER[rundenIndex % ABSTANDS_MUSTER.length];
-  const index = Math.max(0, Math.min(kandidaten.length - 1, Math.round(anteil * (kandidaten.length - 1))));
-  return kandidaten[index];
-}
-
 /**
  * Kapselt "eine chess.js-Stellung laden, Legalzüge für die Übungsfigur anzeigen, bei
  * korrektem Zug weiter" — ersetzt die sechs fast identischen MoveScreen()-Funktionen aus
@@ -265,7 +201,7 @@ export function QuestMoveScreen({
   onPhaseChange,
 }: QuestMoveScreenProps) {
   // Siehe Datei-Kommentar oben: mutierbare Ref statt einmaliger useState-Initialisierung,
-  // wird nach jedem erfolgreichen Zug gegen eine frische, per `mitWeissAmZug` gepatchte
+  // wird nach jedem erfolgreichen Zug gegen eine frische, per `mitWeissAmZug` (chessEngine.ts) gepatchte
   // Chess-Instanz ausgetauscht, damit dieselbe Figur in der Übungsphase erneut ziehen darf.
   const gameRef = useRef(createPosition(fen));
 
@@ -378,7 +314,7 @@ export function QuestMoveScreen({
   // Sammel-Marker-Vorschlag (Phase "uebung"). Rein visuelle Führung: schränkt NICHT ein,
   // welches Feld tatsächlich antippbar ist (Design-Grundsatz "immer alle Legalzüge
   // anbieten") — jedes andere Feld aus legalTargets bleibt genauso lösend.
-  // Siehe waehleVorschlagZiel oben (Bugfix 2026-09-10): rotiert durch die tatsächlich
+  // Siehe waehleVorschlagZiel in chessEngine.ts (Bugfix 2026-09-10): rotiert durch die tatsächlich
   // verfügbaren Richtungen statt immer legalTargets[0] zu nehmen. rundenIndex ist die
   // Anzahl bereits erledigter Übungsrunden (0 für Vorführung/den allerersten Zug).
   const rundenIndex = phase === "uebung" ? uebungenErledigt : 0;

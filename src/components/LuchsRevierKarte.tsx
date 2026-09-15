@@ -367,7 +367,7 @@ export const WEGMARKEN: WegmarkenEintrag[] = [
 // Die fünf Gefährten im Oberland (2026-09-14)
 // ---------------------------------------------------------------------------------------
 // Reihenfolge und Namen stehen fest (projektwissen.md, Abschnitt Endlosmodus): Die fünf
-// Reviere öffnen sich STRIKT LINEAR — Eichhörnchen-Lichtung, Fuchsbau, Dachshöhle,
+// Reviere öffnen sich STRIKT LINEAR — Eichhörnchen-Lichtung, Rabenfels, Dachshöhle,
 // Adlerhorst, Wolfsfeste. Deshalb stehen sie hier von unten nach oben in genau dieser
 // Folge auf dem Weg, der zum Schloss im Hochgebirge hinaufführt; das Kind sieht den Weg
 // weitergehen, lange bevor es ihn gehen kann.
@@ -430,8 +430,10 @@ function oberlandFerne(fy: number) {
  * Bildbreite einer Oberland-Figur in Referenzpunkten. `fy` ist der Fußpunkt als Anteil der
  * Oberlandhöhe, `artFaktor` die Artgröße (1,0 = Standardgefährte), `aspekt` Höhe/Breite der
  * Grafik. Gerechnet wird über die HÖHE — nur die ist zwischen verschieden breiten Tieren
- * vergleichbar. Der Fuchs ist mit seiner Rute fast so breit wie hoch; nach Breite gestaffelt
- * sähe er winzig aus.
+ * vergleichbar. Das Musterbeispiel war der Fuchs, der bis zum 2026-09-14 an Station 2 stand:
+ * Er ist mit seiner Rute fast so breit wie hoch, nach Breite gestaffelt hätte er winzig
+ * ausgesehen. Beim Raben, der ihn ersetzt hat, ist es umgekehrt — schmaler Vogel, fast
+ * doppelt so hoch wie breit. Über die Höhe gerechnet stimmen beide.
  */
 function oberlandBreite(fy: number, artFaktor: number, aspekt: number) {
   return (OBERLAND_GRUNDHOEHE * oberlandFerne(fy) * artFaktor) / aspekt;
@@ -492,10 +494,12 @@ const O = 1159; // Zeilen des Oberlands — die fy-Werte unten sind daran gemess
 
 // Artfaktoren (1,0 = Standardgefährte, siehe Größenhierarchie oben). Begründung je Tier:
 //   0,78 Eichhörnchen — das kleinste Tier der Kette, exakt der Igel-Wert der Hauptkarte
-//   0,90 Dachs        — gedrungen und kurzbeinig, steht spürbar tiefer als Fuchs und Wolf
-//   0,96 Fuchs        — knapp unter Standard
+//   0,90 Dachs        — gedrungen und kurzbeinig, steht spürbar tiefer als Rabe und Wolf
+//   0,92 Rabe         — schlanker Vogel; kleiner als die Adlerin, mit der er sich die Klasse
+//                       teilt. Ersetzt seit 2026-09-14 den Fuchs (der stand auf 0,96), siehe
+//                       src/lib/gefaehrtenZustaende.tsx
 //   1,00 Adlerin      — aufrecht stehender Greifvogel, wie die Eule auf der Hauptkarte
-//   1,08 Wolf         — größer als der Fuchs, aber kein Koloss
+//   1,08 Wolf         — größer als Dachs und Rabe, aber kein Koloss
 //   1,15 Wisent       — das größte Tier der Welt und Herr der Feste; er soll am Tor auch so
 //                       wirken. Vorher war er die KLEINSTE Figur der Karte.
 //   0,82 Schildkröte  — klein und niedrig, aber nicht ganz Eichhörnchen-Maß
@@ -509,14 +513,17 @@ const GEFAEHRTEN_ROH = [
     aspekt: gefaehrteWegmarkeAspekt("eichhoernchen"),
   },
   {
-    id: "fuchs",
-    name: "Fuchsbau",
+    id: "rabe",
+    name: "Rabenfels",
     // 2026-09-14, vierte Korrekturrunde: noch einmal 35 Zeilen tiefer (vorher 1090). Der Weg
-    // ist dort 821–1157 breit, x 940 liegt darin.
+    // ist dort 821–1157 breit, x 940 liegt darin. Der Platz bleibt beim Wechsel vom Fuchs
+    // auf den Raben unverändert — nur die Figur ist eine andere.
     fx: 940 / 1658,
     fy: 1125 / O,
-    artFaktor: 0.96,
-    aspekt: gefaehrteWegmarkeAspekt("fuchs"),
+    // 0,92 statt der 0,96 des Fuchses: Der Rabe ist ein schlanker Vogel und soll kleiner
+    // wirken als die Adlerin (1,00), mit der er sich die Klasse teilt.
+    artFaktor: 0.92,
+    aspekt: gefaehrteWegmarkeAspekt("rabe"),
   },
   {
     id: "dachs",

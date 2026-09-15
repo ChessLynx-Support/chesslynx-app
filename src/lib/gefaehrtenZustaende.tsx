@@ -30,6 +30,21 @@
 // Die vier Zahlen in `figur` misst `rig_master.py` beim Export über den Alphakanal.
 //
 // -------------------------------------------------------------------------------------
+// Station 2 ist seit dem 2026-09-14 der RABE, nicht mehr der Fuchs
+// -------------------------------------------------------------------------------------
+// Der Fuchs teilte sich die Farbe mit dem Eichhörnchen und mit Lux und die Silhouette mit
+// dem Wolf. Auf der Karte standen Fuchs und Eichhörnchen 10,6 Referenzpunkte auseinander,
+// in den Schattenrissen der Ruhmeshalle waren Fuchs und Wolf dieselbe Form. Umfärben half
+// nicht: Orange kollidiert mit Eichhörnchen und Lux, Grau mit dem Wolf, Braun mit Wisent
+// und Adlerin — für einen hundeartigen Vierbeiner ist in dieser Besetzung keine Farbe mehr
+// frei. Schwarz war die einzige. Herleitung: claude/rabe_ersetzt_fuchs_2026-09-14.md.
+//
+// Der Rabe ist mit 27,3 Referenzpunkten schmaler als der Fuchs (38,2); die Lücke zum
+// Eichhörnchen wächst dadurch von 10,6 auf 16,1 Punkte, ohne dass eine Wegmarke verschoben
+// werden musste. Die Fuchs-Dateien bleiben im Archiv und in `scripts/rig_configs/fuchs.json`
+// liegen — die Figur ist nicht gelöscht, nur nicht mehr verdrahtet.
+
+// -------------------------------------------------------------------------------------
 // Die Figuren sind 1–4 px schmaler als die bisherigen Standbilder
 // -------------------------------------------------------------------------------------
 // Die alten `chesslynx_<tier>_wegmarke.webp` waren aus dem ROHEN Master geschnitten, die
@@ -44,7 +59,7 @@ import type { Leinwand } from "../components/ZustandsTier";
 
 export type GefaehrteId =
   | "eichhoernchen"
-  | "fuchs"
+  | "rabe"
   | "dachs"
   | "adlerin"
   | "wolf"
@@ -62,10 +77,10 @@ export const GEFAEHRTE_WEGMARKE: Record<GefaehrteId, WegmarkenBilder> = {
     blinzeln: require("../../assets/figuren/gefaehrten/wegmarken/chesslynx_eichhoernchen_wegmarke_blinzeln.webp"),
     leinwand: { breite: 221, hoehe: 326, figur: [4, 3, 212, 320] },
   },
-  fuchs: {
-    grund: require("../../assets/figuren/gefaehrten/wegmarken/chesslynx_fuchs_wegmarke_grund.webp"),
-    blinzeln: require("../../assets/figuren/gefaehrten/wegmarken/chesslynx_fuchs_wegmarke_blinzeln.webp"),
-    leinwand: { breite: 230, hoehe: 326, figur: [4, 3, 221, 320] },
+  rabe: {
+    grund: require("../../assets/figuren/gefaehrten/wegmarken/chesslynx_rabe_wegmarke_grund.webp"),
+    blinzeln: require("../../assets/figuren/gefaehrten/wegmarken/chesslynx_rabe_wegmarke_blinzeln.webp"),
+    leinwand: { breite: 171, hoehe: 326, figur: [3, 3, 165, 320] },
   },
   dachs: {
     grund: require("../../assets/figuren/gefaehrten/wegmarken/chesslynx_dachs_wegmarke_grund.webp"),
