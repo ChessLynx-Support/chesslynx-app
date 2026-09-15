@@ -86,7 +86,7 @@ export function EndlosmodusPuzzle({
 const styles = StyleSheet.create({
   wurzel: { alignItems: "center", justifyContent: "center" },
   ueberlagerung: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: "center",
     justifyContent: "center",
   },
