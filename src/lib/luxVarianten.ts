@@ -88,3 +88,28 @@ export const FERTIG_LOB_VARIANTEN: readonly Variante[] = [
   ["Toll! Das hast du wunderbar hinbekommen.", "Brilliant! You did that beautifully."],
   ["Du machst das schon wie ein kleiner Schach-Profi!", "You're doing this like a proper little chess player!"],
 ];
+
+// Wisent-Kür-Runde (2026-09-15, gefaehrten_wisent_lichess_sprechtexte_final.md, Abschnitt 4,
+// "Wiederholungs-Hinweis bei bereits abgeschlossener Kür"): EIN gemeinsamer Pool für die
+// Umwandlungs- UND die En-passant-Kür (beide nutzen denselben Schlüssel "kuer-wiederholung"),
+// genau dasselbe Prinzip wie INTERAKTIV_HINWEIS_VARIANTEN oben — ein Kind, das beide Kürs
+// wiederholt spielt, hört eine gemeinsam fortlaufende Abwechslung statt getrennter, doppelt so
+// schnell auslaufender Pools. Bewusst NICHT für Matt in 3 mitverwendet (siehe
+// bonus/MattIn3.tsx-Kopfkommentar) — dieses Kapitel bestand schon vor der Hub-Runde und hat
+// keine eigene Wiederholungs-Variantenlogik, das anzuflicken wäre ein Eingriff in bereits
+// getesteten Code ohne zwingenden Grund.
+export const KUER_WIEDERHOLUNG_VARIANTEN: readonly Variante[] = [
+  [
+    "Schön, dass du nochmal vorbeischaust! Schau genau hin — vielleicht sieht es diesmal ein kleines bisschen anders aus.",
+    "Lovely to see you again! Look closely — this time it might look a little different.",
+  ],
+  [
+    "Du bist wieder da! Heute könnte die Aufgabe ein bisschen anders aussehen.",
+    "You're back! Today the task might look a bit different.",
+  ],
+  [
+    "Zurück für eine Wiederholung? Manchmal ändert sich die Aufgabe ein kleines bisschen!",
+    "Back for another go? Sometimes the task changes just a little!",
+  ],
+  ["Schaffst du auch diese Variante?", "Can you master this version too?"],
+];

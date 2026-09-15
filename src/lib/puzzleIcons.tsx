@@ -263,3 +263,69 @@ export function ExtraSternchenIcon({ size = 32, farbe = "#D7A52D" }: { size?: nu
     </Svg>
   );
 }
+
+/**
+ * Kronen-Bauer — rundes KAPITEL-ABZEICHEN für die optionale Umwandlungs-Kür, siehe
+ * `gefaehrten_wisent_lichess_sprechtexte_final.md`, Abschnitt 7: "Bauern-Silhouette mit
+ * kleiner Krone darüber — bleibt als Bauer erkennbar (zeigt die Fähigkeit, nicht nur das
+ * Ergebnis)." Bewusst dieselbe Kreis-Rahmen-Technik wie RochadeIcon/MattIn2Icon oben (runder
+ * Rahmen, zwei Ebenen: schlichte Bauern-Silhouette unten, Krone obendrauf), damit die drei
+ * neuen Kür-Abzeichen (dieses, SchattenSprungIcon unten, ExtraSternchenIcon von Matt in 3)
+ * als erkennbare Familie wirken, siehe screens/WisentKuerHub.tsx.
+ */
+export function KronenBauerIcon({ size = 32, farbe = "#D7A52D" }: { size?: number; farbe?: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 32 32">
+      <Circle cx={16} cy={16} r={15} fill={farbe} fillOpacity={0.16} stroke={farbe} strokeWidth={1.6} />
+      {/* Bauern-Silhouette: Kopf, Kragen, Sockel — dieselbe vereinfachte Form wie die
+          Bauer-Kontur in chessPieces.tsx, hier nur klein als Abzeichen-Motiv. */}
+      <Path
+        d="M16 19 A3.4 3.4 0 1 0 16 12.2 A3.4 3.4 0 1 0 16 19 Z M12.5 22 H19.5 L21 26 H11 Z"
+        fill="#8B7A63"
+        stroke="#6E6050"
+        strokeWidth={0.8}
+        strokeLinejoin="round"
+      />
+      {/* Kleine Krone über dem Bauernkopf — das "Extra", das ihn von einem gewöhnlichen
+          Bauern unterscheidet. */}
+      <Path
+        d="M11.5 11 L13 7.5 L16 10 L19 7.5 L20.5 11 Z"
+        fill={farbe}
+        stroke="#B5822A"
+        strokeWidth={0.7}
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+/**
+ * Schatten-Sprung — rundes KAPITEL-ABZEICHEN für die optionale En-passant-Kür, siehe
+ * `gefaehrten_wisent_lichess_sprechtexte_final.md`, Abschnitt 7: "Bauern-Silhouette mit
+ * zartem, halbtransparentem zweitem Umriss schräg dahinter (Bewegungsspur) — bewusst kein
+ * Uhr-/Blitzsymbol (kein Zeitdruck)." Dieselbe Bauern-Grundform wie KronenBauerIcon oben,
+ * hier ohne Krone, dafür mit einem zweiten, versetzten und halbtransparenten Umriss.
+ */
+export function SchattenSprungIcon({ size = 32, farbe = "#8FA888" }: { size?: number; farbe?: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 32 32">
+      <Circle cx={16} cy={16} r={15} fill={farbe} fillOpacity={0.16} stroke={farbe} strokeWidth={1.6} />
+      {/* Bewegungsspur: dieselbe Bauern-Silhouette, kleiner und nach links oben versetzt,
+          halbtransparent — "schräg dahinter", VOR der eigentlichen Figur gerendert, damit sie
+          dahinter liegend wirkt. */}
+      <Path
+        d="M12 16.5 A2.8 2.8 0 1 0 12 11 A2.8 2.8 0 1 0 12 16.5 Z M9 19 H15 L16.2 22.4 H7.8 Z"
+        fill="#8B7A63"
+        opacity={0.32}
+      />
+      {/* Eigentliche Bauern-Silhouette, unverschattet, rechts unten. */}
+      <Path
+        d="M17 20.5 A3.2 3.2 0 1 0 17 14.1 A3.2 3.2 0 1 0 17 20.5 Z M13.7 23.3 H20.3 L21.7 27 H12.3 Z"
+        fill="#8B7A63"
+        stroke="#6E6050"
+        strokeWidth={0.8}
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}

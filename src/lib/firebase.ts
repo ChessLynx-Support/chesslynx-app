@@ -197,6 +197,12 @@ export type KindProfil = {
     // sie sind laut Konzept nicht gate-pflichtig und noch nicht verdrahtet (siehe
     // endlosmodus_verdrahtung_2026-09-15.md-Nachfolgedokument für den Stand).
     wisentKampf?: boolean;
+    // Wisent-Kür-Runde (2026-09-15, Nachtrag zu obigem Kommentar): die drei optionalen Kürs
+    // sind jetzt doch verdrahtet (siehe screens/WisentKuerHub.tsx) — `mattIn3` existierte
+    // dafür bereits (s. o.), hier kommen die beiden NEUEN Kürs dazu. Genau wie `wisentKampf`
+    // optional, aus demselben Grund (bestehende Profile kennen die Felder noch nicht).
+    umwandlung?: boolean;
+    enPassant?: boolean;
   };
   screenTimeHeute: { minutenGenutzt: number; datum: string };
   erstelltAm: number;

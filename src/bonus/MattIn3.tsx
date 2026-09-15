@@ -1,7 +1,10 @@
 // Fünftes, OPTIONALES Bonuskapitel: Matt in 3 — siehe Claude-Projekt "ChessLynx",
 // bonuskapitel_screen_skripte.md, Abschnitt "5. Matt in 3 (optional, kein Pflichtteil, kein
 // Gate — 6 Screens)". Kein Gate-Blocker (siehe lib/gate.ts) — erreichbar über die Extra-Karte
-// am Ende von Matt in 2 UND dauerhaft über Schlossvorplatz.tsx.
+// am Ende von Matt in 2, dauerhaft über Schlossvorplatz.tsx, UND (Wisent-Kür-Runde,
+// 2026-09-15) über screens/WisentKuerHub.tsx als eine der drei gleichrangigen Wisent-Kürs
+// (siehe dortiger Kommentar und `rueckkehrZiel` unten für das dabei optional umschaltbare
+// Navigationsziel nach Abschluss).
 //
 // Bewusster Rollentausch gegenüber allen vorherigen Bonuskapiteln (siehe chessEngine.ts/
 // MATT_IN_3_POSITIONEN-Kommentar): bisher hat das Kind immer das EIGENE, gefangene Königreich
@@ -34,7 +37,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { View, Text, Pressable, StyleSheet, SafeAreaView } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import { MATT_IN_3_POSITIONEN, createPosition, tryMove, type BoardSquare } from "../lib/chessEngine";
 import { Board } from "../quest1/Board";
 import { saveBonusFortschrittLocal } from "../lib/storage";
@@ -176,6 +179,17 @@ const SCREEN_SCRIPTS: Record<0 | 5, string[]> = {
 
 export default function MattIn3() {
   const navigation = useNavigation<any>();
+  // Wisent-Kür-Runde (2026-09-15): MattIn3 ist jetzt AUCH über screens/WisentKuerHub.tsx
+  // erreichbar, zusätzlich zu den beiden bisherigen Einstiegen (Extra-Karte am Ende von
+  // MattIn2.tsx, dauerhaft über Schlossvorplatz.tsx — siehe Datei-Kopfkommentar). Bewusst
+  // KEIN Umbau der sechs bestehenden, schon getesteten Screens (der Hub-Konzepttext sieht
+  // dafür "5 Screens statt 6" vor, siehe gefaehrten_wisent_lichess_sprechtexte_final.md,
+  // Abschnitt 4) — stattdessen nur das Navigationsziel NACH Abschluss optional umschaltbar:
+  // ohne `rueckkehrZiel`-Param verhält sich dieses Kapitel exakt wie bisher (Schlossvorplatz),
+  // vom Hub aus kommend kehrt es dorthin zurück. Siehe claude/wisent_kuer_verdrahtung_
+  // 2026-09-15.md für die volle Begründung dieser bewusst kleinen, risikoarmen Änderung.
+  const route = useRoute<any>();
+  const rueckkehrZiel: string = route.params?.rueckkehrZiel ?? "Schlossvorplatz";
   const [screen, setScreen] = useState<ScreenId>(0);
   const [lineIndex, setLineIndex] = useState(0);
   const [treibFrame, setTreibFrame] = useState(0);
@@ -500,7 +514,7 @@ export default function MattIn3() {
         // Übergang zum Schlossfinale laut Skript — da der eigentliche Schlosshof/die
         // Prinzessin-Begegnung nicht Teil dieses Umsetzungsschritts sind (siehe
         // Schlossvorplatz.tsx-Kommentar), führt dieser Übergang zurück zu Schlossvorplatz.
-        <Pressable style={styles.tapArea} onPress={() => navigation.navigate("Schlossvorplatz")}>
+        <Pressable style={styles.tapArea} onPress={() => navigation.navigate(rueckkehrZiel)}>
           <QuestGeschafft>
             <ExtraSternchenIcon size={92} />
           </QuestGeschafft>

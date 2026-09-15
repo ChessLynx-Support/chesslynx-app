@@ -145,10 +145,15 @@ import EndlosmodusSpalte from "../screens/EndlosmodusSpalte";
 import type { EndlosmodusSpalteParams } from "../screens/EndlosmodusSpalte";
 // Update-1-Vorzug, Fortsetzung (2026-09-15): Wisent-Boss-Puzzle, das Pflicht-Herzstück des
 // Wisent-Kampfs (siehe lib/chessEngine.ts/WISENT_BOSS_POSITION-Kommentar und
-// claude/wisent_kampf_verdrahtung_2026-09-15.md). Die drei optionalen Kürs (Bauernumwandlung/
-// En passant/Matt in 3 als Kür) und der Kür-Auswahl-Hub sind bewusst NICHT Teil dieser Runde —
-// siehe genanntes Dokument für die Begründung.
+// claude/wisent_kampf_verdrahtung_2026-09-15.md).
 import WisentKampf from "../screens/WisentKampf";
+// Wisent-Kür-Runde (2026-09-15, siehe claude/wisent_kuer_verdrahtung_2026-09-15.md): die drei
+// optionalen Kürs (Bauernumwandlung/En passant/Matt in 3 als Kür) sind jetzt verdrahtet, samt
+// gemeinsamem Auswahl-Hub. Matt in 3 existierte als eigenes Bonuskapitel bereits (Import weiter
+// oben), Umwandlung/EnPassant sind neu.
+import Umwandlung from "../bonus/Umwandlung";
+import EnPassant from "../bonus/EnPassant";
+import WisentKuerHub from "../screens/WisentKuerHub";
 // Ladebildschirm/Intro (Nutzerwunsch, siehe claude/lux_begruessungsvideo_freistellung_
 // konzept.md, Abschnitt "Ladebildschirm") — läuft jetzt VOR der Willkommens-Sequenz, siehe
 // screens/LadeBildschirm.tsx für die volle Begründung (Video 1 unverändert, Überblendung
@@ -194,8 +199,15 @@ export type RootStackParamList = {
   Figurenwert: undefined;
   // Neu (Matt-in-2-Bonuskapitel, siehe Import-Kommentar oben).
   MattIn2: undefined;
-  // Neu (Matt-in-3-Bonuskapitel, optional, siehe Import-Kommentar oben).
-  MattIn3: undefined;
+  // Neu (Matt-in-3-Bonuskapitel, optional, siehe Import-Kommentar oben). Wisent-Kür-Runde
+  // (2026-09-15): optionaler `rueckkehrZiel`-Param, siehe bonus/MattIn3.tsx-Kommentar —
+  // ohne Angabe unverändert Schlossvorplatz.
+  MattIn3: { rueckkehrZiel?: keyof RootStackParamList } | undefined;
+  // Wisent-Kür-Runde (2026-09-15, siehe Import-Kommentar oben): keine Parameter, feste
+  // Einzel-Screens genau wie WisentKampf/Schlossvorplatz.
+  Umwandlung: undefined;
+  EnPassant: undefined;
+  WisentKuerHub: undefined;
   // Neu (echter Bonuskapitel-Navigations-Knotenpunkt, siehe Import-Kommentar oben).
   Schlossvorplatz: undefined;
   ParentGate: undefined;
@@ -371,7 +383,10 @@ function KidHome({ navigation, route }: any) {
           onSelectSchlossvorplatz={() => navigation.navigate("Schlossvorplatz")}
           onSelectSteinbruecke={() => navigation.navigate("Steinbruecke")}
           onSelectGefaehrte={(gefaehrteId) => navigation.navigate("Revier", { gefaehrteId })}
-          onSelectWisent={() => navigation.navigate("WisentKampf")}
+          // Wisent-Kür-Runde (2026-09-15): führt jetzt zum Kür-Auswahl-Hub statt direkt zum
+          // Boss-Puzzle (siehe screens/WisentKuerHub.tsx) — "weiter zum Wisent" bleibt von
+          // dort aus ein eigener, jederzeit verfügbarer Tipp.
+          onSelectWisent={() => navigation.navigate("WisentKuerHub")}
           onHoehen={setKartenHoehen}
           onSteinbrueckeWartet={zeigeSteinbruecke}
           breiteVorgabe={sichtBreite}
@@ -512,6 +527,9 @@ const ZURUECK_ZUR_KARTE = new Set<string>([
   "Revier",
   "EndlosmodusSpalte",
   "WisentKampf",
+  "WisentKuerHub",
+  "Umwandlung",
+  "EnPassant",
 ]);
 
 function zurueckZurKarte(): boolean {
@@ -651,6 +669,9 @@ export function RootNavigator() {
             <Stack.Screen name="Revier" component={Revier} />
             <Stack.Screen name="EndlosmodusSpalte" component={EndlosmodusSpalte} />
             <Stack.Screen name="WisentKampf" component={WisentKampf} />
+            <Stack.Screen name="WisentKuerHub" component={WisentKuerHub} />
+            <Stack.Screen name="Umwandlung" component={Umwandlung} />
+            <Stack.Screen name="EnPassant" component={EnPassant} />
             </Stack.Navigator>
           </NavigationContainer>
           <BrandWatermark

@@ -1000,6 +1000,49 @@ export const WISENT_BOSS_POSITION = {
   hauptstellung: "4k3/N3rp2/8/B6B/8/8/Q7/4R1K1 w - - 0 1",
 } as const;
 
+/**
+ * Umwandlungs-Kür (optional, Claude-Projekt "ChessLynx",
+ * `gefaehrten_wisent_lichess_sprechtexte_final.md`, Abschnitt 5). Zwei Stellungen — die zweite
+ * NICHT ein zweites, eigenständiges Rätsel, sondern die "Wiederholungs-Variante" für einen
+ * zweiten Besuch derselben Kür (siehe screens/WisentKuerHub.tsx und
+ * storage.ts/holeUndSchalteKuerVariante). Beide gegen echtes chess.js verifiziert
+ * (eigenes Skript, `node scripts` im Vorfeld dieser Runde, siehe
+ * `verify/test-umwandlung-kuer-logic.cjs` für die dauerhafte Prüfung):
+ *   hauptstellung: f7-f8=Q#  (Bauer f7, eigener König g6, gegnerischer König h8)
+ *   variante2:     c7-c8=Q#  (Bauer c7, eigener König b6, gegnerischer König a8)
+ * Automatische Damen-Umwandlung: `tryMove()` oben übergibt IMMER `promotion: "q"` an
+ * chess.js — für einen normalen Zug ist das Feld wirkungslos, für einen Bauern, der die
+ * letzte Reihe erreicht, wandelt es ihn automatisch in eine Dame um. Es gibt bewusst KEINE
+ * Auswahl-UI (siehe Konzeptdokument: "Wahlfreiheit wird nur als späterer Freispiel-
+ * Vorgeschmack angekündigt" — die Sprechzeile in screens/../bonus/Umwandlung.tsx sagt das
+ * bereits laut).
+ */
+export const UMWANDLUNGS_KUER_POSITION = {
+  hauptstellung: "7k/5P2/6K1/8/8/8/8/8 w - - 0 1",
+  variante2: "k7/2P5/1K6/8/8/8/8/8 w - - 0 1",
+} as const;
+
+/**
+ * En-passant-Kür (optional, siehe `gefaehrten_wisent_lichess_sprechtexte_final.md`,
+ * Abschnitt 6). Wie bei UMWANDLUNGS_KUER_POSITION oben ist `variante2` die Wiederholungs-
+ * Variante für den zweiten Besuch, keine eigene dritte Kür. Beide gegen echtes chess.js
+ * verifiziert (`verify/test-en-passant-kuer-logic.cjs`):
+ *   hauptstellung: e5xd6 e.p.  (weißer Bauer e5, schwarzer Bauer gerade von d7 nach d5
+ *                                gesprungen, FEN-en-passant-Zielfeld d6)
+ *   variante2:     f5xg6 e.p.  (weißer Bauer f5, schwarzer Bauer g5, Zielfeld g6)
+ * `tryMove()` braucht KEINE Sonderbehandlung für den Schlagzug im Vorbeigehen — chess.js
+ * erkennt ihn allein anhand des `ep`-Feldes der FEN, sobald `from`/`to` übergeben werden
+ * (bestätigt: `move.flags` enthält "e", eine gegnerische Figur verschwindet vom Brett, ohne
+ * dass das Zielfeld selbst besetzt war). Die "Vorgeschichte" (der gegnerische Bauer ist
+ * gerade zwei Felder gesprungen) wird in bonus/EnPassant.tsx rein KOSMETISCH vor-animiert
+ * (Bauer gleitet sichtbar vom Ausgangs- zum Zielfeld der zwei Felder) — das erzeugt keinen
+ * echten chess.js-Zug, `game` startet direkt in der oben stehenden Zielstellung.
+ */
+export const EN_PASSANT_KUER_POSITION = {
+  hauptstellung: "4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1",
+  variante2: "4k3/8/8/5Pp1/8/8/8/4K3 w - g6 0 1",
+} as const;
+
 /*
 Beispielnutzung (zum Ausprobieren nach `npm install`, z. B. in einem kurzen Node-Skript
 oder Jest-Test — nicht Teil der App-Laufzeit):

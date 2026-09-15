@@ -138,6 +138,43 @@ export async function syncPendingBonusProgress(kindProfilPfad: string): Promise<
   await AsyncStorage.removeItem(BONUS_SYNC_QUEUE_KEY);
 }
 
+// --- Wisent-Kür-Hub: Wiederholungs-Variante (2026-09-15) ------------------------------------
+//
+// Sowohl die Umwandlungs- als auch die En-passant-Kür haben laut Konzept
+// (`gefaehrten_wisent_lichess_sprechtexte_final.md`, Abschnitt 4, "Wiederholungs-Hinweis bei
+// bereits abgeschlossener Kür") zwei Stellungs-Varianten ("hauptstellung"/"variante2" in
+// chessEngine.ts) — beim zweiten und jedem weiteren Besuch soll abwechselnd die jeweils
+// ANDERE Variante gezeigt werden ("vielleicht sieht es diesmal ein kleines bisschen anders
+// aus"), nicht bei jedem Besuch dieselbe. Ein einziger gemeinsamer Mechanismus für beide
+// Kürs, parametrisiert über `kuerId` — dieselbe Idee wie BONUS_KEY_PREFIX oben, nur mit
+// einem 1|2-Wert statt einem Boolean.
+const KUER_VARIANTE_KEY_PREFIX = "chesslynx:kuerVariante:";
+
+/**
+ * Liefert die für DIESEN Besuch zu zeigende Variante (1 oder 2) und merkt sich zugleich die
+ * jeweils ANDERE für den nächsten Aufruf — ein Aufruf pro Besuch der Kür genügt also. Erster
+ * jemals erfolgter Aufruf liefert immer 1 (Hauptstellung), jeder folgende wechselt.
+ */
+export async function holeUndSchalteKuerVariante(kuerId: "umwandlung" | "enPassant"): Promise<1 | 2> {
+  const raw = await AsyncStorage.getItem(KUER_VARIANTE_KEY_PREFIX + kuerId);
+  const aktuelle: 1 | 2 = raw === "2" ? 2 : 1;
+  const naechste: 1 | 2 = aktuelle === 1 ? 2 : 1;
+  await AsyncStorage.setItem(KUER_VARIANTE_KEY_PREFIX + kuerId, String(naechste));
+  return aktuelle;
+}
+
+// "Alle drei erledigt"-Sonderzeile im Hub (Konzept Abschnitt 4) ist ausdrücklich "einmalig" —
+// dasselbe Flag-Prinzip wie WILLKOMMEN_GESEHEN_KEY oben, nur für diesen einen Moment.
+const WISENT_KUER_ALLE_DREI_GEZEIGT_KEY = "chesslynx:wisentKuerAlleDreiGezeigt";
+
+export async function wisentKuerAlleDreiGezeigt(): Promise<boolean> {
+  return (await AsyncStorage.getItem(WISENT_KUER_ALLE_DREI_GEZEIGT_KEY)) === "1";
+}
+
+export async function setWisentKuerAlleDreiGezeigt(): Promise<void> {
+  await AsyncStorage.setItem(WISENT_KUER_ALLE_DREI_GEZEIGT_KEY, "1");
+}
+
 /**
  * Liefert die ID des "aktiven" Kinderprofils für ein Elternkonto — für den MVP-Kern
  * reicht ein Kind pro Familie (siehe firebase.ts, Abschnitt zu den Firestore-Pfaden).
@@ -222,8 +259,10 @@ export function istSpielstandSchluessel(k: string): boolean {
   return (
     k === WILLKOMMEN_GESEHEN_KEY ||
     k === GANZE_PARTIE_ETAPPE_KEY ||
+    k === WISENT_KUER_ALLE_DREI_GEZEIGT_KEY ||
     k.startsWith(KEY_PREFIX) ||
     k.startsWith(BONUS_KEY_PREFIX) ||
+    k.startsWith(KUER_VARIANTE_KEY_PREFIX) ||
     k.startsWith("chesslynx:freispielFortschritt:") ||
     k.startsWith("chesslynx:freispiel:") ||
     k === SYNC_QUEUE_KEY ||

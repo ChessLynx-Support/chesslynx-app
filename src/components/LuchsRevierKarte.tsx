@@ -867,9 +867,12 @@ type Props = {
   // Update-1-Vorzug, Fortsetzung (2026-09-15): der Wisent-Torwächter bekommt jetzt eine EIGENE
   // Prop statt über `onSelectGefaehrte` zu laufen — er führt nicht zu einem generischen
   // Revier-Screen (dafür gibt es beim Wisent keine Endlosmodus-Fokus-Spalte, siehe
-  // lib/endlosmodusSpalten.ts), sondern direkt zum Wisent-Boss-Puzzle-Screen. Ohne diese Prop
-  // bleibt der Torwächter wie bisher gesperrt/nur per Testansicht sichtbar, unabhängig davon,
-  // ob `onSelectGefaehrte` gesetzt ist.
+  // lib/endlosmodusSpalten.ts). Wisent-Kür-Runde (2026-09-15, siehe
+  // claude/wisent_kuer_verdrahtung_2026-09-15.md): der eigentliche Aufrufer (RootNavigator.tsx)
+  // lässt diese Prop inzwischen zum Kür-Auswahl-Hub statt direkt zum Wisent-Boss-Puzzle führen —
+  // LuchsRevierKarte selbst bleibt davon unberührt, kennt nur die Prop, nicht ihr Ziel. Ohne
+  // diese Prop bleibt der Torwächter wie bisher gesperrt/nur per Testansicht sichtbar,
+  // unabhängig davon, ob `onSelectGefaehrte` gesetzt ist.
   onSelectWisent?: () => void;
 };
 
@@ -1094,8 +1097,7 @@ export function LuchsRevierKarte({
             // Kommentar oben) plus ein echtes onPress zur neuen Revier-Route. Fortsetzung
             // (2026-09-15): der Wisent-Torwächter bekommt jetzt genauso ein echtes onPress,
             // aber über die eigene `onSelectWisent`-Prop (siehe Props-Kommentar oben) statt
-            // über `onSelectGefaehrte(g.id)` — direkt zum Wisent-Boss-Puzzle, nicht zu einem
-            // generischen Revier-Screen.
+            // über `onSelectGefaehrte(g.id)` — nicht zu einem generischen Revier-Screen.
             const antippbar = g.id === "wisent" ? Boolean(onSelectWisent) : Boolean(onSelectGefaehrte);
             const press =
               g.id === "wisent"
