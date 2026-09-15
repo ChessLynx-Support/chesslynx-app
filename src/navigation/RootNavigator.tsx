@@ -26,7 +26,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { NavigationContainer, createNavigationContainerRef, useFocusEffect } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { ActivityIndicator, View, StyleSheet, Platform, ScrollView, BackHandler } from "react-native";
+import { ActivityIndicator, View, StyleSheet, Platform, ScrollView, BackHandler, Pressable } from "react-native";
 // Nutzer-Feedback 2026-09-09 (Android: Wasserzeichen/Elternbereich-Zugang lag in der
 // Systemtasten-Leiste): `react-native-safe-area-context` war zwar bereits als
 // Abhängigkeit installiert, aber im ganzen Projekt nirgends tatsächlich verdrahtet —
@@ -39,7 +39,7 @@ import { ActivityIndicator, View, StyleSheet, Platform, ScrollView, BackHandler 
 // im Baum ist Voraussetzung dafür, dass `useSafeAreaInsets()` in BrandWatermark.tsx
 // funktioniert — reine Ergänzung, ändert am Verhalten des bisherigen
 // "react-native"-SafeAreaView in allen anderen Screens nichts.
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import { ParentGate } from "../screens/ParentGate";
 import { Credits } from "../screens/Credits";
 import { ElternLogin } from "../screens/ElternLogin";
@@ -154,6 +154,12 @@ import WisentKampf from "../screens/WisentKampf";
 import Umwandlung from "../bonus/Umwandlung";
 import EnPassant from "../bonus/EnPassant";
 import WisentKuerHub from "../screens/WisentKuerHub";
+// Ruhmeshalle-Grundgerüst (2026-09-15, Christian: "Wisent Kür, danach Ruhmeshalle
+// Grundgerüst" — Wisent-Kür-Runde ist jetzt committed/getestet/gepusht, siehe
+// claude/update1_vorzug_plan_2026-09-15.md Abschnitt 4, Punkt 9). Gemeinsame Galerie aller
+// fünf Gefährten + Wisent-Sonderplatz, siehe screens/Ruhmeshalle.tsx für den vollen Umfang
+// und die bewussten Auslassungen dieses ersten Schritts (keine Assets, keine Sprechzeile).
+import Ruhmeshalle, { RuhmeshalleIcon } from "../screens/Ruhmeshalle";
 // Ladebildschirm/Intro (Nutzerwunsch, siehe claude/lux_begruessungsvideo_freistellung_
 // konzept.md, Abschnitt "Ladebildschirm") — läuft jetzt VOR der Willkommens-Sequenz, siehe
 // screens/LadeBildschirm.tsx für die volle Begründung (Video 1 unverändert, Überblendung
@@ -246,6 +252,9 @@ export type RootStackParamList = {
   // Update-1-Vorzug, Fortsetzung (2026-09-15, siehe Import-Kommentar oben): keine Parameter,
   // genau wie Schlossvorplatz/Steinbruecke — ein fester Einzel-Screen.
   WisentKampf: undefined;
+  // Ruhmeshalle-Grundgerüst (2026-09-15, siehe Import-Kommentar oben): keine Parameter, genau
+  // wie WisentKampf/Schlossvorplatz — ein fester Einzel-Screen.
+  Ruhmeshalle: undefined;
   // Nur für Schritt 2 (siehe Import-Kommentar oben) — wieder entfernen, sobald der
   // Vorversuch geprüft und abgeschlossen ist.
   RigProbe: undefined;
@@ -288,6 +297,17 @@ function KidHome({ navigation, route }: any) {
   // noch eine Zeile (`useZeitlimitWaechter(() => navigation.replace("ZeitlimitSperre"))`),
   // aber als eigener, in sich abgeschlossener Folgeschritt zurückgestellt.
   useZeitlimitWaechter(() => navigation.replace("ZeitlimitSperre"));
+
+  // Ruhmeshalle-Grundgerüst (2026-09-15): eigener, dezenter Zugangsknopf oben rechts, analog
+  // zu BrandWatermark.tsx (`useSafeAreaInsets()`, `position: "absolute"`), aber bewusst NICHT
+  // als neue Wegmarke auf der Karte selbst — deren Koordinaten sind pixelgenau gegen die
+  // tatsächliche Kartenillustration eingemessen (siehe claude/status_technik_code.md,
+  // "Wegmarken der sechs Quests"), und die Ruhmeshalle hat auf der Karte laut
+  // `produktionsplan_saga_karte_18_ansichten.md` (18 Ansichten) noch gar keinen eigenen Platz
+  // zugewiesen bekommen — das ist eine noch offene Produktionsentscheidung, keine, die sich
+  // hier ohne visuelle Prüfung am echten Bild treffen lässt. Ein bildschirmfixierter Knopf
+  // (wie der Zurück-Knopf in Revier.tsx) ist deshalb der risikoärmere erste Schritt.
+  const insets = useSafeAreaInsets();
 
   // Sprach-Harmonie-Review (2026-09-09, Nutzerauftrag "Die Sprachführung soll die Kinder
   // wirklich an die Hand nehmen, aber zugleich nicht störend wirken"): bestätigter
@@ -392,6 +412,14 @@ function KidHome({ navigation, route }: any) {
           breiteVorgabe={sichtBreite}
         />
       </ScrollView>
+      <Pressable
+        onPress={() => navigation.navigate("Ruhmeshalle")}
+        accessibilityLabel="Ruhmeshalle"
+        hitSlop={{ top: 12, left: 12, right: 12, bottom: 12 }}
+        style={[styles.ruhmeshalleKnopf, { top: insets.top + 12 }]}
+      >
+        <RuhmeshalleIcon size={22} />
+      </Pressable>
     </View>
   );
 }
@@ -530,6 +558,7 @@ const ZURUECK_ZUR_KARTE = new Set<string>([
   "WisentKuerHub",
   "Umwandlung",
   "EnPassant",
+  "Ruhmeshalle",
 ]);
 
 function zurueckZurKarte(): boolean {
@@ -672,6 +701,7 @@ export function RootNavigator() {
             <Stack.Screen name="WisentKuerHub" component={WisentKuerHub} />
             <Stack.Screen name="Umwandlung" component={Umwandlung} />
             <Stack.Screen name="EnPassant" component={EnPassant} />
+            <Stack.Screen name="Ruhmeshalle" component={Ruhmeshalle} />
             </Stack.Navigator>
           </NavigationContainer>
           <BrandWatermark
@@ -711,6 +741,21 @@ const styles = StyleSheet.create({
   // Paket 3: volle Breite, damit LuchsRevierKarte (misst per onLayout) wie bisher die ganze
   // Bildschirmbreite bekommt.
   kidHomeScroll: { flex: 1, width: "100%" },
+  // Ruhmeshalle-Grundgerüst (2026-09-15): dezenter, bildschirmfixierter Zugangsknopf oben
+  // rechts (siehe Kommentar an der KidHome-Aufrufstelle oben) — bewusst dieselbe kreisrunde
+  // Optik wie der Zurück-Knopf in Revier.tsx, nur oben RECHTS statt oben links, damit er sich
+  // nicht mit einem eventuell später ergänzten Zurück-Knopf auf KidHome selbst überschneidet.
+  ruhmeshalleKnopf: {
+    position: "absolute",
+    right: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "rgba(247,241,228,0.9)",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 10,
+  },
   // Update (2026-09-09): der frühere `parentLink`/`parentLinkText`-Stil (der einzelne "·"
   // auf KidHome) ist ersatzlos entfallen — siehe Kommentar bei KidHome oben und bei
   // BrandWatermark unten. Der eigentliche Kinder-Schutz kommt ohnehin weiterhin vom
