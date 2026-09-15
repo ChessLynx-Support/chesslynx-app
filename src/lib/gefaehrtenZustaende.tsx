@@ -36,8 +36,8 @@
 // Sprechen), bleiben also unverändert bei Grundzustand + Blinzeln.
 //
 // -------------------------------------------------------------------------------------
-// E3 "Freude" (seit 2026-09-15, erste Figur: Eichhörnchen) — ersetzt den Grundzustand,
-// sobald das Revier abgeschlossen ist
+// E3 "Freude" (seit 2026-09-15, bisher Eichhörnchen, Dachs, Wolf und Adlerin) — ersetzt den
+// Grundzustand, sobald das Revier abgeschlossen ist
 // -------------------------------------------------------------------------------------
 // Anders als Zwinkern (einmalige Geste, siehe oben) ist Freude ein eigener VOLLBILD-Zustand
 // (`S3_freude` im Rig, siehe `scripts/rig_configs/<tier>.json`) — Kopf sichtbar nach hinten
@@ -102,8 +102,9 @@ type WegmarkenBilder = {
    *  Datei-Kommentar oben) — bei den übrigen Gefährten bewusst `undefined`. */
   zwinkern?: ReturnType<typeof require>;
   /** E3 Freude-Vollbild — ersetzt `grund`, sobald das Revier abgeschlossen ist (siehe
-   *  Datei-Kommentar oben). Stand 2026-09-15 nur beim Eichhörnchen geliefert UND exportiert;
-   *  bei den übrigen Gefährten bewusst `undefined`, bis ihre E3-Lieferung da ist. */
+   *  Datei-Kommentar oben). Stand 2026-09-15 bei Eichhörnchen, Dachs, Wolf und Adlerin
+   *  geliefert UND exportiert; bei Rabe und Wisent bewusst `undefined`, bis die E3-Lieferung
+   *  da ist (Wisent ohnehin ohne E3-Auftrag, siehe Produktionsauftragsdoku). */
   freude?: ReturnType<typeof require>;
   leinwand: Leinwand;
 };
@@ -124,17 +125,20 @@ export const GEFAEHRTE_WEGMARKE: Record<GefaehrteId, WegmarkenBilder> = {
   dachs: {
     grund: require("../../assets/figuren/gefaehrten/wegmarken/chesslynx_dachs_wegmarke_grund.webp"),
     blinzeln: require("../../assets/figuren/gefaehrten/wegmarken/chesslynx_dachs_wegmarke_blinzeln.webp"),
+    freude: require("../../assets/figuren/gefaehrten/wegmarken/chesslynx_dachs_wegmarke_freude.webp"),
     leinwand: { breite: 204, hoehe: 326, figur: [5, 3, 194, 320] },
   },
   adlerin: {
     grund: require("../../assets/figuren/gefaehrten/wegmarken/chesslynx_adlerin_wegmarke_grund.webp"),
     blinzeln: require("../../assets/figuren/gefaehrten/wegmarken/chesslynx_adlerin_wegmarke_blinzeln.webp"),
     zwinkern: require("../../assets/figuren/gefaehrten/wegmarken/chesslynx_adlerin_wegmarke_zwinkern.webp"),
+    freude: require("../../assets/figuren/gefaehrten/wegmarken/chesslynx_adlerin_wegmarke_freude.webp"),
     leinwand: { breite: 178, hoehe: 326, figur: [3, 3, 172, 320] },
   },
   wolf: {
     grund: require("../../assets/figuren/gefaehrten/wegmarken/chesslynx_wolf_wegmarke_grund.webp"),
     blinzeln: require("../../assets/figuren/gefaehrten/wegmarken/chesslynx_wolf_wegmarke_blinzeln.webp"),
+    freude: require("../../assets/figuren/gefaehrten/wegmarken/chesslynx_wolf_wegmarke_freude.webp"),
     leinwand: { breite: 199, hoehe: 326, figur: [4, 3, 191, 320] },
   },
   wisent: {

@@ -16,6 +16,13 @@
       "zweck": "Grundzustand, freigegeben"
     },
     {
+      "id": "S3_freude",
+      "file": "Landesherren/Wolf/Zustaende/wolf_S3_freude.png",
+      "zweck": "Erfolgs-/Freude-Zustand (E3) -- Kopf nach hinten gekippt, warmer Ausdruck",
+      "produktion": "Bild-Input: die beigefügte Wolf-Standfigur (freigegebene Referenz).\n\nErzeuge exakt dasselbe Bild wie die Referenz - gleiche Kamera, gleiches Licht,\ngleiche Farbpalette (u. a. #54483C, #846C60, #E4CCC0), gleicher Hintergrund\n(vollständig transparent) - mit GENAU EINER Änderung: der Kopf ist am\nHals-Ansatz sichtbar nach hinten/oben gekippt, der Ausdruck ist ein warmes,\nstolzes Freudestrahlen.\n[gekuerzt -- vollstaendiger Text in claude/e3_e5_produktionsauftraege_2026-09-15.md,\nProjekt \"ChessLynx\"]",
+      "pruefung_2026_09_15": "Vollstaendige Neu-Malerei (kein Kopfausschnitt-Montage), deshalb bewusst OHNE registered_to/max_abweichung -- gleiche Begruendung wie bei Eichhoernchen/Dachs. Lieferung kam von Christian mit der Bezeichnung 'Fuchs' -- der Fuchs ist seit 2026-09-14 archiviert und durch den Raben ersetzt (rabe_ersetzt_fuchs_2026-09-14.md), hat also keine aktive E3-Bestellung. Bildvergleich (Farbpalette #54483C/#846C60/#E4CCC0, Fellzeichnung, Schwanzspitze) bestaetigt zweifelsfrei: die Lieferung zeigt den WOLF, nicht den Fuchs -- vermutlich Namens-Verwechslung, da Fuchs frueher an dieser Stelle (Station 2) stand. Visuell geprueft: Kopf sichtbar nach hinten gekippt, mehr Kehl-/Brustfell sichtbar, Ohren kompakter/zurueckgekippt, warmer Blick, Mund geschlossen mit Laecheln, keine Zaehne/Fangzaehne sichtbar. Koerper, Arme, Schwanz, Fellmuster und Farbpalette optisch unveraendert."
+    },
+    {
       "id": "S0b_blink",
       "file": "Landesherren/Wolf/Zustaende/wolf_S0b_blink.png",
       "registered_to": "S0_standing",
@@ -129,6 +136,21 @@
         "S0_standing",
         "02_lider_zu"
       ]
+    },
+    {
+      "canvas": [
+        199,
+        326
+      ],
+      "margin": 0.0092,
+      "rel_height": 1.0,
+      "geometry_union": [
+        "S0_standing",
+        "S3_freude"
+      ],
+      "state": "S3_freude",
+      "file": "assets/figuren/gefaehrten/wegmarken/chesslynx_wolf_wegmarke_freude.webp",
+      "zweck": "Erfolgs-/Freude-Zustand (E3) -- ersetzt in screens/Revier.tsx den Grundzustand, sobald istRevierAbgeschlossen() fuer dieses Revier true ist."
     }
   ],
   "app_export_hinweis": "Bewusst nur die WEGMARKEN-Familie (Saga-Karte) und darin nur Grundzustand und Blinzeln. Der Sprechzustand ist fertig und im Rig, wird aber erst exportiert, wenn es einen Screen gibt, der ihn zeigt — die Reviere werden erst in Update 1 spielbar. Dasselbe gilt für die große 768er-Familie der Quest-Tiere: Die Gefährten erscheinen heute nur auf der Karte. Jede Datei, die niemand anzeigt, ist Bundle-Gewicht ohne Gegenwert (Begründung wie beim Grundzustand der Quest-Tiere, claude/zustaende_app_einbindung_2026-09-13.md)."

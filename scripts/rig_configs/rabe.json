@@ -63,6 +63,13 @@
       "montage": "python scripts/zustand_montage.py Grafiken/Landesherren/Rabe/V2/rabe_freigestellt_kandidat_v2.png Grafiken/Landesherren/Rabe/Zustaende/Quellen/rabe_S2_zwinkern_kopf_lieferung.png -o Grafiken/Landesherren/Rabe/Zustaende/V2/rabe_S2_zwinkern.png --fenster 225 420 560 750 --augen 0 1 0 1 --maskenfenster 45 340 645 815 --skalen 0.80 1.12 0.005 --suchweite 90 --schwelle 44 --weitung 18 --weich 9",
       "geliefert_am": "2026-09-14",
       "freigabe": "FREIGEGEBEN durch Christian, 2026-09-14"
+    },
+    {
+      "id": "S3_freude",
+      "file": "Landesherren/Rabe/Zustaende/rabe_S3_freude.png",
+      "zweck": "Erfolgs-/Freude-Zustand (E3) -- Kopf nach hinten gekippt, warmer Ausdruck",
+      "produktion": "Bild-Input: die beigefügte Raben-Standfigur (freigegebene Referenz, V2).\n\nErzeuge exakt dasselbe Bild wie die Referenz - gleiche Kamera, gleiches Licht,\ngleiche Farbpalette (u. a. #181818, #242430, #484860 - dunkles Gefieder mit\nbläulichem Schimmer), gleicher Hintergrund (vollständig transparent) - mit\nGENAU EINER Änderung: der Kopf ist am Hals-Ansatz sichtbar nach hinten/oben\ngekippt, der Ausdruck ist ein warmes, stolzes Freudestrahlen.\n[gekuerzt -- vollstaendiger Text in claude/e3_e5_produktionsauftraege_2026-09-15.md,\nProjekt \"ChessLynx\"]",
+      "pruefung_2026_09_15": "Vollstaendige Neu-Malerei (kein Kopfausschnitt-Montage), deshalb bewusst OHNE registered_to/max_abweichung -- gleiche Begruendung wie bei Eichhoernchen/Dachs/Wolf/Adlerin. Visuell gegen die freigegebene V2-Standfigur geprueft: Kopf sichtbar nach hinten gekippt, mehr dunkles Kehlgefieder unterhalb des Schnabels sichtbar, warmer Blick, Schnabel geschlossen (kein Sprechen-Zustand). Koerper, Fluegel, Beine/Fuesse, Schwanz und der blauviolette Schimmer im Gefieder optisch unveraendert zur Referenz."
     }
   ],
   "layers": [
@@ -215,6 +222,21 @@
         "S0_standing",
         "04_zwinkern"
       ]
+    },
+    {
+      "canvas": [
+        171,
+        326
+      ],
+      "margin": 0.0092,
+      "rel_height": 1.0,
+      "geometry_union": [
+        "S0_standing",
+        "S3_freude"
+      ],
+      "state": "S3_freude",
+      "file": "assets/figuren/gefaehrten/wegmarken/chesslynx_rabe_wegmarke_freude.webp",
+      "zweck": "Erfolgs-/Freude-Zustand (E3) -- ersetzt in screens/Revier.tsx den Grundzustand, sobald istRevierAbgeschlossen() fuer dieses Revier true ist."
     }
   ],
   "app_export_hinweis": "Bewusst nur die WEGMARKEN-Familie und darin Grundzustand, Blinzeln und Zwinkern. Sprechen bleibt unexportiert, solange es keine freigegebene Dialogzeile dafuer gibt (siehe screens/Revier.tsx-Kommentar). Zwinkern-Export am 2026-09-15 zunaechst wegen eines falschen Master-Bildes zurueckgestellt (siehe S0_standing.korrektur_2026_09_15), nach Korrektur auf den freigegebenen V2-Master jetzt aufgenommen -- fuer den Lob-Moment im Revier, analog zur Adlerin (screens/Revier.tsx loest es aus, sobald im Revier ein neuer Stern erreicht wird)."

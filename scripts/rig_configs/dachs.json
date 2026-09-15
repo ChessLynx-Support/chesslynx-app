@@ -16,6 +16,13 @@
       "zweck": "Grundzustand, freigegeben"
     },
     {
+      "id": "S3_freude",
+      "file": "Landesherren/Dachs/Zustaende/dachs_S3_freude.png",
+      "zweck": "Erfolgs-/Freude-Zustand (E3) -- Kopf nach hinten gekippt, warmer Ausdruck",
+      "produktion": "Bild-Input: die beigefügte Dachs-Standfigur (freigegebene Referenz).\n\nErzeuge exakt dasselbe Bild wie die Referenz - gleiche Kamera, gleiches Licht,\ngleiche Farbpalette (u. a. #241818, #3C3030, #F0E4D8), gleicher Hintergrund\n(vollständig transparent) - mit GENAU EINER Änderung: der Kopf ist am\nHals-Ansatz sichtbar nach hinten/oben gekippt, der Ausdruck ist ein warmes,\nstolzes Freudestrahlen.\n[gekuerzt -- vollstaendiger Text in claude/e3_e5_produktionsauftraege_2026-09-15.md,\nProjekt \"ChessLynx\"]",
+      "pruefung_2026_09_15": "Vollstaendige Neu-Malerei (kein Kopfausschnitt-Montage), deshalb bewusst OHNE registered_to/max_abweichung -- gleiche Begruendung wie beim Eichhoernchen (siehe dessen S3_freude-Eintrag). Visuell geprueft: Kopf sichtbar nach hinten gekippt, deutlich mehr Kehlfell sichtbar, Gesichtsstreifen durch die Drehung minimal gestaucht aber erkennbar dieselben, Ohren kompakter, warmer Blick, Mund geschlossen mit Laecheln, keine Zaehne sichtbar. Koerper, Arme, Schwanz, Streifenmuster und Farbpalette optisch unveraendert. Keine Collage-Naht erkennbar."
+    },
+    {
       "id": "S0b_blink",
       "file": "Landesherren/Dachs/Zustaende/dachs_S0b_blink.png",
       "registered_to": "S0_standing",
@@ -129,6 +136,21 @@
         "S0_standing",
         "02_lider_zu"
       ]
+    },
+    {
+      "canvas": [
+        204,
+        326
+      ],
+      "margin": 0.0092,
+      "rel_height": 1.0,
+      "geometry_union": [
+        "S0_standing",
+        "S3_freude"
+      ],
+      "state": "S3_freude",
+      "file": "assets/figuren/gefaehrten/wegmarken/chesslynx_dachs_wegmarke_freude.webp",
+      "zweck": "Erfolgs-/Freude-Zustand (E3) -- ersetzt in screens/Revier.tsx den Grundzustand, sobald istRevierAbgeschlossen() fuer dieses Revier true ist."
     }
   ],
   "app_export_hinweis": "Bewusst nur die WEGMARKEN-Familie (Saga-Karte) und darin nur Grundzustand und Blinzeln. Der Sprechzustand ist fertig und im Rig, wird aber erst exportiert, wenn es einen Screen gibt, der ihn zeigt — die Reviere werden erst in Update 1 spielbar. Dasselbe gilt für die große 768er-Familie der Quest-Tiere: Die Gefährten erscheinen heute nur auf der Karte. Jede Datei, die niemand anzeigt, ist Bundle-Gewicht ohne Gegenwert (Begründung wie beim Grundzustand der Quest-Tiere, claude/zustaende_app_einbindung_2026-09-13.md)."

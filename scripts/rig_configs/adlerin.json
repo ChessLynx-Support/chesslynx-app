@@ -61,6 +61,13 @@
       "produktion": "Male das hochgeladene Bild des ChessLynx-Charakters neu — als zwinkernde Fassung desselben Moments.\n\nGENAU EIN Auge ist geschlossen, das andere bleibt weit offen. Das linke Auge der Figur (im Bild rechts) ist zu, das Lid gesenkt, als feine Bogenlinie sichtbar. Das rechte Auge der Figur (im Bild links) bleibt genau wie in der Vorlage: offen, mit Augenweiß, farbiger Iris, Pupille und Glanzlicht. Dazu ein vergnügtes Lächeln; die Braue über dem geschlossenen Auge geht ein Stück mit, die andere bleibt, wo sie ist.\nPrüfe das Ergebnis: Sind BEIDE Augen zu, ist es falsch — dann noch einmal mit einem offenen Auge.\n\nDas neue Bild MUSS sich vom hochgeladenen sichtbar unterscheiden, und zwar genau an dieser Stelle. Ein Bild, das aussieht wie die Vorlage, ist kein gültiges Ergebnis — dann bitte noch einmal, deutlicher.\n\nGRÖSSE UND UMRISS — hier scheitern solche Bilder meistens:\nAuch wenn sich nur ein Detail ändert, neigt man dazu, die ganze Figur neu zu zeichnen und sie dabei fülliger zu machen. Genau das soll nicht passieren. Der Zustand wird im Wechsel mit der Vorlage gezeigt; jede Änderung an Umriss oder Größe fällt dann als Zucken auf.\n- Die Figur behält ihre GESAMTHÖHE und ihre GESAMTBREITE, auf den Pixel genau denselben Abstand zu allen vier Rändern.\n- Sie wird NICHT breiter und NICHT fülliger: gleiche Körperbreite, gleiche Kopfgröße, gleiche Gesichtsform, gleiche Bauchform, gleiche Beinstärke. Auch Kopfgefieder, Flügelkanten, Schwanzfedern und Krallen behalten Form und Lage.\n- Die Füße stehen an genau denselben Stellen auf derselben waagerechten Linie.\n- Farbe und Helligkeit bleiben exakt wie in der Vorlage — nicht dunkler, nicht satter, nicht kontrastreicher.\nGegenprobe vor der Ausgabe: Lege dein Ergebnis gedanklich über die Vorlage. Deckt sich der Umriss? Wenn die Figur runder, breiter, höher oder dunkler geworden ist, noch einmal.\n\nGleich bleibt dagegen alles Übrige, so genau wie möglich:\n- Haltung, Stand, Größe und Position im Bild, Abstand zu allen vier Rändern\n- Kopfhaltung und Blickrichtung\n- Federzeichnung\n- Farben, Licht, Schattierung, Detailgrad\n\nFORMAT:\n- PNG mit ECHTEM Alphakanal, Hintergrund tatsächlich transparent. Ein ins Bild gemaltes Karo- oder Schachbrettmuster ist KEIN transparenter Hintergrund und unbrauchbar; eine weiße Fläche ebenso wenig.\n- gleiche Bildgröße wie die Vorlage, quadratisch, nichts angeschnitten\n- kein Boden, keine Kulisse, kein Schlagschatten auf einer Fläche\n- kein Text, keine Zahlen, keine Symbole, kein Wasserzeichen\n\nAls Vorlage dient ausschließlich das hochgeladene Bild, sonst nichts.",
       "herkunft": "Erster Anlauf am 2026-09-12 lieferte beide Augen geschlossen, also eine zweite Blinzel-Variante statt eines Zwinkerns. Auftrag daraufhin verschärft: die Seite wird benannt und das offene Auge ausdrücklich beschrieben.",
       "freigabe": "geliefert 2026-09-12 (dritter Anlauf), echtes RGBA"
+    },
+    {
+      "id": "S3_freude",
+      "file": "Landesherren/Adlerin/Zustaende/adlerin_S3_freude.png",
+      "zweck": "Erfolgs-/Freude-Zustand (E3) -- Kopf nach hinten gekippt, warmer Ausdruck",
+      "produktion": "Bild-Input: die beigefügte Adlerin-Standfigur (freigegebene Referenz).\n\nErzeuge exakt dasselbe Bild wie die Referenz - gleiche Kamera, gleiches Licht,\ngleiche Farbpalette (u. a. #54240C, #3C1800, #F0E4D8, plus der gelbe Schnabel-\nund Fußton exakt wie in der Referenz), gleicher Hintergrund (vollständig\ntransparent) - mit GENAU EINER Änderung: der Kopf ist am Hals-Ansatz sichtbar\nnach hinten/oben gekippt, der Ausdruck ist ein warmes, stolzes Freudestrahlen.\n[gekuerzt -- vollstaendiger Text in claude/e3_e5_produktionsauftraege_2026-09-15.md,\nProjekt \"ChessLynx\"]",
+      "pruefung_2026_09_15": "Vollstaendige Neu-Malerei (kein Kopfausschnitt-Montage), deshalb bewusst OHNE registered_to/max_abweichung -- gleiche Begruendung wie bei Eichhoernchen/Dachs/Wolf. Visuell gegen die freigegebene Standfigur geprueft: Kopf sichtbar nach hinten gekippt, mehr weisses Kehlgefieder unterhalb des gelben Schnabels sichtbar, warmer/froehlicher Blick, Schnabel geschlossen (kein Sprechen-Zustand). Koerper, Fluegel, Beine/Fuesse und Gefiedermuster (weisser Kopf, brauner Koerper, gelber Schnabel/Fuesse) optisch unveraendert zur Referenz."
     }
   ],
   "layers": [
@@ -200,6 +207,21 @@
         "S0_standing",
         "04_zwinkern"
       ]
+    },
+    {
+      "canvas": [
+        178,
+        326
+      ],
+      "margin": 0.0092,
+      "rel_height": 1.0,
+      "geometry_union": [
+        "S0_standing",
+        "S3_freude"
+      ],
+      "state": "S3_freude",
+      "file": "assets/figuren/gefaehrten/wegmarken/chesslynx_adlerin_wegmarke_freude.webp",
+      "zweck": "Erfolgs-/Freude-Zustand (E3) -- ersetzt in screens/Revier.tsx den Grundzustand, sobald istRevierAbgeschlossen() fuer dieses Revier true ist."
     }
   ],
   "app_export_hinweis": "Bewusst nur die WEGMARKEN-Familie (Saga-Karte) und darin Grundzustand, Blinzeln und Zwinkern. Der Sprechzustand bleibt unexportiert, solange es keine freigegebene Dialogzeile für ihn gibt (siehe screens/Revier.tsx-Kommentar) — eine Datei, die kein Screen anzeigt, ist Bundle-Gewicht ohne Gegenwert. Das Zwinkern dagegen braucht keinen Text: Es ist ab 2026-09-15 als Lob-Reaktion verdrahtet (screens/Revier.tsx löst es aus, sobald im Revier ein neuer Stern erreicht wird, siehe dortigen Kommentar) — die Reviere sind seit demselben Tag ohnehin spielbar, der frühere Exportvorbehalt ist damit erfüllt."
