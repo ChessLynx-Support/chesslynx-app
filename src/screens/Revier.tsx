@@ -42,6 +42,13 @@
 // spezifisches Klick-Ereignis, damit es unabhängig davon funktioniert, über welche Spalte er
 // kam. Eichhörnchen, Dachs und Wolf haben kein Zwinkern-Bild geliefert bekommen,
 // `zwinkernAusloeser` wirkt dort ohnehin nicht (siehe GefaehrteWegmarke-Kommentar).
+//
+// E3 "Freude" (seit 2026-09-15, Christian: "Passt für E3, Eichhörnchen freigeben"): sobald
+// `istRevierAbgeschlossen()` für dieses Revier true ist, zeigt `GefaehrteWegmarke` dauerhaft
+// die Freude-Pose statt Grundzustand+Blinzeln (`freudeAktiv` unten) — anders als Zwinkern kein
+// einmaliges Aufblitzen, sondern der neue Ruhezustand, siehe lib/gefaehrtenZustaende.tsx.
+// Aktuell nur beim Eichhörnchen exportiert; bei den übrigen Gefährten wirkungslos, bis ihre
+// E3-Lieferung eingebaut ist (siehe claude/e3_e5_produktionsauftraege_2026-09-15.md).
 
 import { useCallback, useRef, useState } from "react";
 import { Pressable, SafeAreaView, StyleSheet, Text, View } from "react-native";
@@ -51,7 +58,12 @@ import { GefaehrteWegmarke, type GefaehrteId } from "../lib/gefaehrtenZustaende"
 import { FarnZurueckIcon } from "../lib/freispielIcons";
 import { Sternensaeule } from "../lib/sternenleiter";
 import { spaltenFuerGefaehrte } from "../lib/endlosmodusSpalten";
-import { ladeEndlosmodusFortschritt, sterneInSpalte, type EndlosmodusFortschritt } from "../lib/endlosmodusFortschritt";
+import {
+  ladeEndlosmodusFortschritt,
+  sterneInSpalte,
+  istRevierAbgeschlossen,
+  type EndlosmodusFortschritt,
+} from "../lib/endlosmodusFortschritt";
 
 /** Name je Revier — dieselben Namen wie in LuchsRevierKarte.tsx (GEFAEHRTEN_ROH), nur hier für
  *  den Screen selbst gebraucht (z. B. `accessibilityLabel`, kein sichtbarer Text). */
@@ -123,6 +135,7 @@ export default function Revier() {
               breite={200}
               blinzeln
               zwinkernAusloeser={zwinkernAusloeser}
+              freudeAktiv={istRevierAbgeschlossen(gefaehrteId, fortschritt)}
             />
           </View>
           {spielbareSpalten.length > 0 && (

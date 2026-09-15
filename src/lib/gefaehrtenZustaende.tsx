@@ -36,6 +36,22 @@
 // Sprechen), bleiben also unverändert bei Grundzustand + Blinzeln.
 //
 // -------------------------------------------------------------------------------------
+// E3 "Freude" (seit 2026-09-15, erste Figur: Eichhörnchen) — ersetzt den Grundzustand,
+// sobald das Revier abgeschlossen ist
+// -------------------------------------------------------------------------------------
+// Anders als Zwinkern (einmalige Geste, siehe oben) ist Freude ein eigener VOLLBILD-Zustand
+// (`S3_freude` im Rig, siehe `scripts/rig_configs/<tier>.json`) — Kopf sichtbar nach hinten
+// gekippt, warmer Ausdruck, kein Blinzeln-Layer dafür geliefert. Auslöser (Christian,
+// 2026-09-15: "Passt für E3, Eichhörnchen freigeben"): `istRevierAbgeschlossen()` aus
+// lib/endlosmodusFortschritt.ts — sobald das Revier dieses Gefährten alle Sterne hat, zeigt
+// screens/Revier.tsx dauerhaft die Freude-Pose statt Grundzustand+Blinzeln (kein einmaliges
+// Aufblitzen wie beim Zwinkern, sondern der neue Ruhezustand für ein fertig gespieltes
+// Revier — passt zur Bedeutung "das ist geschafft"). Die Ruhmeshalle bekommt beim selben
+// Ereignis zusätzlich einmalig den Funkeln-Effekt (E5, siehe
+// `e5_rangaufstieg_verdrahtung_2026-09-15.md`) — zwei unabhängige Reaktionen an zwei
+// verschiedenen Orten auf dasselbe Ereignis, kein Widerspruch.
+//
+// -------------------------------------------------------------------------------------
 // Die Leinwand ist größer als die Figur
 // -------------------------------------------------------------------------------------
 // Der Export legt um die Zustandsfamilie einen kleinen durchsichtigen Rand (3 px oben und
@@ -85,6 +101,10 @@ type WegmarkenBilder = {
   /** Nur bei Adlerin und Rabe geliefert UND exportiert (Stand 2026-09-15, siehe
    *  Datei-Kommentar oben) — bei den übrigen Gefährten bewusst `undefined`. */
   zwinkern?: ReturnType<typeof require>;
+  /** E3 Freude-Vollbild — ersetzt `grund`, sobald das Revier abgeschlossen ist (siehe
+   *  Datei-Kommentar oben). Stand 2026-09-15 nur beim Eichhörnchen geliefert UND exportiert;
+   *  bei den übrigen Gefährten bewusst `undefined`, bis ihre E3-Lieferung da ist. */
+  freude?: ReturnType<typeof require>;
   leinwand: Leinwand;
 };
 
@@ -92,6 +112,7 @@ export const GEFAEHRTE_WEGMARKE: Record<GefaehrteId, WegmarkenBilder> = {
   eichhoernchen: {
     grund: require("../../assets/figuren/gefaehrten/wegmarken/chesslynx_eichhoernchen_wegmarke_grund.webp"),
     blinzeln: require("../../assets/figuren/gefaehrten/wegmarken/chesslynx_eichhoernchen_wegmarke_blinzeln.webp"),
+    freude: require("../../assets/figuren/gefaehrten/wegmarken/chesslynx_eichhoernchen_wegmarke_freude.webp"),
     leinwand: { breite: 221, hoehe: 326, figur: [4, 3, 212, 320] },
   },
   rabe: {
@@ -135,18 +156,21 @@ export function gefaehrteWegmarkeAspekt(id: GefaehrteId): number {
  *
  * Auf der Karte grüßt weiterhin niemand: Die Gefährten haben dort keinen Gesten-Zustand,
  * der offene Mund allein — ohne Sprechblase und ohne Ton — läse sich nicht als Gruß,
- * sondern als Fehler. Im Revier gibt es seit 2026-09-15 EINE Ausnahme: `zwinkernAusloeser`
+ * sondern als Fehler. Im Revier gibt es seit 2026-09-15 ZWEI Ausnahmen: `zwinkernAusloeser`
  * löst bei Adlerin und Rabe ein einmaliges Zwinkern aus (Reaktion auf Lob, siehe
  * screens/Revier.tsx) — kein Sprechen, kein erfundener Dialog, nur eine stumme Geste mit
- * bereits freigegebenem Bildmaterial. Bei jeder anderen Aufrufstelle bzw. jedem anderen
- * Gefährten bleibt die Prop wirkungslos (kein exportiertes Zwinkern-Bild, siehe
- * `GEFAEHRTE_WEGMARKE` oben) — kein Sonderfall nötig.
+ * bereits freigegebenem Bildmaterial. `freudeAktiv` ersetzt den Grundzustand dauerhaft durch
+ * die Freude-Pose, sobald das Revier abgeschlossen ist (siehe Datei-Kommentar oben). Bei
+ * jeder anderen Aufrufstelle bzw. jedem anderen Gefährten bleiben beide Props wirkungslos
+ * (kein exportiertes Zwinkern-/Freude-Bild, siehe `GEFAEHRTE_WEGMARKE` oben) — kein
+ * Sonderfall nötig.
  */
 export function GefaehrteWegmarke({
   id,
   breite,
   blinzeln = true,
   zwinkernAusloeser,
+  freudeAktiv = false,
 }: {
   id: GefaehrteId;
   breite: number;
@@ -154,17 +178,25 @@ export function GefaehrteWegmarke({
   /** Ändert sich der Wert (z. B. ein hochgezählter Zähler), zwinkert die Figur einmal —
    *  siehe Funktionskommentar. */
   zwinkernAusloeser?: unknown;
+  /** true → zeigt dauerhaft die Freude-Pose statt Grundzustand+Blinzeln (siehe
+   *  Funktionskommentar). Ohne exportiertes Freude-Bild wirkungslos. */
+  freudeAktiv?: boolean;
 }) {
   const w = GEFAEHRTE_WEGMARKE[id];
-  const zwinkertJetzt = useGeste(w.zwinkern ? zwinkernAusloeser : undefined, GESTE_EINMAL);
+  const freudeJetzt = freudeAktiv && !!w.freude;
+  // Zwinkern und Freude schließen sich aus: Die Zwinkern-Ebene ist eine Differenz zum
+  // Grundzustand (S0_standing → S2_zwinkern) und würde auf der andersartigen Freude-Pose
+  // (S3_freude, andere Kopfhaltung) sichtbar falsch sitzen — deshalb `zwinkernAusloeser`
+  // in diesem Zustand ignorieren, nicht extra durch den Aufrufer abschalten lassen müssen.
+  const zwinkertJetzt = useGeste(w.zwinkern && !freudeJetzt ? zwinkernAusloeser : undefined, GESTE_EINMAL);
   return (
     <ZustandsFigur
       leinwand={w.leinwand}
       figurBreite={breite}
-      grund={w.grund}
-      blinzeln={blinzeln ? w.blinzeln : undefined}
-      idle={blinzeln}
-      ebenen={w.zwinkern ? [{ bild: w.zwinkern, aktiv: zwinkertJetzt }] : undefined}
+      grund={freudeJetzt ? w.freude : w.grund}
+      blinzeln={blinzeln && !freudeJetzt ? w.blinzeln : undefined}
+      idle={blinzeln && !freudeJetzt}
+      ebenen={w.zwinkern && !freudeJetzt ? [{ bild: w.zwinkern, aktiv: zwinkertJetzt }] : undefined}
     />
   );
 }
