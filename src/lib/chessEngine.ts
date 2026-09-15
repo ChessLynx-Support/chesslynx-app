@@ -56,10 +56,17 @@ export function createPosition(fen: string): Chess {
   // enthalten (siehe den Block über QUEST1_POSITIONS). chess.js besteht sonst auf je einem
   // König pro Seite und wirft `Invalid FEN: missing black king`.
   //
-  // Die Abschaltung ist hier ungefährlich, weil `createPosition` AUSSCHLIESSLICH von
-  // `lib/QuestMoveScreen.tsx` benutzt wird (drei Aufrufstellen, am 2026-09-14 projektweit
-  // geprüft). Bonuskapitel, Endlosmodus, Freispiel und die Schach-/Matt-Screens von Quest 6
-  // laden ihre Stellungen über eigene Wege und behalten die volle Validierung.
+  // Korrektur (2026-09-15): der vorherige Kommentar hier behauptete, `createPosition` werde
+  // "AUSSCHLIESSLICH von lib/QuestMoveScreen.tsx benutzt" — das stimmte am 2026-09-14, ist
+  // seither aber überholt: mehrere Bonuskapitel (`bonus/MattIn2.tsx`, `bonus/Fesselung.tsx`,
+  // `bonus/GanzePartie.tsx`) übernehmen `createPosition` inzwischen ebenfalls für ihre
+  // eigenen, VOLLSTÄNDIGEN (könige-enthaltenden) Stellungen — dort ist `skipValidation`
+  // wirkungslos, da eine gültige FEN davon unberührt bleibt, aber eben auch nicht mehr
+  // "exklusiv". Für NEUE Bonus-/Endlosmodus-Screens mit vollständigen, gültigen Stellungen
+  // ist `new Chess(fen)` ohne `skipValidation` trotzdem vorzuziehen (siehe
+  // `lib/EndlosmodusPuzzle.tsx`-Kopfkommentar und `screens/WisentKampf.tsx`) — es macht die
+  // Absicht ("diese Stellung MUSS vollständig gültig sein") im Code selbst sichtbar, statt
+  // sich auf einen Kommentar hier zu verlassen.
   return new Chess(fen, { skipValidation: true });
 }
 
@@ -964,6 +971,33 @@ export const WOLFSFESTE_MATT_IN_2_POSITIONEN = {
   // gegen eine bestimmte Figur) — König a1 kann trotzdem anschließend, egal welche der sieben
   // legalen schwarzen Antworten kommt, gefahrlos auf a2 ziehen.
   stern3: "k7/8/7n/8/8/8/8/K6R w - - 0 1",
+} as const;
+
+/**
+ * Wisent-Boss-Puzzle (Pflicht-Herzstück des Wisent-Kampfs, siehe Claude-Projekt "ChessLynx",
+ * `gefaehrten_wisent_lichess_sprechtexte_final.md`, Abschnitt 8). "Matt in 2 + Fesselung" und
+ * das kuratierte Mehr-Mechaniken-Boss-Puzzle sind laut Konzept EIN UND DASSELBE kombinierte
+ * Puzzle: der gegnerische Wächter-Turm auf e7 ist entlang der e-Linie an seinen eigenen König
+ * gefesselt (`kettenlinie`-Signal wie in Adlerhorst/Wolfsfeste), Zug 1 nutzt das aus.
+ *
+ * Echte Zwei-Zug-Zwangsmatt-Sequenz, vollständig gegen chess.js verifiziert (eigenes
+ * Verify-Skript, dieselbe Sorgfalt wie bei MATT_IN_3_POSITIONEN oben):
+ *   Zug 1:  Qa2xf7+     — Dame schlägt den Bauern, nutzt dabei aus, dass der Turm e7 gefesselt
+ *                          ist und den König nicht mehr decken kann
+ *   Antwort: Ke8-d7      — GEPRÜFT: das ist die tatsächlich einzige legale schwarze Antwort auf
+ *                          Zug 1 (chess.js liefert nach Qxf7+ genau einen Zug)
+ *   Zug 2:  Qf7-d5# ODER Qf7xe7#  — beide von chess.js als Matt bestätigt
+ *
+ * Laut Konzeptdokument zählt zusätzlich Re1-d1# als dritte gleichwertige Mattmöglichkeit
+ * (ebenfalls chess.js-geprüft matt) — bewusst NICHT als UI-Option übernommen: Board.tsx bindet
+ * `legalTargets` an EINE ziehende Figur (`pieceAt`) je Screen, Rd1# bräuchte aber eine echte
+ * Mehrfigur-Auswahl (Dame ODER Turm) für Zug 2, ein neues Interaktionsmuster, das an keiner
+ * Stelle der App bisher gebraucht wird. Die beiden Damen-Mattzüge bleiben als Wahl erhalten
+ * (siehe MATT_IN_2_POSITIONEN-Vorbild "Schlagen"/"Ablenkung" als gleichwertige Wege) — das
+ * Kind bekommt damit weiterhin eine echte Wahl, nur ohne die dritte, figurwechselnde Variante.
+ */
+export const WISENT_BOSS_POSITION = {
+  hauptstellung: "4k3/N3rp2/8/B6B/8/8/Q7/4R1K1 w - - 0 1",
 } as const;
 
 /*

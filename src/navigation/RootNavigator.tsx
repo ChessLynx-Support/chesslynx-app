@@ -143,6 +143,12 @@ import type { RevierParams } from "../screens/Revier";
 // lib/endlosmodusSpalten.ts für den vollen Stand (7 von 9 Spalten spielbar).
 import EndlosmodusSpalte from "../screens/EndlosmodusSpalte";
 import type { EndlosmodusSpalteParams } from "../screens/EndlosmodusSpalte";
+// Update-1-Vorzug, Fortsetzung (2026-09-15): Wisent-Boss-Puzzle, das Pflicht-Herzstück des
+// Wisent-Kampfs (siehe lib/chessEngine.ts/WISENT_BOSS_POSITION-Kommentar und
+// claude/wisent_kampf_verdrahtung_2026-09-15.md). Die drei optionalen Kürs (Bauernumwandlung/
+// En passant/Matt in 3 als Kür) und der Kür-Auswahl-Hub sind bewusst NICHT Teil dieser Runde —
+// siehe genanntes Dokument für die Begründung.
+import WisentKampf from "../screens/WisentKampf";
 // Ladebildschirm/Intro (Nutzerwunsch, siehe claude/lux_begruessungsvideo_freistellung_
 // konzept.md, Abschnitt "Ladebildschirm") — läuft jetzt VOR der Willkommens-Sequenz, siehe
 // screens/LadeBildschirm.tsx für die volle Begründung (Video 1 unverändert, Überblendung
@@ -225,6 +231,9 @@ export type RootStackParamList = {
   // Update-1-Vorzug, Fortsetzung (2026-09-15, siehe Import-Kommentar oben): eine einzelne
   // Endlosmodus-Fokus-Spalte innerhalb eines Reviers.
   EndlosmodusSpalte: EndlosmodusSpalteParams;
+  // Update-1-Vorzug, Fortsetzung (2026-09-15, siehe Import-Kommentar oben): keine Parameter,
+  // genau wie Schlossvorplatz/Steinbruecke — ein fester Einzel-Screen.
+  WisentKampf: undefined;
   // Nur für Schritt 2 (siehe Import-Kommentar oben) — wieder entfernen, sobald der
   // Vorversuch geprüft und abgeschlossen ist.
   RigProbe: undefined;
@@ -362,6 +371,7 @@ function KidHome({ navigation, route }: any) {
           onSelectSchlossvorplatz={() => navigation.navigate("Schlossvorplatz")}
           onSelectSteinbruecke={() => navigation.navigate("Steinbruecke")}
           onSelectGefaehrte={(gefaehrteId) => navigation.navigate("Revier", { gefaehrteId })}
+          onSelectWisent={() => navigation.navigate("WisentKampf")}
           onHoehen={setKartenHoehen}
           onSteinbrueckeWartet={zeigeSteinbruecke}
           breiteVorgabe={sichtBreite}
@@ -501,6 +511,7 @@ const ZURUECK_ZUR_KARTE = new Set<string>([
   "FreispielScreen",
   "Revier",
   "EndlosmodusSpalte",
+  "WisentKampf",
 ]);
 
 function zurueckZurKarte(): boolean {
@@ -639,6 +650,7 @@ export function RootNavigator() {
             <Stack.Screen name="Steinbruecke" component={Steinbruecke} />
             <Stack.Screen name="Revier" component={Revier} />
             <Stack.Screen name="EndlosmodusSpalte" component={EndlosmodusSpalte} />
+            <Stack.Screen name="WisentKampf" component={WisentKampf} />
             </Stack.Navigator>
           </NavigationContainer>
           <BrandWatermark

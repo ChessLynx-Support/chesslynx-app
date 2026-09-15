@@ -864,6 +864,13 @@ type Props = {
   // Teil dieses Schritts). Ohne diese Prop bleiben alle sechs wie bisher gesperrt/nur per
   // Testansicht sichtbar.
   onSelectGefaehrte?: (id: GefaehrteId) => void;
+  // Update-1-Vorzug, Fortsetzung (2026-09-15): der Wisent-Torwächter bekommt jetzt eine EIGENE
+  // Prop statt über `onSelectGefaehrte` zu laufen — er führt nicht zu einem generischen
+  // Revier-Screen (dafür gibt es beim Wisent keine Endlosmodus-Fokus-Spalte, siehe
+  // lib/endlosmodusSpalten.ts), sondern direkt zum Wisent-Boss-Puzzle-Screen. Ohne diese Prop
+  // bleibt der Torwächter wie bisher gesperrt/nur per Testansicht sichtbar, unabhängig davon,
+  // ob `onSelectGefaehrte` gesetzt ist.
+  onSelectWisent?: () => void;
 };
 
 export function LuchsRevierKarte({
@@ -874,6 +881,7 @@ export function LuchsRevierKarte({
   onSteinbrueckeWartet,
   breiteVorgabe,
   onSelectGefaehrte,
+  onSelectWisent,
 }: Props) {
   // Schleifen laufen nur, solange die Karte wirklich vorn ist — vier gleichzeitig laufende
   // Lottie-Ansichten kosten auf Android sonst auch dann Leistung, wenn ein Quest-Screen
@@ -1023,7 +1031,11 @@ export function LuchsRevierKarte({
     // klar aus dem Nebel treten, nicht mehr nur "neugierig machend" durchschimmern.
     const gefaehrtenLichtung = gefaehrtenVorschau ? NEBEL_KLARUNG_VOLL : NEBEL_KLARUNG_BURGTOR;
     for (const g of GEFAEHRTEN) {
-      const lichtung = onSelectGefaehrte && g.id !== "wisent" ? NEBEL_KLARUNG_VOLL : gefaehrtenLichtung;
+      // Update-1-Vorzug, Fortsetzung (2026-09-15): der Wisent hat jetzt seine eigene
+      // Freischalt-Bedingung (`onSelectWisent` statt `onSelectGefaehrte`), siehe Props-
+      // Kommentar oben.
+      const antippbar = g.id === "wisent" ? Boolean(onSelectWisent) : Boolean(onSelectGefaehrte);
+      const lichtung = antippbar ? NEBEL_KLARUNG_VOLL : gefaehrtenLichtung;
       oberlandKlarungen.push(
         figurLichtung(g.fx * breite, g.fy * oberlandHoehe, g.breiteFrac * breite, g.aspekt, lichtung)
       );
@@ -1079,9 +1091,18 @@ export function LuchsRevierKarte({
             const gBreite = g.breiteFrac * breite;
             // Update-1-Vorzug (2026-09-15): die fünf echten Reviere bekommen "offen" (voll
             // aufgedeckt, antippbar, aber ohne Häkchen/Glühwürmchen — siehe WegmarkeStatus-
-            // Kommentar oben) plus ein echtes onPress zur neuen Revier-Route. Der Wisent-
-            // Torwächter bleibt bewusst unverändert (siehe Props-Kommentar oben).
-            const echtesRevier = onSelectGefaehrte && g.id !== "wisent";
+            // Kommentar oben) plus ein echtes onPress zur neuen Revier-Route. Fortsetzung
+            // (2026-09-15): der Wisent-Torwächter bekommt jetzt genauso ein echtes onPress,
+            // aber über die eigene `onSelectWisent`-Prop (siehe Props-Kommentar oben) statt
+            // über `onSelectGefaehrte(g.id)` — direkt zum Wisent-Boss-Puzzle, nicht zu einem
+            // generischen Revier-Screen.
+            const antippbar = g.id === "wisent" ? Boolean(onSelectWisent) : Boolean(onSelectGefaehrte);
+            const press =
+              g.id === "wisent"
+                ? onSelectWisent
+                : onSelectGefaehrte
+                  ? () => onSelectGefaehrte(g.id)
+                  : undefined;
             return (
               <Wegmarke
                 key={g.id}
@@ -1090,8 +1111,8 @@ export function LuchsRevierKarte({
                 top={g.fy * oberlandHoehe}
                 breite={gBreite}
                 hoehe={gBreite * g.aspekt}
-                zustand={echtesRevier ? "offen" : gefaehrtenVorschau ? "erledigt" : "gesperrt"}
-                onPress={echtesRevier ? () => onSelectGefaehrte(g.id) : undefined}
+                zustand={antippbar ? "offen" : gefaehrtenVorschau ? "erledigt" : "gesperrt"}
+                onPress={antippbar ? press : undefined}
               />
             );
           })}

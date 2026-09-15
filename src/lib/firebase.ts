@@ -190,6 +190,13 @@ export type KindProfil = {
     // Paket 3 (2026-09-11): Kapitel „Die ganze Partie" an der Steinbrücke — optional, weil
     // bestehende Kinderprofile das Feld noch nicht haben (fehlt = noch nicht gespielt).
     ganzePartie?: boolean;
+    // Update-1-Vorzug (2026-09-15): Wisent-Boss-Puzzle (Pflicht-Herzstück des Wisent-Kampfs,
+    // siehe chessEngine.ts/WISENT_BOSS_POSITION-Kommentar) — genau wie `ganzePartie` optional,
+    // weil bestehende Profile das Feld noch nicht kennen. Die drei optionalen Kürs
+    // (Bauernumwandlung/En passant/Matt in 3 als Kür) sind bewusst NICHT hier mit abgebildet —
+    // sie sind laut Konzept nicht gate-pflichtig und noch nicht verdrahtet (siehe
+    // endlosmodus_verdrahtung_2026-09-15.md-Nachfolgedokument für den Stand).
+    wisentKampf?: boolean;
   };
   screenTimeHeute: { minutenGenutzt: number; datum: string };
   erstelltAm: number;
