@@ -461,7 +461,24 @@ export default function Fesselung() {
             kettenlinie: { von: EIGENER_FESSELNDER_TURM, bis: FREMDER_KOENIG },
           }}
           onCorrectMove={(target) => {
-            tryMove(game, ort, target);
+            const ergebnis = tryMove(game, ort, target);
+            if (!ergebnis.ok) return; // sollte dank legalTargets nicht vorkommen, sicherheitshalber geprüft
+            // Bugfix (Gerätetest 2026-09-16, Christian: "es ist keine Fesselung, wenn ich einen
+            // Springer schlagen kann und dabei meinen eigenen Turm verliere" — gemeint war
+            // hier eigentlich der umgekehrte Fall: der Held-Turm hat NEBEN dem Schlagzug auf
+            // d4 noch mehrere andere, belanglose Legalzüge (a1-c1, d2-d3), die bisher genauso
+            // das Kapitel abschlossen, ohne dass das Kind den Springer je schlug — der
+            // eigentliche Lernpunkt ("sicheres Schlagen dank gegnerischer Fesselung") kam so
+            // nie zwingend vor. Wie in EndlosmodusPuzzle.tsx: `legalTargets` zeigt weiterhin
+            // ALLE echten Legalzüge (nichts wird versteckt), aber nur der Zug nach d4 schließt
+            // den Screen ab. Jeder andere legale Zug bewegt den Turm wirklich dorthin und die
+            // Übung geht von der neuen Position aus weiter.
+            const istSchlagzug = target.row === GEGNERISCHER_SPRINGER.row && target.col === GEGNERISCHER_SPRINGER.col;
+            if (!istSchlagzug) {
+              setOrt(target);
+              setLegalTargets(legalTargetsFor(game, target));
+              return;
+            }
             gehZu(6);
             handleKapitelAbgeschlossen();
           }}

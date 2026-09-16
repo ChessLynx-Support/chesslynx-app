@@ -62,6 +62,27 @@ export type EndlosmodusAufgabe = {
   kettenlinie?: { von: BoardSquare; bis: BoardSquare };
   bedrohtAt?: BoardSquare;
   angreiferAt?: BoardSquare;
+  /**
+   * Bugfix (Gerätetest 2026-09-16, Christian: "Die Quests zum Figuren erobern sind viel zu
+   * einfach, ohne Lernwert, da es die einzige sinnvolle Option ist"): Ohne dieses Feld schließt
+   * JEDER Legalzug der ziehenden Figur die Aufgabe ab (siehe EndlosmodusPuzzle.tsx) — beim Turm
+   * z. B. auch ein belangloser Zug quer übers leere Brett, ohne die gegnerische Figur je zu
+   * berühren. Für "Figur gewinnen" und die Fesselungs-Perspektivwechsel-Aufgaben (freies
+   * Schlagen einer scheinbar gedeckten Figur) ist das der eigentliche Lernpunkt, nicht irgendein
+   * Zug — deshalb hier die tatsächlich lösenden Zielfelder benannt.
+   *
+   * Bewusst KEINE Einschränkung von `legalTargets` selbst (das wäre derselbe Fehler wie die
+   * früheren `onlyCaptureAt`/`onlyTarget`-Filter, siehe QuestMoveScreen.tsx-Kopfkommentar,
+   * "Rechtsbewegung-Bug"): das Brett zeigt weiterhin ALLE echten Legalzüge an und nimmt sie an,
+   * nur die Erfolgs-Wertung (Stern, Abschluss) ist an `zielTargets` gebunden. Ein Zug auf ein
+   * anderes legales Feld bewegt die Figur dorthin wirklich (nichts wird versteckt oder verboten)
+   * und die Übung geht von dort aus weiter — kein Fehler, keine Bestrafung, nur noch nicht
+   * gelöst. Undefined (die meisten übrigen Aufgaben: Schach lösen, Rochade, Fesselung-
+   * Linienbewegung) heißt weiterhin "jeder Legalzug löst", weil dort JEDER Legalzug bereits
+   * durch die Schachregeln selbst zwangsläufig sinnvoll ist (ein Zug aus dem Schach heraus MUSS
+   * das Schach lösen; eine gefesselte Figur darf ohnehin nur auf der Linie bleiben).
+   */
+  zielTargets?: BoardSquare[];
 };
 
 type Drei<T> = [T, T, T];
@@ -75,6 +96,7 @@ export const ENDLOSMODUS_AUFGABEN: Partial<Record<EndlosmodusSpalteId, Drei<Endl
       pieceIcon: <TurmMasterIcon />,
       opponentAt: sq("a6"),
       opponentIcon: <SpringerMasterDunkelIcon />,
+      zielTargets: [sq("a6")], // siehe EndlosmodusAufgabe.zielTargets-Kommentar: nur das Schlagen zählt.
     },
     {
       fen: EICHHOERNCHEN_FIGUR_GEWINNEN_POSITIONS.stern2,
@@ -83,6 +105,7 @@ export const ENDLOSMODUS_AUFGABEN: Partial<Record<EndlosmodusSpalteId, Drei<Endl
       opponentAt: sq("a6"),
       opponentIcon: <SpringerMasterDunkelIcon />,
       zusatzfiguren: [{ at: sq("e6"), icon: <SpringerMasterDunkelIcon /> }],
+      zielTargets: [sq("a6")],
     },
     {
       fen: EICHHOERNCHEN_FIGUR_GEWINNEN_POSITIONS.stern3,
@@ -91,6 +114,7 @@ export const ENDLOSMODUS_AUFGABEN: Partial<Record<EndlosmodusSpalteId, Drei<Endl
       opponentAt: sq("a8"),
       opponentIcon: <SpringerMasterDunkelIcon />,
       zusatzfiguren: [{ at: sq("f5"), icon: <SpringerMasterDunkelIcon /> }],
+      zielTargets: [sq("a8")],
     },
   ],
 
@@ -143,6 +167,7 @@ export const ENDLOSMODUS_AUFGABEN: Partial<Record<EndlosmodusSpalteId, Drei<Endl
       pieceIcon: <TurmMasterIcon />,
       opponentAt: sq("a3"),
       opponentIcon: <SpringerMasterDunkelIcon />,
+      zielTargets: [sq("a3")], // siehe EndlosmodusAufgabe.zielTargets-Kommentar: nur das Schlagen zählt.
     },
     {
       fen: DACHSHOEHLE_FIGUR_GEWINNEN_POSITIONS.stern2,
@@ -151,6 +176,7 @@ export const ENDLOSMODUS_AUFGABEN: Partial<Record<EndlosmodusSpalteId, Drei<Endl
       opponentAt: sq("a4"),
       opponentIcon: <SpringerMasterDunkelIcon />,
       zusatzfiguren: [{ at: sq("d5"), icon: <SpringerMasterDunkelIcon /> }],
+      zielTargets: [sq("a4")],
     },
     {
       fen: DACHSHOEHLE_FIGUR_GEWINNEN_POSITIONS.stern3,
@@ -159,6 +185,7 @@ export const ENDLOSMODUS_AUFGABEN: Partial<Record<EndlosmodusSpalteId, Drei<Endl
       opponentAt: sq("a7"),
       opponentIcon: <SpringerMasterDunkelIcon />,
       zusatzfiguren: [{ at: sq("f4"), icon: <SpringerMasterDunkelIcon /> }],
+      zielTargets: [sq("a7")],
     },
   ],
 
@@ -271,6 +298,10 @@ export const ENDLOSMODUS_AUFGABEN: Partial<Record<EndlosmodusSpalteId, Drei<Endl
         { at: sq("g1"), icon: <TurmMasterIcon /> },
       ],
       kettenlinie: { von: sq("g1"), bis: sq("g8") },
+      // siehe EndlosmodusAufgabe.zielTargets-Kommentar: der Turm hat noch mehrere andere
+      // legale, aber belanglose Züge (a1-e1, f2, f3) — nur das Schlagen auf f4 zeigt den
+      // eigentlichen Lernpunkt (sicheres Schlagen einer scheinbar gedeckten Figur).
+      zielTargets: [sq("f4")],
     },
   ],
 
@@ -311,6 +342,8 @@ export const ENDLOSMODUS_AUFGABEN: Partial<Record<EndlosmodusSpalteId, Drei<Endl
         { at: sq("b4"), icon: <TurmMasterDunkelIcon /> },
       ],
       kettenlinie: { von: sq("b1"), bis: sq("b8") },
+      // siehe EndlosmodusAufgabe.zielTargets-Kommentar: derselbe Fall wie Adlerhorst Stern 3.
+      zielTargets: [sq("e4")],
     },
   ],
 };

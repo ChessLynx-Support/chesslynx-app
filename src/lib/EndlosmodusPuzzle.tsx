@@ -34,11 +34,13 @@ export function EndlosmodusPuzzle({
 }) {
   // Volle Validierung (siehe Datei-Kopfkommentar) — bewusst NICHT createPosition().
   const game = useMemo(() => new Chess(aufgabe.fen), [aufgabe.fen]);
+  const [ort, setOrt] = useState<BoardSquare>(aufgabe.pieceAt);
   const [legalTargets, setLegalTargets] = useState<BoardSquare[]>(() => legalTargetsFor(game, aufgabe.pieceAt));
   const [geloest, setGeloest] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    setOrt(aufgabe.pieceAt);
     setLegalTargets(legalTargetsFor(game, aufgabe.pieceAt));
     setGeloest(false);
     return () => {
@@ -50,7 +52,7 @@ export function EndlosmodusPuzzle({
   const config: BoardConfig = {
     rows: 8,
     cols: 8,
-    pieceAt: aufgabe.pieceAt,
+    pieceAt: ort,
     legalTargets,
     pieceIcon: aufgabe.pieceIcon,
     opponentAt: aufgabe.opponentAt,
@@ -63,8 +65,19 @@ export function EndlosmodusPuzzle({
 
   function handleCorrectMove(target: BoardSquare) {
     if (geloest) return;
-    const ergebnis = tryMove(game, aufgabe.pieceAt, target);
+    const ergebnis = tryMove(game, ort, target);
     if (!ergebnis.ok) return; // sollte dank legalTargets nicht vorkommen, sicherheitshalber geprüft
+    // Bugfix (Gerätetest 2026-09-16, siehe EndlosmodusAufgabe.zielTargets-Kommentar): ist ein
+    // Zielfeld-Set benannt, zählt nur ein Zug DORTHIN als gelöst. Jeder andere angebotene
+    // Legalzug bewegt die Figur trotzdem wirklich (nichts wird versteckt/verboten) — die
+    // Übung geht von der neuen Position aus einfach weiter, ohne Wertung oder Bestrafung.
+    const istZiel =
+      !aufgabe.zielTargets || aufgabe.zielTargets.some((z) => z.row === target.row && z.col === target.col);
+    if (!istZiel) {
+      setOrt(target);
+      setLegalTargets(legalTargetsFor(game, target));
+      return;
+    }
     setGeloest(true);
     timerRef.current = setTimeout(onSolved, ERFOLG_ANZEIGE_MS);
   }
