@@ -42,6 +42,11 @@ import { useLuxSprechzeile } from "../lib/useLuxSprechzeile";
 // unten (interaktiv/uebung/fertig) rotieren jetzt durch mehrere kindgerechte Varianten,
 // statt bei jeder 8-Sekunden-Erinnerung bzw. in jedem Abenteuer identisch zu klingen.
 import { luxVariante, INTERAKTIV_HINWEIS_VARIANTEN, UEBUNG_HINWEIS_VARIANTEN, FERTIG_LOB_VARIANTEN } from "../lib/luxVarianten";
+// Zweisprachige Texte (DE+EN, Key-basiertes System) — siehe lib/sprache.ts und
+// claude/i18next_umstellung_plan_2026-09-15.md. War bis dahin komplett auf festes Deutsch,
+// jetzt im selben Zug übersetzt UND keybasiert migriert, ohne Zwischenschritt über
+// `t(de,en)` (siehe Quest2.tsx-Kommentar zur selben Umstellung).
+import { tk } from "../lib/sprache";
 import { useUntertitelAktiv } from "../lib/untertitelEinstellung";
 import { Verwandlung } from "../lib/Verwandlung";
 import { QuestGeschafft } from "../components/QuestGeschafft";
@@ -60,14 +65,16 @@ type ScreenId = 0 | 1 | "verwandlung" | 2 | 4 | 5 | 7;
 // Update (2026-09-08, Task #109, siehe claude/quest_review_automatik_vollbrett_
 // vorschlag.md Abschnitt 5 und Quest1.tsx-Kommentar): Screen 2 hat ab jetzt KEINEN
 // eigenen Eintrag mehr hier — seine Zeilen sind phasenabhängig, siehe PHASE_LINES unten.
-const SCREEN_SCRIPTS: Record<Exclude<ScreenId, 2>, string[]> = {
+// FUNKTION statt Konstante (2026-09-15, siehe Quest1.tsx-Kommentar zur selben Regel).
+function screenScripts(): Record<Exclude<ScreenId, 2>, string[]> {
+  return {
   0: [
-    "Weiter geht's durch den Wald von ChessLynx!",
-    "Hier lebt eine neue Freundin.",
+    tk("quest3.screen0.zeile1"),
+    tk("quest3.screen0.zeile2"),
     // Gerätetest 2026-09-11 (Nutzerwunsch): die Vorstellung läuft bis zur Verwandlung von
     // selbst — getippt wird nur noch auf das Tier, nach Lux' Aufforderung. Deshalb keine
     // "Tipp weiter"-Aufforderung mehr.
-    "Komm, wir lernen sie kennen!",
+    tk("quest3.screen0.zeile3"),
   ],
   // Update (2026-09-10, siehe Quest2.tsx-Kommentar zur selben Änderung): "Hallo! Ich
   // bin's wieder, Lux." ersatzlos gestrichen.
@@ -86,40 +93,44 @@ const SCREEN_SCRIPTS: Record<Exclude<ScreenId, 2>, string[]> = {
     //
     // Ohne Code-Änderung: `autoWeiter` blättert die neuen Zeilen nach dem Sprechende von
     // selbst weiter, `isLastLine` hält die Tipp-Aufforderung als einzige tap-gesteuerte Zeile.
-    "Das ist die Eule.",
-    "Sie sieht alles, auch was weit weg ist.",
-    "Sie fliegt nie geradeaus, sondern immer schräg durch die Bäume.",
+    tk("quest3.screen1.zeile1"),
+    tk("quest3.screen1.zeile2"),
+    tk("quest3.screen1.zeile3"),
     // Update (2026-09-08, Task #109, siehe claude/vorgemerkt_quest_tempo_und_
     // automatikvorfuehrung.md Punkt 3): löst "Tipp irgendwo hin, um weiterzumachen" ab —
     // fordert jetzt konkret dazu auf, GENAU die (jetzt sichtbar pulsierende) Eule
     // anzutippen, siehe Screen-1-Aufrufstelle unten.
-    "Tippe die Eule an, um die Verwandlung zur Schachfigur zu sehen.",
+    tk("quest3.screen1.zeile4"),
   ],
-  verwandlung: ["Und jetzt die Verwandlung: Aus der Eule wird ein Läufer!"],
+  verwandlung: [tk("quest3.verwandlung.zeile1")],
   4: [
-    "Da steht jemand mitten auf dem Weg.",
-    "Der Läufer kann nicht darüber hinwegziehen.",
-    "Er darf aber die andere Richtung nehmen.",
+    tk("quest3.screen4.zeile1"),
+    tk("quest3.screen4.zeile2"),
+    tk("quest3.screen4.zeile3"),
   ],
   // Update (2026-09-10, siehe Quest1.tsx-Kommentar zur selben Formulierungsänderung):
   // "freundlich begrüßen" ersetzt durch "einfangen".
   // Paket 1 (2026-09-11, Entscheidungslog): "schlagen" wird in Quest 1 per Brückenzeile
   // eingeführt und ab hier durchgängig verwendet — kein "begrüßen", kein "einfangen" mehr.
-  5: ["Am Ende des Weges ist eine gegnerische Figur aufgetaucht.", "Schlag sie – zieh einfach dorthin!"],
+  5: [tk("quest3.screen5.zeile1"), tk("quest3.screen5.zeile2")],
   // Update (2026-09-08, siehe Kommentar an der screen===7-Stelle unten): zweite Zeile nennt
   // jetzt explizit das Antippen und wohin es führt (Karte statt nächste Quest).
   // Paket 1 (2026-09-11, Audit C.2): Ich-/Wir-Perspektive statt Lux in der dritten Person.
-  7: ["Wir haben ein neues Gebiet entdeckt!", "Wunderbar gemacht! Tippe, um zurück zur Karte zu gehen."],
-};
+  7: [tk("quest3.screen7.zeile1"), tk("quest3.screen7.zeile2")],
+  };
+}
 
 // Neu (2026-09-08, Task #109, siehe Kommentar bei SCREEN_SCRIPTS oben und Quest1.tsx):
 // Screen 2s Zeilen sind jetzt an die von QuestMoveScreen gemeldete QuestPhase gekoppelt.
-const PHASE_LINES: Record<QuestPhase, string[]> = {
-  vorfuehrung: ["Der Läufer zieht immer schräg, nie gerade.", "Schau mal, so zieht der Läufer!"],
-  interaktiv: ["Jetzt bist du dran!", "Tipp auf ein leuchtendes Feld."],
-  uebung: ["Kannst du das noch ein paar Mal?"],
-  fertig: ["Super, das kannst du schon richtig gut!"],
-};
+// Siehe Kommentar bei screenScripts() — aus demselben Grund eine Funktion.
+function phaseLines(): Record<QuestPhase, string[]> {
+  return {
+  vorfuehrung: [tk("quest3.screen2.vorfuehrung.zeile1"), tk("quest3.screen2.vorfuehrung.zeile2")],
+  interaktiv: [tk("quest3.screen2.interaktiv.zeile1"), tk("quest3.screen2.interaktiv.zeile2")],
+  uebung: [tk("quest3.screen2.uebung.zeile1")],
+  fertig: [tk("quest3.screen2.fertig.zeile1")],
+  };
+}
 
 // Startfeld des Läufers in allen Quest3-FENs.
 const PIECE_AT: BoardSquare = { row: 4, col: 3 }; // d4
@@ -142,7 +153,7 @@ export default function Quest3() {
   // Sicherheitsnetz, selbst wenn die Sprachausgabe ganz ausfällt.
   const [verwandlungBereit, setVerwandlungBereit] = useState(false);
 
-  const lines = screen === 2 ? PHASE_LINES[movePhase] : SCREEN_SCRIPTS[screen];
+  const lines = screen === 2 ? phaseLines()[movePhase] : screenScripts()[screen];
   const isLastLine = lineIndex === lines.length - 1;
 
   function advanceOrGo(next: ScreenId) {
@@ -223,7 +234,7 @@ export default function Quest3() {
         style={styles.luxCorner}
         onPress={wiederholen}
         hitSlop={{ top: 12, left: 12, right: 12, bottom: 12 }}
-        accessibilityLabel="Lux, tippen zum Wiederholen"
+        accessibilityLabel={tk("quest3.a11y.lux_wiederholen")}
       >
         <LuxEckIcon size={52} />
       </Pressable>
@@ -253,7 +264,7 @@ export default function Quest3() {
             onPress={() => advanceOrGo("verwandlung")}
             disabled={!isLastLine}
             hitSlop={{ top: 24, left: 24, right: 24, bottom: 24 }}
-            accessibilityLabel="Die Eule antippen, um die Verwandlung zu sehen"
+            accessibilityLabel={tk("quest3.a11y.eule_antippen")}
           >
             <LuxAtem dauer={900} betrag={1.08}>
               <QuestTierIcon quest="quest3" size={150} />

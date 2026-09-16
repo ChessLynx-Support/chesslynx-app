@@ -1,0 +1,242 @@
+{
+  "quest1": {
+    "screen1": {
+      "zeile1": "This is the hedgehog.",
+      "zeile2": "He's small. And still the bravest in our forest.",
+      "zeile3": "He only ever takes small steps forward, never back.",
+      "zeile4": "Tap the hedgehog to see him turn into a chess piece."
+    },
+    "verwandlung": {
+      "zeile1": "And now watch closely: the hedgehog turns into a pawn!"
+    },
+    "screen4": {
+      "zeile1": "Sometimes another piece is in the way.",
+      "zeile2": "Then our pawn can't get past it — the path is blocked.",
+      "zeile3": "The pawn can't jump straight over another piece.",
+      "zeile4": "Go ahead and try it."
+    },
+    "screen5": {
+      "zeile1": "A piece from the other side has turned up over there.",
+      "zeile2": "We're going to catch it. In chess that's called capturing.",
+      "zeile3": "Capture it: move diagonally forward onto that square!"
+    },
+    "screen7": {
+      "zeile1": "We've found a new part of the forest!",
+      "zeile2": "Beautifully done! Tap to go back to the map."
+    },
+    "screen2": {
+      "vorfuehrung": {
+        "zeile1": "On its very first move, the pawn may go forward one square or two.",
+        "zeile2": "Look, this is how the pawn moves!"
+      },
+      "interaktiv": {
+        "zeile1": "Now it's your turn!",
+        "zeile2": "Tap a glowing square."
+      },
+      "uebung": {
+        "zeile1": "Can you do that a few more times?"
+      },
+      "fertig": {
+        "zeile1": "Great! You're really good at this already!"
+      }
+    },
+    "a11y": {
+      "lux_wiederholen": "Lux, tap to hear it again",
+      "igel_antippen": "Tap the hedgehog to see him change"
+    }
+  },
+  "quest2": {
+    "screen0": {
+      "zeile1": "Onward, through the ChessLynx forest!",
+      "zeile2": "A new friend lives here.",
+      "zeile3": "Come on, let's meet him!"
+    },
+    "screen1": {
+      "zeile1": "This is the bear.",
+      "zeile2": "He's big, strong, and very calm.",
+      "zeile3": "He likes to walk in perfectly straight lines, and he can go a very long way.",
+      "zeile4": "Tap the bear to see him turn into a chess piece."
+    },
+    "verwandlung": {
+      "zeile1": "And now watch closely: the bear turns into a rook!"
+    },
+    "screen4": {
+      "zeile1": "Someone's standing right in the way.",
+      "zeile2": "The rook can't move past it.",
+      "zeile3": "But it can still move to the side."
+    },
+    "screen5": {
+      "zeile1": "A piece from the other side has turned up at the end of the path.",
+      "zeile2": "Capture it: just move there!"
+    },
+    "screen7": {
+      "zeile1": "We've found a new part of the forest!",
+      "zeile2": "Beautifully done! Tap to go back to the map."
+    },
+    "screen2": {
+      "vorfuehrung": {
+        "zeile1": "From now on you'll see the whole chessboard.",
+        "zeile2": "That way you can always see every possibility at once.",
+        "zeile3": "The rook may move as far as the path is clear.",
+        "zeile4": "Look, this is how the rook moves!"
+      },
+      "interaktiv": {
+        "zeile1": "Now it's your turn!",
+        "zeile2": "Tap a glowing square."
+      },
+      "uebung": {
+        "zeile1": "Can you do that a few more times?"
+      },
+      "fertig": {
+        "zeile1": "Great! You're really good at this already!"
+      }
+    },
+    "a11y": {
+      "lux_wiederholen": "Lux, tap to hear it again",
+      "baer_antippen": "Tap the bear to see him change"
+    }
+  },
+  "quest3": {
+    "screen0": {
+      "zeile1": "Onward, through the ChessLynx forest!",
+      "zeile2": "A new friend lives here.",
+      "zeile3": "Come on, let's meet her!"
+    },
+    "screen1": {
+      "zeile1": "This is the owl.",
+      "zeile2": "She sees everything, even things far away.",
+      "zeile3": "She never flies straight — always diagonally through the trees.",
+      "zeile4": "Tap the owl to see her turn into a chess piece."
+    },
+    "verwandlung": {
+      "zeile1": "And now watch closely: the owl turns into a bishop!"
+    },
+    "screen4": {
+      "zeile1": "Someone's standing right in the way.",
+      "zeile2": "The bishop can't move past it.",
+      "zeile3": "But it can still go the other way."
+    },
+    "screen5": {
+      "zeile1": "A piece from the other side has turned up at the end of the path.",
+      "zeile2": "Capture it: just move there!"
+    },
+    "screen7": {
+      "zeile1": "We've found a new part of the forest!",
+      "zeile2": "Beautifully done! Tap to go back to the map."
+    },
+    "screen2": {
+      "vorfuehrung": {
+        "zeile1": "The bishop always moves diagonally, never straight.",
+        "zeile2": "Look, this is how the bishop moves!"
+      },
+      "interaktiv": {
+        "zeile1": "Now it's your turn!",
+        "zeile2": "Tap a glowing square."
+      },
+      "uebung": {
+        "zeile1": "Can you do that a few more times?"
+      },
+      "fertig": {
+        "zeile1": "Great! You're really good at this already!"
+      }
+    },
+    "a11y": {
+      "lux_wiederholen": "Lux, tap to hear it again",
+      "eule_antippen": "Tap the owl to see her change"
+    }
+  },
+  "quest4": {
+    "screen0": {
+      "zeile1": "Onward, through the ChessLynx forest!",
+      "zeile2": "A new friend lives here.",
+      "zeile3": "Come on, let's meet him!"
+    },
+    "screen1": {
+      "zeile1": "This is the horse.",
+      "zeile2": "He's fast and playful.",
+      "zeile3": "And he jumps — over rocks, over bushes, over anything in the way.",
+      "zeile4": "Tap the horse to see him turn into a chess piece."
+    },
+    "verwandlung": {
+      "zeile1": "And now watch closely: the horse turns into a knight!"
+    },
+    "screen4": {
+      "zeile1": "Look, there's a little row of pawns behind the knight.",
+      "zeile2": "They don't bother him at all. He simply hops right over them.",
+      "zeile3": "A piece from the other side has turned up further back. Can you capture it?"
+    },
+    "screen7": {
+      "zeile1": "We've found a new part of the forest!",
+      "zeile2": "Beautifully done! Tap to go back to the map."
+    },
+    "screen2": {
+      "vorfuehrung": {
+        "zeile1": "The knight always hops in an L-shape: two squares one way, then one to the side.",
+        "zeile2": "Look, this is how the knight hops!"
+      },
+      "interaktiv": {
+        "zeile1": "Now it's your turn!",
+        "zeile2": "Tap a glowing square."
+      },
+      "uebung": {
+        "zeile1": "Can you do that a few more times?"
+      },
+      "fertig": {
+        "zeile1": "Great! You're really good at this already!"
+      }
+    },
+    "a11y": {
+      "lux_wiederholen": "Lux, tap to hear it again",
+      "pferd_antippen": "Tap the horse to see him change"
+    }
+  },
+  "quest5": {
+    "screen0": {
+      "zeile1": "Onward, through the ChessLynx forest!",
+      "zeile2": "A new friend lives here.",
+      "zeile3": "Come on, let's meet her!"
+    },
+    "screen1": {
+      "zeile1": "This is the swan.",
+      "zeile2": "He's elegant and very proud.",
+      "zeile3": "He can get anywhere: straight, diagonal, any direction at all.",
+      "zeile4": "Tap the swan to see him turn into a chess piece."
+    },
+    "verwandlung": {
+      "zeile1": "And now watch closely: the swan turns into a queen!"
+    },
+    "screen4": {
+      "zeile1": "Someone's standing right in the way.",
+      "zeile2": "Even the queen can't move past it.",
+      "zeile3": "But she can still go any other direction."
+    },
+    "screen5": {
+      "zeile1": "A piece from the other side has turned up at the end of the path.",
+      "zeile2": "Capture it: just move there!"
+    },
+    "screen7": {
+      "zeile1": "We've found a new part of the forest!",
+      "zeile2": "Beautifully done! Tap to go back to the map."
+    },
+    "screen2": {
+      "vorfuehrung": {
+        "zeile1": "The queen moves like the rook AND the bishop. Straight and diagonal, all at once!",
+        "zeile2": "Look, this is how the queen moves!"
+      },
+      "interaktiv": {
+        "zeile1": "Now it's your turn!",
+        "zeile2": "Tap a glowing square."
+      },
+      "uebung": {
+        "zeile1": "Can you do that a few more times?"
+      },
+      "fertig": {
+        "zeile1": "Great! You're really good at this already!"
+      }
+    },
+    "a11y": {
+      "lux_wiederholen": "Lux, tap to hear it again",
+      "schwan_antippen": "Tap the swan to see him change"
+    }
+  }
+}

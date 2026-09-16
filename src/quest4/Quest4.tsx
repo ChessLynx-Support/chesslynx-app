@@ -62,6 +62,10 @@ import { useLuxSprechzeile } from "../lib/useLuxSprechzeile";
 // unten (interaktiv/uebung/fertig) rotieren jetzt durch mehrere kindgerechte Varianten,
 // statt bei jeder 8-Sekunden-Erinnerung bzw. in jedem Abenteuer identisch zu klingen.
 import { luxVariante, INTERAKTIV_HINWEIS_VARIANTEN, UEBUNG_HINWEIS_VARIANTEN, FERTIG_LOB_VARIANTEN } from "../lib/luxVarianten";
+// Zweisprachige Texte (DE+EN, Key-basiertes System) — siehe lib/sprache.ts und
+// claude/i18next_umstellung_plan_2026-09-15.md. War bis dahin komplett auf festes Deutsch,
+// jetzt im selben Zug übersetzt UND keybasiert migriert (siehe Quest2.tsx-Kommentar).
+import { tk } from "../lib/sprache";
 import { useUntertitelAktiv } from "../lib/untertitelEinstellung";
 import { Verwandlung } from "../lib/Verwandlung";
 import { QuestGeschafft } from "../components/QuestGeschafft";
@@ -81,14 +85,16 @@ type ScreenId = 0 | 1 | "verwandlung" | 2 | 4 | 7;
 // vorschlag.md Abschnitt 5 und Quest1.tsx-Kommentar): Screen 2 hat ab jetzt KEINEN
 // eigenen Eintrag mehr hier — seine Zeilen sind phasenabhängig, siehe PHASE_LINES unten.
 // Screen 4 (Sprung-Überraschung + Schlagen) bleibt unverändert.
-const SCREEN_SCRIPTS: Record<Exclude<ScreenId, 2>, string[]> = {
+// FUNKTION statt Konstante (2026-09-15, siehe Quest1.tsx-Kommentar zur selben Regel).
+function screenScripts(): Record<Exclude<ScreenId, 2>, string[]> {
+  return {
   0: [
-    "Weiter geht's durch den Wald von ChessLynx!",
-    "Hier lebt ein neuer Freund.",
+    tk("quest4.screen0.zeile1"),
+    tk("quest4.screen0.zeile2"),
     // Gerätetest 2026-09-11 (Nutzerwunsch): die Vorstellung läuft bis zur Verwandlung von
     // selbst — getippt wird nur noch auf das Tier, nach Lux' Aufforderung. Deshalb keine
     // "Tipp weiter"-Aufforderung mehr.
-    "Komm, wir lernen ihn kennen!",
+    tk("quest4.screen0.zeile3"),
   ],
   // Update (2026-09-10, siehe Quest2.tsx-Kommentar zur selben Änderung): "Hallo! Ich
   // bin's wieder, Lux." ersatzlos gestrichen.
@@ -107,41 +113,45 @@ const SCREEN_SCRIPTS: Record<Exclude<ScreenId, 2>, string[]> = {
     //
     // Ohne Code-Änderung: `autoWeiter` blättert die neuen Zeilen nach dem Sprechende von
     // selbst weiter, `isLastLine` hält die Tipp-Aufforderung als einzige tap-gesteuerte Zeile.
-    "Das ist das Pferd.",
-    "Es ist schnell und verspielt.",
-    "Und es springt: über Steine, über Büsche, über alles, was im Weg steht.",
+    tk("quest4.screen1.zeile1"),
+    tk("quest4.screen1.zeile2"),
+    tk("quest4.screen1.zeile3"),
     // Update (2026-09-08, Task #109, siehe claude/vorgemerkt_quest_tempo_und_
     // automatikvorfuehrung.md Punkt 3): löst "Tipp irgendwo hin, um weiterzumachen" ab —
     // fordert jetzt konkret dazu auf, GENAU das (jetzt sichtbar pulsierende) Pferd
     // anzutippen, siehe Screen-1-Aufrufstelle unten.
-    "Tippe das Pferd an, um die Verwandlung zur Schachfigur zu sehen.",
+    tk("quest4.screen1.zeile4"),
   ],
-  verwandlung: ["Und jetzt die Verwandlung: Aus dem Pferd wird ein Springer!"],
+  verwandlung: [tk("quest4.verwandlung.zeile1")],
   4: [
-    "Schau, hinter dem Springer steht eine kleine Bauernkette.",
-    "Die stören ihn überhaupt nicht. Er hüpft einfach über alle hinweg.",
+    tk("quest4.screen4.zeile1"),
+    tk("quest4.screen4.zeile2"),
     // Update (2026-09-10, siehe Quest1.tsx-Kommentar zur selben Formulierungsänderung):
     // "wartet sogar Besuch. Kannst du ihn schlagen?" ersetzt durch "einfangen"-Framing.
     // Paket 1 (2026-09-11): "schlagen" statt "einfangen", siehe Quest1.tsx Screen 5.
-    "Ganz hinten ist eine gegnerische Figur aufgetaucht. Kannst du sie schlagen?",
+    tk("quest4.screen4.zeile3"),
   ],
   // Update (2026-09-08, siehe Kommentar an der screen===7-Stelle unten): zweite Zeile nennt
   // jetzt explizit das Antippen und wohin es führt (Karte statt nächste Quest).
   // Paket 1 (2026-09-11, Audit C.2): Ich-/Wir-Perspektive statt Lux in der dritten Person.
-  7: ["Wir haben ein neues Gebiet entdeckt!", "Wunderbar gemacht! Tippe, um zurück zur Karte zu gehen."],
-};
+  7: [tk("quest4.screen7.zeile1"), tk("quest4.screen7.zeile2")],
+  };
+}
 
 // Neu (2026-09-08, Task #109, siehe Kommentar bei SCREEN_SCRIPTS oben und Quest1.tsx):
 // Screen 2s Zeilen sind jetzt an die von QuestMoveScreen gemeldete QuestPhase gekoppelt.
-const PHASE_LINES: Record<QuestPhase, string[]> = {
+// Siehe Kommentar bei screenScripts() — aus demselben Grund eine Funktion.
+function phaseLines(): Record<QuestPhase, string[]> {
+  return {
   vorfuehrung: [
-    "Der Springer hüpft immer im Winkel. Zwei Felder in eine Richtung, dann eins zur Seite.",
-    "Schau mal, so hüpft der Springer!",
+    tk("quest4.screen2.vorfuehrung.zeile1"),
+    tk("quest4.screen2.vorfuehrung.zeile2"),
   ],
-  interaktiv: ["Jetzt bist du dran!", "Tipp auf ein leuchtendes Feld."],
-  uebung: ["Kannst du das noch ein paar Mal?"],
-  fertig: ["Super, das kannst du schon richtig gut!"],
-};
+  interaktiv: [tk("quest4.screen2.interaktiv.zeile1"), tk("quest4.screen2.interaktiv.zeile2")],
+  uebung: [tk("quest4.screen2.uebung.zeile1")],
+  fertig: [tk("quest4.screen2.fertig.zeile1")],
+  };
+}
 
 // Startfeld des Springers in allen Quest4-FENs.
 const PIECE_AT: BoardSquare = { row: 4, col: 3 }; // d4
@@ -164,7 +174,7 @@ export default function Quest4() {
   // Sicherheitsnetz, selbst wenn die Sprachausgabe ganz ausfällt.
   const [verwandlungBereit, setVerwandlungBereit] = useState(false);
 
-  const lines = screen === 2 ? PHASE_LINES[movePhase] : SCREEN_SCRIPTS[screen];
+  const lines = screen === 2 ? phaseLines()[movePhase] : screenScripts()[screen];
   const isLastLine = lineIndex === lines.length - 1;
 
   function advanceOrGo(next: ScreenId) {
@@ -245,7 +255,7 @@ export default function Quest4() {
         style={styles.luxCorner}
         onPress={wiederholen}
         hitSlop={{ top: 12, left: 12, right: 12, bottom: 12 }}
-        accessibilityLabel="Lux, tippen zum Wiederholen"
+        accessibilityLabel={tk("quest4.a11y.lux_wiederholen")}
       >
         <LuxEckIcon size={52} />
       </Pressable>
@@ -275,7 +285,7 @@ export default function Quest4() {
             onPress={() => advanceOrGo("verwandlung")}
             disabled={!isLastLine}
             hitSlop={{ top: 24, left: 24, right: 24, bottom: 24 }}
-            accessibilityLabel="Das Pferd antippen, um die Verwandlung zu sehen"
+            accessibilityLabel={tk("quest4.a11y.pferd_antippen")}
           >
             <LuxAtem dauer={900} betrag={1.08}>
               <QuestTierIcon quest="quest4" size={150} />

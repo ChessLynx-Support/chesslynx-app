@@ -1,0 +1,242 @@
+{
+  "quest1": {
+    "screen1": {
+      "zeile1": "Das ist der Igel.",
+      "zeile2": "Er ist klein. Und trotzdem der Mutigste in unserem Wald.",
+      "zeile3": "Er macht immer nur kleine Schritte nach vorn, nie zurück.",
+      "zeile4": "Tippe den Igel an, um die Verwandlung zur Schachfigur zu sehen."
+    },
+    "verwandlung": {
+      "zeile1": "Und jetzt die Verwandlung: Aus dem Igel wird ein Bauer!"
+    },
+    "screen4": {
+      "zeile1": "Manchmal steht eine Figur auf dem Weg.",
+      "zeile2": "Dann kommt unser Bauer nicht daran vorbei, der Weg ist blockiert.",
+      "zeile3": "Der Bauer kann nicht geradeaus über eine andere Figur springen.",
+      "zeile4": "Versuch es ruhig einmal aus."
+    },
+    "screen5": {
+      "zeile1": "Da drüben ist eine gegnerische Figur aufgetaucht.",
+      "zeile2": "Wir fangen sie ein – in der Schachwelt sagt man dazu: schlagen.",
+      "zeile3": "Schlag sie – zieh schräg nach vorne dorthin!"
+    },
+    "screen7": {
+      "zeile1": "Wir haben ein neues Gebiet entdeckt!",
+      "zeile2": "Wunderbar gemacht! Tippe, um zurück zur Karte zu gehen."
+    },
+    "screen2": {
+      "vorfuehrung": {
+        "zeile1": "Beim ersten Zug darf der Bauer ein oder zwei Felder nach vorne gehen.",
+        "zeile2": "Schau mal, so zieht der Bauer!"
+      },
+      "interaktiv": {
+        "zeile1": "Jetzt bist du dran!",
+        "zeile2": "Tipp auf ein leuchtendes Feld."
+      },
+      "uebung": {
+        "zeile1": "Kannst du das noch ein paar Mal?"
+      },
+      "fertig": {
+        "zeile1": "Super, das kannst du schon richtig gut!"
+      }
+    },
+    "a11y": {
+      "lux_wiederholen": "Lux, tippen zum Wiederholen",
+      "igel_antippen": "Den Igel antippen, um die Verwandlung zu sehen"
+    }
+  },
+  "quest2": {
+    "screen0": {
+      "zeile1": "Weiter geht's durch den Wald von ChessLynx!",
+      "zeile2": "Hier lebt ein neuer Freund.",
+      "zeile3": "Komm, wir lernen ihn kennen!"
+    },
+    "screen1": {
+      "zeile1": "Das ist der Bär.",
+      "zeile2": "Er ist groß, stark und ganz ruhig.",
+      "zeile3": "Er läuft am liebsten schnurgerade, und dabei ganz weite Wege.",
+      "zeile4": "Tippe den Bären an, um die Verwandlung zur Schachfigur zu sehen."
+    },
+    "verwandlung": {
+      "zeile1": "Und jetzt die Verwandlung: Aus dem Bären wird ein Turm!"
+    },
+    "screen4": {
+      "zeile1": "Da steht jemand mitten auf dem Weg.",
+      "zeile2": "Der Turm kann nicht darüber hinwegziehen.",
+      "zeile3": "Er darf aber trotzdem zur Seite ziehen."
+    },
+    "screen5": {
+      "zeile1": "Am Ende des Weges ist eine gegnerische Figur aufgetaucht.",
+      "zeile2": "Schlag sie – zieh einfach dorthin!"
+    },
+    "screen7": {
+      "zeile1": "Wir haben ein neues Gebiet entdeckt!",
+      "zeile2": "Wunderbar gemacht! Tippe, um zurück zur Karte zu gehen."
+    },
+    "screen2": {
+      "vorfuehrung": {
+        "zeile1": "Ab jetzt siehst du das ganze Schachbrett.",
+        "zeile2": "So siehst du immer alle Möglichkeiten auf einmal.",
+        "zeile3": "Der Turm darf so weit ziehen, wie der Weg frei ist.",
+        "zeile4": "Schau mal, so zieht der Turm!"
+      },
+      "interaktiv": {
+        "zeile1": "Jetzt bist du dran!",
+        "zeile2": "Tipp auf ein leuchtendes Feld."
+      },
+      "uebung": {
+        "zeile1": "Kannst du das noch ein paar Mal?"
+      },
+      "fertig": {
+        "zeile1": "Super, das kannst du schon richtig gut!"
+      }
+    },
+    "a11y": {
+      "lux_wiederholen": "Lux, tippen zum Wiederholen",
+      "baer_antippen": "Den Bären antippen, um die Verwandlung zu sehen"
+    }
+  },
+  "quest3": {
+    "screen0": {
+      "zeile1": "Weiter geht's durch den Wald von ChessLynx!",
+      "zeile2": "Hier lebt eine neue Freundin.",
+      "zeile3": "Komm, wir lernen sie kennen!"
+    },
+    "screen1": {
+      "zeile1": "Das ist die Eule.",
+      "zeile2": "Sie sieht alles, auch was weit weg ist.",
+      "zeile3": "Sie fliegt nie geradeaus, sondern immer schräg durch die Bäume.",
+      "zeile4": "Tippe die Eule an, um die Verwandlung zur Schachfigur zu sehen."
+    },
+    "verwandlung": {
+      "zeile1": "Und jetzt die Verwandlung: Aus der Eule wird ein Läufer!"
+    },
+    "screen4": {
+      "zeile1": "Da steht jemand mitten auf dem Weg.",
+      "zeile2": "Der Läufer kann nicht darüber hinwegziehen.",
+      "zeile3": "Er darf aber die andere Richtung nehmen."
+    },
+    "screen5": {
+      "zeile1": "Am Ende des Weges ist eine gegnerische Figur aufgetaucht.",
+      "zeile2": "Schlag sie – zieh einfach dorthin!"
+    },
+    "screen7": {
+      "zeile1": "Wir haben ein neues Gebiet entdeckt!",
+      "zeile2": "Wunderbar gemacht! Tippe, um zurück zur Karte zu gehen."
+    },
+    "screen2": {
+      "vorfuehrung": {
+        "zeile1": "Der Läufer zieht immer schräg, nie gerade.",
+        "zeile2": "Schau mal, so zieht der Läufer!"
+      },
+      "interaktiv": {
+        "zeile1": "Jetzt bist du dran!",
+        "zeile2": "Tipp auf ein leuchtendes Feld."
+      },
+      "uebung": {
+        "zeile1": "Kannst du das noch ein paar Mal?"
+      },
+      "fertig": {
+        "zeile1": "Super, das kannst du schon richtig gut!"
+      }
+    },
+    "a11y": {
+      "lux_wiederholen": "Lux, tippen zum Wiederholen",
+      "eule_antippen": "Die Eule antippen, um die Verwandlung zu sehen"
+    }
+  },
+  "quest4": {
+    "screen0": {
+      "zeile1": "Weiter geht's durch den Wald von ChessLynx!",
+      "zeile2": "Hier lebt ein neuer Freund.",
+      "zeile3": "Komm, wir lernen ihn kennen!"
+    },
+    "screen1": {
+      "zeile1": "Das ist das Pferd.",
+      "zeile2": "Es ist schnell und verspielt.",
+      "zeile3": "Und es springt: über Steine, über Büsche, über alles, was im Weg steht.",
+      "zeile4": "Tippe das Pferd an, um die Verwandlung zur Schachfigur zu sehen."
+    },
+    "verwandlung": {
+      "zeile1": "Und jetzt die Verwandlung: Aus dem Pferd wird ein Springer!"
+    },
+    "screen4": {
+      "zeile1": "Schau, hinter dem Springer steht eine kleine Bauernkette.",
+      "zeile2": "Die stören ihn überhaupt nicht. Er hüpft einfach über alle hinweg.",
+      "zeile3": "Ganz hinten ist eine gegnerische Figur aufgetaucht. Kannst du sie schlagen?"
+    },
+    "screen7": {
+      "zeile1": "Wir haben ein neues Gebiet entdeckt!",
+      "zeile2": "Wunderbar gemacht! Tippe, um zurück zur Karte zu gehen."
+    },
+    "screen2": {
+      "vorfuehrung": {
+        "zeile1": "Der Springer hüpft immer im Winkel. Zwei Felder in eine Richtung, dann eins zur Seite.",
+        "zeile2": "Schau mal, so hüpft der Springer!"
+      },
+      "interaktiv": {
+        "zeile1": "Jetzt bist du dran!",
+        "zeile2": "Tipp auf ein leuchtendes Feld."
+      },
+      "uebung": {
+        "zeile1": "Kannst du das noch ein paar Mal?"
+      },
+      "fertig": {
+        "zeile1": "Super, das kannst du schon richtig gut!"
+      }
+    },
+    "a11y": {
+      "lux_wiederholen": "Lux, tippen zum Wiederholen",
+      "pferd_antippen": "Das Pferd antippen, um die Verwandlung zu sehen"
+    }
+  },
+  "quest5": {
+    "screen0": {
+      "zeile1": "Weiter geht's durch den Wald von ChessLynx!",
+      "zeile2": "Hier lebt eine neue Freundin.",
+      "zeile3": "Komm, wir lernen sie kennen!"
+    },
+    "screen1": {
+      "zeile1": "Das ist der Schwan.",
+      "zeile2": "Er ist elegant und sehr stolz.",
+      "zeile3": "Er kommt überall hin: geradeaus, schräg, in jede Richtung.",
+      "zeile4": "Tippe den Schwan an, um die Verwandlung zur Schachfigur zu sehen."
+    },
+    "verwandlung": {
+      "zeile1": "Und jetzt die Verwandlung: Aus dem Schwan wird eine Dame!"
+    },
+    "screen4": {
+      "zeile1": "Da steht jemand mitten auf dem Weg.",
+      "zeile2": "Auch die Dame kann nicht darüber hinwegziehen.",
+      "zeile3": "Sie darf aber jede andere Richtung nehmen."
+    },
+    "screen5": {
+      "zeile1": "Am Ende des Weges ist eine gegnerische Figur aufgetaucht.",
+      "zeile2": "Schlag sie – zieh einfach dorthin!"
+    },
+    "screen7": {
+      "zeile1": "Wir haben ein neues Gebiet entdeckt!",
+      "zeile2": "Wunderbar gemacht! Tippe, um zurück zur Karte zu gehen."
+    },
+    "screen2": {
+      "vorfuehrung": {
+        "zeile1": "Die Dame zieht wie der Turm UND wie der Läufer. Gerade und schräg, alles auf einmal!",
+        "zeile2": "Schau mal, so zieht die Dame!"
+      },
+      "interaktiv": {
+        "zeile1": "Jetzt bist du dran!",
+        "zeile2": "Tipp auf ein leuchtendes Feld."
+      },
+      "uebung": {
+        "zeile1": "Kannst du das noch ein paar Mal?"
+      },
+      "fertig": {
+        "zeile1": "Super, das kannst du schon richtig gut!"
+      }
+    },
+    "a11y": {
+      "lux_wiederholen": "Lux, tippen zum Wiederholen",
+      "schwan_antippen": "Den Schwan antippen, um die Verwandlung zu sehen"
+    }
+  }
+}

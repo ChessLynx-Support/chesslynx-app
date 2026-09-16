@@ -63,8 +63,11 @@ import { useLuxSprechzeile } from "../lib/useLuxSprechzeile";
 // unten (interaktiv/uebung/fertig) rotieren jetzt durch mehrere kindgerechte Varianten,
 // statt bei jeder 8-Sekunden-Erinnerung bzw. in jedem Abenteuer identisch zu klingen.
 import { luxVariante, INTERAKTIV_HINWEIS_VARIANTEN, UEBUNG_HINWEIS_VARIANTEN, FERTIG_LOB_VARIANTEN } from "../lib/luxVarianten";
-// Zweisprachige Texte (DE+EN-Simultanlaunch) — siehe lib/sprache.ts.
-import { t } from "../lib/sprache";
+// Zweisprachige Texte (DE+EN-Simultanlaunch) — siehe lib/sprache.ts. `tk()` (Key-basiertes
+// System, Christian-Entscheidung 2026-09-15) löst `t(de, en)` hier als erstes Referenz-File
+// vollständig ab, siehe claude/i18next_umstellung_plan_2026-09-15.md. Katalog-Keys stehen in
+// content/sprachen/<code>/common.json unter "quest1".
+import { tk } from "../lib/sprache";
 import { useUntertitelAktiv } from "../lib/untertitelEinstellung";
 import { Verwandlung } from "../lib/Verwandlung";
 // Feier-Animation für "Quest abgeschlossen" — analog für Quest2–6 (siehe dortige Dateien).
@@ -105,11 +108,11 @@ type ScreenId = 1 | "verwandlung" | 2 | 4 | 5 | 7;
 // Vorstellung auf dem leeren Brett) ist ersatzlos entfallen — diese Aufgabe übernimmt jetzt
 // vollständig `screens/WillkommensSequenz.tsx`, die VOR jedem Antippen eines Quest-Markers
 // läuft.
-// FUNKTION statt Konstante (2026-09-14): `t()` liest die Sprache im Moment des Aufrufs. Als
-// Modulkonstante würde diese Liste beim Import ausgewertet — also bevor `ladeSprache()` in
-// App.tsx die im Eltern-Bereich gewählte Sprache kennt — und bliebe danach auf der
-// Gerätesprache stehen. Als Funktion wird sie bei jedem Rendern neu gebildet und folgt der
-// Umschaltung sofort. Dasselbe Muster gilt für alle übrigen Quest-Screens.
+// FUNKTION statt Konstante (2026-09-14): `tk()`/`t()` lesen die Sprache im Moment des
+// Aufrufs. Als Modulkonstante würde diese Liste beim Import ausgewertet — also bevor
+// `ladeSprache()` in App.tsx die im Eltern-Bereich gewählte Sprache kennt — und bliebe
+// danach auf der Gerätesprache stehen. Als Funktion wird sie bei jedem Rendern neu gebildet
+// und folgt der Umschaltung sofort. Dasselbe Muster gilt für alle übrigen Quest-Screens.
 function screenScripts(): Record<Exclude<ScreenId, 2>, string[]> {
   return {
   1: [
@@ -136,9 +139,9 @@ function screenScripts(): Record<Exclude<ScreenId, 2>, string[]> {
     // Die zwei neuen Zeilen brauchen keine Code-Änderung: `autoWeiter` gilt für Screen 1,
     // sie blättern also nach dem Sprechende von selbst weiter, und `isLastLine` hält die
     // Tipp-Aufforderung unten weiterhin als einzige tap-gesteuerte Zeile fest.
-    t("Das ist der Igel.", "This is the hedgehog."),
-    t("Er ist klein. Und trotzdem der Mutigste in unserem Wald.", "He's small. And still the bravest in our forest."),
-    t("Er macht immer nur kleine Schritte nach vorn, nie zurück.", "He only ever takes small steps forward, never back."),
+    tk("quest1.screen1.zeile1"),
+    tk("quest1.screen1.zeile2"),
+    tk("quest1.screen1.zeile3"),
     // Bugfix (Nutzer-Feedback 2026-09-08, "ergibt keinen Sinn"): "Tipp irgendwo hin" war
     // unnötig vage für ein Kind, das gerade erst lernt, wie diese Tipp-Interaktion
     // überhaupt funktioniert — die Zeile sagte nicht, WAS als Nächstes passiert. Erst durch
@@ -147,9 +150,9 @@ function screenScripts(): Record<Exclude<ScreenId, 2>, string[]> {
     // den (jetzt sanft pulsierenden, siehe Screen-1-Aufrufstelle unten) Igel anzutippen,
     // statt vage "weiterzutippen" — deckt sich mit der Einschränkung des Tipp-Bereichs dort
     // von der ganzen Fläche auf genau das Tier.
-    t("Tippe den Igel an, um die Verwandlung zur Schachfigur zu sehen.", "Tap the hedgehog to see him turn into a chess piece."),
+    tk("quest1.screen1.zeile4"),
   ],
-  verwandlung: [t("Und jetzt die Verwandlung: Aus dem Igel wird ein Bauer!", "And now watch closely: the hedgehog turns into a pawn!")],
+  verwandlung: [tk("quest1.verwandlung.zeile1")],
   4: [
     // Update (2026-09-07, Nutzer-Feedback): einmalig (nur in Quest 1) erklärt Lux vor der
     // ersten Blockade-Aufgabe das allgemeine Prinzip, dass Figuren den Zugweg blockieren
@@ -162,16 +165,13 @@ function screenScripts(): Record<Exclude<ScreenId, 2>, string[]> {
     // die neue TTS-Anbindung (useLuxSprechzeile unten) ohnehin zu lang für eine einzelne
     // gesprochene Zeile. Aufgeteilt in zwei kurze Sätze, Kausalsatz gestrichen statt in
     // Bildsprache übersetzt (die Blockade selbst ist gleich sichtbar).
-    t("Manchmal steht eine Figur auf dem Weg.", "Sometimes another piece is in the way."),
+    tk("quest1.screen4.zeile1"),
     // Korrektur (Gerätetest 2026-09-15, Nutzer): "keine andere Figur" war schlicht falsch —
     // der Springer überspringt Blockaden, und genau den lernt das Kind in Quest 4 kennen.
     // Die Aussage gilt nur für unseren Bauern, also sagt sie das jetzt auch.
-    t(
-      "Dann kommt unser Bauer nicht daran vorbei, der Weg ist blockiert.",
-      "Then our pawn can't get past it — the path is blocked."
-    ),
-    t("Der Bauer kann nicht geradeaus über eine andere Figur springen.", "The pawn can't jump straight over another piece."),
-    t("Versuch es ruhig einmal aus.", "Go ahead and try it."),
+    tk("quest1.screen4.zeile2"),
+    tk("quest1.screen4.zeile3"),
+    tk("quest1.screen4.zeile4"),
   ],
   // Update (2026-09-10, Kurztest-Feedback: "sollte wirklich davon gesprochen werden, dass
   // eine gegnerische Figur auftaucht, die wir fangen wollen — nicht von begrüßen, das
@@ -184,9 +184,9 @@ function screenScripts(): Record<Exclude<ScreenId, 2>, string[]> {
   // führt den Fachbegriff ein, Quest 2–6 verwenden danach nur noch "schlagen". Die
   // Zugaufforderung steht bewusst als letzte Zeile (das Brett ist sofort antippbar).
   5: [
-    t("Da drüben ist eine gegnerische Figur aufgetaucht.", "A piece from the other side has turned up over there."),
-    t("Wir fangen sie ein – in der Schachwelt sagt man dazu: schlagen.", "We're going to catch it. In chess that's called capturing."),
-    t("Schlag sie – zieh schräg nach vorne dorthin!", "Capture it: move diagonally forward onto that square!"),
+    tk("quest1.screen5.zeile1"),
+    tk("quest1.screen5.zeile2"),
+    tk("quest1.screen5.zeile3"),
   ],
   // Sprach-Harmonie-Review (2026-09-09): zweite Zeile war hier bisher die einzige der
   // sechs Abenteuer-Abschluss-Zeilen ohne den Rückkehr-Hinweis ("Tippe, um zurück zur
@@ -197,7 +197,7 @@ function screenScripts(): Record<Exclude<ScreenId, 2>, string[]> {
   // hintereinander spielt, überall gleich anfühlen (nicht: "beim ersten Mal geht's von
   // allein weiter, danach nicht mehr" — das wäre eher verwirrend als hilfreich).
   // Paket 1 (2026-09-11, Audit C.2): Ich-/Wir-Perspektive statt Lux in der dritten Person.
-  7: [t("Wir haben ein neues Gebiet entdeckt!", "We've found a new part of the forest!"), t("Wunderbar gemacht! Tippe, um zurück zur Karte zu gehen.", "Beautifully done! Tap to go back to the map.")],
+  7: [tk("quest1.screen7.zeile1"), tk("quest1.screen7.zeile2")],
   };
 }
 
@@ -229,10 +229,10 @@ function screenScripts(): Record<Exclude<ScreenId, 2>, string[]> {
 // Siehe Kommentar bei screenScripts() — aus demselben Grund eine Funktion.
 function phaseLines(): Record<QuestPhase, string[]> {
   return {
-  vorfuehrung: [t("Beim ersten Zug darf der Bauer ein oder zwei Felder nach vorne gehen.", "On its very first move, the pawn may go forward one square or two."), t("Schau mal, so zieht der Bauer!", "Look, this is how the pawn moves!")],
-  interaktiv: [t("Jetzt bist du dran!", "Now it's your turn!"), t("Tipp auf ein leuchtendes Feld.", "Tap a glowing square.")],
-  uebung: [t("Kannst du das noch ein paar Mal?", "Can you do that a few more times?")],
-  fertig: [t("Super, das kannst du schon richtig gut!", "Great! You're really good at this already!")],
+  vorfuehrung: [tk("quest1.screen2.vorfuehrung.zeile1"), tk("quest1.screen2.vorfuehrung.zeile2")],
+  interaktiv: [tk("quest1.screen2.interaktiv.zeile1"), tk("quest1.screen2.interaktiv.zeile2")],
+  uebung: [tk("quest1.screen2.uebung.zeile1")],
+  fertig: [tk("quest1.screen2.fertig.zeile1")],
   };
 }
 
@@ -370,7 +370,7 @@ export default function Quest1() {
         style={styles.luxCorner}
         onPress={wiederholen}
         hitSlop={{ top: 12, left: 12, right: 12, bottom: 12 }}
-        accessibilityLabel={t("Lux, tippen zum Wiederholen", "Lux, tap to hear it again")}
+        accessibilityLabel={tk("quest1.a11y.lux_wiederholen")}
       >
         <LuxEckIcon size={52} />
       </Pressable>
@@ -427,7 +427,7 @@ export default function Quest1() {
             onPress={() => advanceOrGo("verwandlung")}
             disabled={!isLastLine}
             hitSlop={{ top: 24, left: 24, right: 24, bottom: 24 }}
-            accessibilityLabel={t("Den Igel antippen, um die Verwandlung zu sehen", "Tap the hedgehog to see him change")}
+            accessibilityLabel={tk("quest1.a11y.igel_antippen")}
           >
             <LuxAtem dauer={900} betrag={1.08}>
               {/* Update 2026-09-14: Sobald der Igel antippbar ist, WINKT er in ruhigen

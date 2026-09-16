@@ -51,6 +51,11 @@ import { useLuxSprechzeile } from "../lib/useLuxSprechzeile";
 // unten (interaktiv/uebung/fertig) rotieren jetzt durch mehrere kindgerechte Varianten,
 // statt bei jeder 8-Sekunden-Erinnerung bzw. in jedem Abenteuer identisch zu klingen.
 import { luxVariante, INTERAKTIV_HINWEIS_VARIANTEN, UEBUNG_HINWEIS_VARIANTEN, FERTIG_LOB_VARIANTEN } from "../lib/luxVarianten";
+// Zweisprachige Texte (DE+EN, Key-basiertes System) — siehe lib/sprache.ts. War bis
+// 2026-09-15 die einzige der sechs Quests noch komplett auf festes Deutsch (kein `t()`,
+// kein `tk()`) — jetzt im selben Zug übersetzt UND direkt keybasiert migriert, ohne den
+// Zwischenschritt über `t(de,en)`, siehe claude/i18next_umstellung_plan_2026-09-15.md.
+import { tk } from "../lib/sprache";
 import { useUntertitelAktiv } from "../lib/untertitelEinstellung";
 import { Verwandlung } from "../lib/Verwandlung";
 import { QuestGeschafft } from "../components/QuestGeschafft";
@@ -70,14 +75,18 @@ type ScreenId = 0 | 1 | "verwandlung" | 2 | 4 | 5 | 7;
 // vorschlag.md Abschnitt 5 und Quest1.tsx-Kommentar): Screen 2 hat ab jetzt KEINEN
 // eigenen Eintrag mehr hier — seine Zeilen sind phasenabhängig (Vorführung/Interaktiv/
 // Übung/Fertig) und stehen stattdessen in PHASE_LINES weiter unten, exakt wie in Quest 1.
-const SCREEN_SCRIPTS: Record<Exclude<ScreenId, 2>, string[]> = {
+// FUNKTION statt Konstante (2026-09-15, siehe Quest1.tsx-Kommentar zur selben Regel):
+// `tk()` liest die Sprache im Moment des Aufrufs — als Modulkonstante würde diese Liste
+// beim Import ausgewertet, bevor `ladeSprache()` die gespeicherte Wahl kennt.
+function screenScripts(): Record<Exclude<ScreenId, 2>, string[]> {
+  return {
   0: [
-    "Weiter geht's durch den Wald von ChessLynx!",
-    "Hier lebt ein neuer Freund.",
+    tk("quest2.screen0.zeile1"),
+    tk("quest2.screen0.zeile2"),
     // Gerätetest 2026-09-11 (Nutzerwunsch): die Vorstellung läuft bis zur Verwandlung von
     // selbst — getippt wird nur noch auf das Tier, nach Lux' Aufforderung. Deshalb keine
     // "Tipp weiter"-Aufforderung mehr.
-    "Komm, wir lernen ihn kennen!",
+    tk("quest2.screen0.zeile3"),
   ],
   // Update (2026-09-10, Kurztest-Feedback: die Wiederholungszeile "Hallo! Ich bin's
   // wieder, Lux." wirkte deplatziert, da Lux sich bereits in der WillkommensSequenz
@@ -98,53 +107,57 @@ const SCREEN_SCRIPTS: Record<Exclude<ScreenId, 2>, string[]> = {
     //
     // Ohne Code-Änderung: `autoWeiter` blättert die neuen Zeilen nach dem Sprechende von
     // selbst weiter, `isLastLine` hält die Tipp-Aufforderung als einzige tap-gesteuerte Zeile.
-    "Das ist der Bär.",
-    "Er ist groß, stark und ganz ruhig.",
-    "Er läuft am liebsten schnurgerade, und dabei ganz weite Wege.",
+    tk("quest2.screen1.zeile1"),
+    tk("quest2.screen1.zeile2"),
+    tk("quest2.screen1.zeile3"),
     // Update (2026-09-08, Task #109, siehe claude/vorgemerkt_quest_tempo_und_
     // automatikvorfuehrung.md Punkt 3, "auch für die restlichen Figuren vormerken"): löst
     // das vorherige, unspezifische "Tipp irgendwo hin, um weiterzumachen" ab — genau wie
     // bei Quest 1s Igel fordert die letzte Zeile jetzt konkret dazu auf, GENAU den Bären
     // anzutippen (der jetzt auch sichtbar pulsiert, siehe Screen-1-Aufrufstelle unten),
     // statt vage irgendwohin zu tippen.
-    "Tippe den Bären an, um die Verwandlung zur Schachfigur zu sehen.",
+    tk("quest2.screen1.zeile4"),
   ],
-  verwandlung: ["Und jetzt die Verwandlung: Aus dem Bären wird ein Turm!"],
+  verwandlung: [tk("quest2.verwandlung.zeile1")],
   4: [
-    "Da steht jemand mitten auf dem Weg.",
-    "Der Turm kann nicht darüber hinwegziehen.",
-    "Er darf aber trotzdem zur Seite ziehen.",
+    tk("quest2.screen4.zeile1"),
+    tk("quest2.screen4.zeile2"),
+    tk("quest2.screen4.zeile3"),
   ],
   // Update (2026-09-10, Kurztest-Feedback, siehe Quest1.tsx-Kommentar zur selben
   // Formulierungsänderung): "freundlich begrüßen" ersetzt durch "einfangen".
   // Paket 1 (2026-09-11, Entscheidungslog): "schlagen" wird in Quest 1 per Brückenzeile
   // eingeführt und ab hier durchgängig verwendet — kein "begrüßen", kein "einfangen" mehr.
-  5: ["Am Ende des Weges ist eine gegnerische Figur aufgetaucht.", "Schlag sie – zieh einfach dorthin!"],
+  5: [tk("quest2.screen5.zeile1"), tk("quest2.screen5.zeile2")],
   // Update (2026-09-08, siehe Kommentar an der screen===7-Stelle unten): zweite Zeile nennt
   // jetzt explizit das Antippen und wohin es führt (Karte statt nächste Quest).
   // Paket 1 (2026-09-11, Audit C.2): Ich-/Wir-Perspektive statt Lux in der dritten Person.
-  7: ["Wir haben ein neues Gebiet entdeckt!", "Wunderbar gemacht! Tippe, um zurück zur Karte zu gehen."],
-};
+  7: [tk("quest2.screen7.zeile1"), tk("quest2.screen7.zeile2")],
+  };
+}
 
 // Neu (2026-09-08, Task #109, siehe Kommentar bei SCREEN_SCRIPTS oben und Quest1.tsx):
 // Screen 2s Zeilen sind jetzt an die von QuestMoveScreen gemeldete QuestPhase gekoppelt,
 // exakt nach demselben Schema wie Quest 1 — nur die erste (einmalige "jetzt siehst du das
 // ganze Brett"-Erklärung, ab Quest 3 als bekannt vorausgesetzt) und die zweite Zeile
 // (Turm-spezifische Zugregel) unterscheiden sich inhaltlich von den anderen Quests.
-const PHASE_LINES: Record<QuestPhase, string[]> = {
+// Siehe Kommentar bei screenScripts() — aus demselben Grund eine Funktion.
+function phaseLines(): Record<QuestPhase, string[]> {
+  return {
   vorfuehrung: [
     // Update (2026-09-07, Nutzer-Feedback): ab Quest 2 zeigt das Brett erstmals alle 64
     // Felder auf einmal (vorher kleines Ausschnittsfenster) — Lux erklärt das hier
     // einmalig, ab Quest 3 wird es als bekannt vorausgesetzt.
-    "Ab jetzt siehst du das ganze Schachbrett.",
-    "So siehst du immer alle Möglichkeiten auf einmal.",
-    "Der Turm darf so weit ziehen, wie der Weg frei ist.",
-    "Schau mal, so zieht der Turm!",
+    tk("quest2.screen2.vorfuehrung.zeile1"),
+    tk("quest2.screen2.vorfuehrung.zeile2"),
+    tk("quest2.screen2.vorfuehrung.zeile3"),
+    tk("quest2.screen2.vorfuehrung.zeile4"),
   ],
-  interaktiv: ["Jetzt bist du dran!", "Tipp auf ein leuchtendes Feld."],
-  uebung: ["Kannst du das noch ein paar Mal?"],
-  fertig: ["Super, das kannst du schon richtig gut!"],
-};
+  interaktiv: [tk("quest2.screen2.interaktiv.zeile1"), tk("quest2.screen2.interaktiv.zeile2")],
+  uebung: [tk("quest2.screen2.uebung.zeile1")],
+  fertig: [tk("quest2.screen2.fertig.zeile1")],
+  };
+}
 
 // Startfeld des Turms in allen Quest2-FENs.
 const PIECE_AT: BoardSquare = { row: 7, col: 0 }; // a1
@@ -170,7 +183,7 @@ export default function Quest2() {
 
   // Screen 2 hat keinen eigenen SCREEN_SCRIPTS-Eintrag mehr (siehe dortiger Kommentar) —
   // seine Zeilen kommen stattdessen aus PHASE_LINES, abhängig von movePhase.
-  const lines = screen === 2 ? PHASE_LINES[movePhase] : SCREEN_SCRIPTS[screen];
+  const lines = screen === 2 ? phaseLines()[movePhase] : screenScripts()[screen];
   const isLastLine = lineIndex === lines.length - 1;
 
   function advanceOrGo(next: ScreenId) {
@@ -264,7 +277,7 @@ export default function Quest2() {
         style={styles.luxCorner}
         onPress={wiederholen}
         hitSlop={{ top: 12, left: 12, right: 12, bottom: 12 }}
-        accessibilityLabel="Lux, tippen zum Wiederholen"
+        accessibilityLabel={tk("quest2.a11y.lux_wiederholen")}
       >
         <LuxEckIcon size={52} />
       </Pressable>
@@ -299,7 +312,7 @@ export default function Quest2() {
             onPress={() => advanceOrGo("verwandlung")}
             disabled={!isLastLine}
             hitSlop={{ top: 24, left: 24, right: 24, bottom: 24 }}
-            accessibilityLabel="Den Bären antippen, um die Verwandlung zu sehen"
+            accessibilityLabel={tk("quest2.a11y.baer_antippen")}
           >
             <LuxAtem dauer={900} betrag={1.08}>
               <QuestTierIcon quest="quest2" size={150} />
