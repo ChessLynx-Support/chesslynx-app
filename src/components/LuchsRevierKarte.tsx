@@ -89,7 +89,7 @@ import { useFocusEffect, useIsFocused } from "@react-navigation/native";
 // dadurch nichts (siehe Datei-Kommentar dort).
 import { useTestAnsicht } from "../lib/testAnsicht";
 import Svg, { Circle, Defs, G, Image as SvgBild, LinearGradient, Mask, Path, RadialGradient, Rect, Stop } from "react-native-svg";
-import { loadBonusFortschrittLocal, loadQuestFortschrittLocal } from "../lib/storage";
+import { holeBesuchteReviere, loadBonusFortschrittLocal, loadQuestFortschrittLocal } from "../lib/storage";
 import { pruefeSchlosstorStatus } from "../lib/gate";
 import { SCHILDKROETE_ASPEKT, SchildkroeteWegmarke } from "../lib/schildkroete";
 import { QuestTierWegmarke, questTierWegmarkeAspekt } from "../lib/questTiere";
@@ -633,6 +633,23 @@ export const GEFAEHRTEN: GefaehrtenEintrag[] = GEFAEHRTEN_ROH.map((g) => ({
   breiteFrac: oberlandBreite(g.fy, g.artFaktor, g.aspekt) / REFERENZ_BREITE,
 }));
 
+// Reihenfolge-Freischaltung der Gefährten-Reviere (2026-09-15, siehe storage.ts Abschnitt
+// "Gefährten-Reviere" und der Korrektur-Kommentar bei `onSelectGefaehrte`/`onSelectWisent`
+// oben): Jedes Revier ist erst erreichbar, sobald sein VORGÄNGER in dieser Liste einmal
+// besucht wurde — exakt die schon 2026-09-14 dokumentierte Absicht ("Die fünf Reviere öffnen
+// sich STRIKT LINEAR"). Der Wisent ist als sechste, letzte Station bereits Teil von
+// `GEFAEHRTEN`, braucht also keine eigene Sonderregel — sein "Vorgänger" ist einfach der Wolf.
+const GEFAEHRTEN_VORGAENGER: Record<GefaehrteId, GefaehrteId | null> = Object.fromEntries(
+  GEFAEHRTEN.map((g, i) => [g.id, i === 0 ? null : GEFAEHRTEN[i - 1].id])
+) as Record<GefaehrteId, GefaehrteId | null>;
+
+/** Ist dieses Revier laut Reihenfolge-Regel erreichbar (unabhängig von der `onSelect*`-Prop,
+ *  die separat geprüft wird)? Das allererste (kein Vorgänger) ist immer erreichbar. */
+function revierFreigeschaltet(id: GefaehrteId, besuchteReviere: string[]): boolean {
+  const vorgaenger = GEFAEHRTEN_VORGAENGER[id];
+  return vorgaenger === null || besuchteReviere.includes(vorgaenger);
+}
+
 // Schildkröten-Wegpunkt (siehe Kopfkommentar weiter oben): linker Brückenkopf auf der Wiese.
 const SCHILDKROETE_WEGPUNKT = {
   fx: 335 / 1658,
@@ -863,6 +880,18 @@ type Props = {
   // dieser Stelle (Wisent-Kampf ist ein eigener, weiter entfernter Screen, Segment 18 — nicht
   // Teil dieses Schritts). Ohne diese Prop bleiben alle sechs wie bisher gesperrt/nur per
   // Testansicht sichtbar.
+  //
+  // Korrektur 2026-09-15 (Christian-Befund "Die Gefährten sind auch bei vollem Nebel nicht vom
+  // Nebel verdeckt", siehe claude/weisse_scheibe_oberland_fix_2026-09-15_final.md): Diese Prop
+  // ist in RootNavigator.tsx fest gesetzt, macht also für sich allein NICHT MEHR alle fünf
+  // gleichzeitig antippbar — das war der eigentliche Fehler (fünf/sechs gleichzeitig voll
+  // freigestellte, eng beieinanderstehende Figuren verschmolzen im Nebel zu einer großen
+  // weißen Scheibe). Zusätzlich gilt jetzt `revierFreigeschaltet()` (siehe dort): die Reviere
+  // öffnen sich der Reihe nach, jeweils sobald das VORHERIGE einmal besucht wurde (Christian:
+  // "Die Gefährten sollen der Reihe nach sichtbar werden, beginnend nachdem das Revier
+  // freigeschaltet wurde") — exakt die schon 2026-09-14 dokumentierte Erzähl-Absicht ("Die
+  // fünf Reviere öffnen sich STRIKT LINEAR", siehe Kopfkommentar "Die fünf Gefährten im
+  // Oberland" weiter oben), die beim Verdrahten der Route verloren gegangen war.
   onSelectGefaehrte?: (id: GefaehrteId) => void;
   // Update-1-Vorzug, Fortsetzung (2026-09-15): der Wisent-Torwächter bekommt jetzt eine EIGENE
   // Prop statt über `onSelectGefaehrte` zu laufen — er führt nicht zu einem generischen
@@ -873,6 +902,11 @@ type Props = {
   // LuchsRevierKarte selbst bleibt davon unberührt, kennt nur die Prop, nicht ihr Ziel. Ohne
   // diese Prop bleibt der Torwächter wie bisher gesperrt/nur per Testansicht sichtbar,
   // unabhängig davon, ob `onSelectGefaehrte` gesetzt ist.
+  //
+  // Korrektur 2026-09-15 (siehe Kommentar bei `onSelectGefaehrte` oben): derselbe
+  // `revierFreigeschaltet()`-Mechanismus gilt automatisch auch für den Wisent — er ist als
+  // sechste, letzte Station bereits Teil von `GEFAEHRTEN`, freigeschaltet also erst, sobald
+  // sein Vorgänger in dieser Liste (der Wolf) besucht wurde.
   onSelectWisent?: () => void;
 };
 
@@ -894,6 +928,8 @@ export function LuchsRevierKarte({
   const breite = breiteVorgabe && breiteVorgabe > 0 ? breiteVorgabe : gemesseneBreite;
   const [status, setStatus] = useState<Record<QuestId, WegmarkeStatus> | null>(null);
   const [steinbruecke, setSteinbruecke] = useState<WegmarkeStatus>("gesperrt");
+  // Reihenfolge-Freischaltung der Gefährten-Reviere (siehe `revierFreigeschaltet` oben).
+  const [besuchteReviere, setBesuchteReviere] = useState<string[]>([]);
   // Testmodus-Ansichten (siehe lib/testAnsicht.ts). Lesen bei jedem Fokussieren neu, weil
   // KidHome — anders als die Quest-Screens — beim Zurückkommen aus dem Eltern-Bereich
   // nicht neu gemountet wird.
@@ -911,7 +947,9 @@ export function LuchsRevierKarte({
       let abgebrochen = false;
       (async () => {
         const eintraege = await Promise.all(WEGMARKEN.map((w) => loadQuestFortschrittLocal(w.quest)));
+        const besucht = await holeBesuchteReviere();
         if (abgebrochen) return;
+        setBesuchteReviere(besucht);
         const naechsterIndex = eintraege.findIndex((f) => !f?.abgeschlossen);
         const neu = {} as Record<QuestId, WegmarkeStatus>;
         WEGMARKEN.forEach((w, i) => {
@@ -1030,14 +1068,20 @@ export function LuchsRevierKarte({
     // Eichhörnchen nicht doch noch Schleier auf die Figur legt.
     // Update-1-Vorzug (2026-09-15): Die fünf echten Reviere (nicht der Wisent-Torwächter,
     // siehe Props-Kommentar bei `onSelectGefaehrte`) sind, sobald `onSelectGefaehrte` gesetzt
-    // ist, genauso erreichbar wie jede andere offene Station — sie sollen dann auch genauso
-    // klar aus dem Nebel treten, nicht mehr nur "neugierig machend" durchschimmern.
+    // ist UND die Reihenfolge-Regel es erlaubt (siehe `revierFreigeschaltet` oben), genauso
+    // erreichbar wie jede andere offene Station — sie treten dann auch genauso klar aus dem
+    // Nebel, nicht mehr nur "neugierig machend" durchschimmernd wie zuvor bzw. wie jedes noch
+    // nicht an der Reihe befindliche Revier.
     const gefaehrtenLichtung = gefaehrtenVorschau ? NEBEL_KLARUNG_VOLL : NEBEL_KLARUNG_BURGTOR;
     for (const g of GEFAEHRTEN) {
       // Update-1-Vorzug, Fortsetzung (2026-09-15): der Wisent hat jetzt seine eigene
       // Freischalt-Bedingung (`onSelectWisent` statt `onSelectGefaehrte`), siehe Props-
-      // Kommentar oben.
-      const antippbar = g.id === "wisent" ? Boolean(onSelectWisent) : Boolean(onSelectGefaehrte);
+      // Kommentar oben. Korrektur 2026-09-15: zusätzlich zur Prop muss auch die
+      // Reihenfolge-Regel erfüllt sein (siehe `revierFreigeschaltet` oben) — sonst wären alle
+      // sechs gleichzeitig frei, sobald die Prop überhaupt gesetzt ist.
+      const antippbar =
+        (g.id === "wisent" ? Boolean(onSelectWisent) : Boolean(onSelectGefaehrte)) &&
+        revierFreigeschaltet(g.id, besuchteReviere);
       const lichtung = antippbar ? NEBEL_KLARUNG_VOLL : gefaehrtenLichtung;
       oberlandKlarungen.push(
         figurLichtung(g.fx * breite, g.fy * oberlandHoehe, g.breiteFrac * breite, g.aspekt, lichtung)
@@ -1082,9 +1126,10 @@ export function LuchsRevierKarte({
           })}
           {/* Die fünf Gefährten. Bewusst dieselbe `Wegmarke`-Komponente wie alle anderen
               Stationen — sie bringt Fußpunkt-Verankerung und Bodenschatten mit. Update-1-
-              Vorzug (2026-09-15): sobald `onSelectGefaehrte` gesetzt ist, sind sie echt
-              antippbar (siehe Props-Kommentar) — ohne die Prop bleibt das Verhalten wie zuvor
-              (gesperrt, nur per Testansicht sichtbar). */}
+              Vorzug (2026-09-15): sobald `onSelectGefaehrte` gesetzt ist, KÖNNEN sie antippbar
+              werden (siehe Props-Kommentar) — ohne die Prop bleibt das Verhalten wie zuvor
+              (gesperrt, nur per Testansicht sichtbar). Korrektur 2026-09-15: tatsächlich
+              antippbar sind sie erst der Reihe nach, siehe `revierFreigeschaltet` oben. */}
           {/* Von hinten nach vorn: Die Liste läuft von unten (nah) nach oben (fern); gezeichnet
               wird umgekehrt, damit eine näher stehende Figur eine weiter entfernte überdeckt
               und nicht andersherum. Auf dem Zickzack des Weges stehen die Stationen dicht
@@ -1098,7 +1143,12 @@ export function LuchsRevierKarte({
             // (2026-09-15): der Wisent-Torwächter bekommt jetzt genauso ein echtes onPress,
             // aber über die eigene `onSelectWisent`-Prop (siehe Props-Kommentar oben) statt
             // über `onSelectGefaehrte(g.id)` — nicht zu einem generischen Revier-Screen.
-            const antippbar = g.id === "wisent" ? Boolean(onSelectWisent) : Boolean(onSelectGefaehrte);
+            // Korrektur 2026-09-15: zusätzlich zur Prop muss die Reihenfolge-Regel erfüllt
+            // sein (siehe `revierFreigeschaltet` oben und Props-Kommentar) — dieselbe Prüfung
+            // wie oben bei `oberlandKlarungen`, hier zusätzlich für `onPress`.
+            const antippbar =
+              (g.id === "wisent" ? Boolean(onSelectWisent) : Boolean(onSelectGefaehrte)) &&
+              revierFreigeschaltet(g.id, besuchteReviere);
             const press =
               g.id === "wisent"
                 ? onSelectWisent

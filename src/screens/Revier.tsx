@@ -64,6 +64,7 @@ import {
   istRevierAbgeschlossen,
   type EndlosmodusFortschritt,
 } from "../lib/endlosmodusFortschritt";
+import { markiereRevierBesucht } from "../lib/storage";
 
 /** Name je Revier — dieselben Namen wie in LuchsRevierKarte.tsx (GEFAEHRTEN_ROH), nur hier für
  *  den Screen selbst gebraucht (z. B. `accessibilityLabel`, kein sichtbarer Text). */
@@ -101,6 +102,12 @@ export default function Revier() {
 
   useFocusEffect(
     useCallback(() => {
+      // Reihenfolge-Freischaltung (siehe storage.ts, Abschnitt "Gefährten-Reviere"): Dieser
+      // Besuch schaltet das NÄCHSTE Revier auf der Karte frei. Wisent hat keinen eigenen
+      // Revier-Screen dieser Art (siehe Datei-Kopfkommentar) und braucht deshalb keinen
+      // eigenen Aufruf — sein Freischalt-Check in LuchsRevierKarte.tsx prüft direkt, ob der
+      // letzte reguläre Gefährte (Wolf) schon besucht wurde.
+      markiereRevierBesucht(gefaehrteId);
       ladeEndlosmodusFortschritt().then((f) => {
         setFortschritt(f);
         const summe = spielbareSpalten.reduce((acc, s) => acc + sterneInSpalte(f, s.id), 0);

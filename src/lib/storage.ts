@@ -204,6 +204,36 @@ export async function holeUndMarkiereRangaufstiege(gradierteIds: string[]): Prom
   return neu;
 }
 
+// --- Gefährten-Reviere: Reihenfolge-Freischaltung (2026-09-15) -----------------------------
+//
+// Christian-Befund beim Testen: "Die Gefährten sind auch bei vollem Nebel nicht vom Nebel
+// verdeckt" — Ursache war, dass `onSelectGefaehrte`/`onSelectWisent` in RootNavigator.tsx
+// bedingungslos übergeben wurden, wodurch in LuchsRevierKarte.tsx ALLE Reviere gleichzeitig
+// als "offen" galten (siehe claude/weisse_scheibe_oberland_fix_2026-09-15_final.md). Gewollt
+// laut Christian: "Die Gefährten sollen der Reihe nach sichtbar werden, beginnend nachdem das
+// Revier freigeschaltet wurde" — konkretisiert per Rückfrage: das jeweils NÄCHSTE Revier wird
+// sichtbar, sobald das vorherige einmal besucht wurde (Screen geöffnet, nicht erst bei vollen
+// Endlosmodus-Sternen); das allererste (Eichhörnchen) ist von Anfang an offen.
+//
+// Bewusst ein einfaches Set von IDs statt eines Zählers — robust auch dann, wenn Reviere
+// (aus welchem Grund auch immer) nicht streng in der Standardreihenfolge besucht werden;
+// `LuchsRevierKarte.tsx` prüft pro Revier nur "wurde der jeweilige VORGÄNGER schon besucht",
+// nicht eine absolute Zahl.
+const GEFAEHRTEN_BESUCHT_KEY = "chesslynx:gefaehrtenBesucht";
+
+export async function holeBesuchteReviere(): Promise<string[]> {
+  const raw = await AsyncStorage.getItem(GEFAEHRTEN_BESUCHT_KEY);
+  return raw ? (JSON.parse(raw) as string[]) : [];
+}
+
+/** Markiert ein Revier als besucht — idempotent, beliebig oft aufrufbar (z. B. bei jedem
+ *  Fokussieren von Revier.tsx). */
+export async function markiereRevierBesucht(gefaehrteId: string): Promise<void> {
+  const bisherige = await holeBesuchteReviere();
+  if (bisherige.includes(gefaehrteId)) return;
+  await AsyncStorage.setItem(GEFAEHRTEN_BESUCHT_KEY, JSON.stringify([...bisherige, gefaehrteId]));
+}
+
 /**
  * Liefert die ID des "aktiven" Kinderprofils für ein Elternkonto — für den MVP-Kern
  * reicht ein Kind pro Familie (siehe firebase.ts, Abschnitt zu den Firestore-Pfaden).
@@ -290,6 +320,7 @@ export function istSpielstandSchluessel(k: string): boolean {
     k === GANZE_PARTIE_ETAPPE_KEY ||
     k === WISENT_KUER_ALLE_DREI_GEZEIGT_KEY ||
     k === RUHMESHALLE_GEFEIERT_KEY ||
+    k === GEFAEHRTEN_BESUCHT_KEY ||
     k.startsWith(KEY_PREFIX) ||
     k.startsWith(BONUS_KEY_PREFIX) ||
     k.startsWith(KUER_VARIANTE_KEY_PREFIX) ||
