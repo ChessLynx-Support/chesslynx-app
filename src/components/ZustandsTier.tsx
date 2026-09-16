@@ -22,7 +22,7 @@
 // blinzeln.
 
 import { useEffect, useRef, useState } from "react";
-import { Animated, Image, View } from "react-native";
+import { Animated, View } from "react-native";
 import type { ImageSourcePropType } from "react-native";
 
 /** Dauer einer Überblendung in beide Richtungen. */
@@ -76,6 +76,31 @@ export function ZustandsTier({
   // vorgänge beim Öffnen des Screens.
   const [lidGeladen, setLidGeladen] = useState(false);
 
+  // Bugfix (Gerätetest 2026-09-15, Nutzer: "Gesten-Overlay bei Schildkröte/Hirsch/Pferd
+  // spielt vor dem Standbild statt es zu ersetzen"). `grund` lag bisher IMMER voll deckend
+  // unten und wurde nie ausgeblendet — für eine additive Geste (Igel/Bär winken, Eule dreht
+  // den Kopf, Schwan hebt die Flügel: der Körper bleibt an derselben Stelle, nur ein Teil
+  // kommt zusätzlich hinzu) ist das unsichtbar, weil die Ebene an genau dieser Stelle
+  // ebenfalls voll deckend ist. Bei einer Geste, die einen Körperteil von seiner ursprüng-
+  // lichen Stelle WEGBEWEGT (Pferd senkt den Kopf, Hirsch nickt, Schildkröte zieht Kopf/
+  // Beine in den Panzer), ist die Ebene an genau der alten Stelle transparent — dort
+  // schien `grund` unverändert durch, sichtbar als stehengebliebenes "Geisterbild" neben
+  // der eigentlich schon bewegten Geste, statt dass die Geste die Pose sauber ersetzt.
+  // Fix: `grund` blendet jetzt synchron zur Überblendung jeder aktiven Ebene aus (und
+  // wieder ein, sobald keine Ebene mehr aktiv ist) — dieselbe Überblendtechnik wie bei den
+  // Ebenen selbst, nur umgekehrt. Bei additiven Gesten ändert das sichtbar nichts (die
+  // Ebene deckt an jeder Stelle, an der `grund` verschwindet, ohnehin bereits voll ab).
+  const grundOpacity = useRef(new Animated.Value(1)).current;
+  const irgendEbeneAktiv = !!ebenen?.some((e) => e.aktiv);
+
+  useEffect(() => {
+    Animated.timing(grundOpacity, {
+      toValue: irgendEbeneAktiv ? 0 : 1,
+      duration: UEBERBLENDUNG_MS,
+      useNativeDriver: true,
+    }).start();
+  }, [irgendEbeneAktiv, grundOpacity]);
+
   useEffect(() => {
     if (!idle || !blinzeln) return;
     let abgebrochen = false;
@@ -116,7 +141,12 @@ export function ZustandsTier({
 
   return (
     <View style={masse} accessibilityLabel={accessibilityLabel}>
-      <Image source={grund} style={masse} resizeMode="contain" {...ANDROID_FIX_PROPS} />
+      <Animated.Image
+        source={grund}
+        style={[masse, { opacity: grundOpacity }]}
+        resizeMode="contain"
+        {...ANDROID_FIX_PROPS}
+      />
       {ebenen?.map((e, i) => (
         <Ueberblendung key={i} bild={e.bild} aktiv={e.aktiv} masse={masse} />
       ))}
