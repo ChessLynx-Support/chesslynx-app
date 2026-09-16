@@ -175,6 +175,24 @@ export async function setWisentKuerAlleDreiGezeigt(): Promise<void> {
   await AsyncStorage.setItem(WISENT_KUER_ALLE_DREI_GEZEIGT_KEY, "1");
 }
 
+// "Auftritt an der Wisentfeste" (W1_kopf_heben, siehe claude/wisent_kopf_heben_geometrisch_
+// 2026-09-14.md, Nachtrag 2026-09-16) — derselbe Zweck wie WISENT_KUER_ALLE_DREI_GEZEIGT_KEY
+// oben: Der Wisent-Torwächter auf der Karte (LuchsRevierKarte.tsx) hebt beim allerersten Mal,
+// das er antippbar wird (Wolf-Revier gerade abgeschlossen), einmalig Kopf und Hals — App-
+// seitige Bewegungskopplung (Überblendung S0 → W1 + translateY) zur an sich sehr kleinen
+// Posenänderung, siehe Empfehlung im Dokument oben. Danach bleibt W1 der dauerhafte
+// Ruhezustand (kein Zurückfallen auf S0), nur die einmalige Animation selbst soll sich nicht
+// bei jedem Kartenbesuch wiederholen.
+const WISENT_AUFTRITT_GEZEIGT_KEY = "chesslynx:wisentAuftrittGezeigt";
+
+export async function wisentAuftrittGezeigt(): Promise<boolean> {
+  return (await AsyncStorage.getItem(WISENT_AUFTRITT_GEZEIGT_KEY)) === "1";
+}
+
+export async function setWisentAuftrittGezeigt(): Promise<void> {
+  await AsyncStorage.setItem(WISENT_AUFTRITT_GEZEIGT_KEY, "1");
+}
+
 // --- Ruhmeshalle: Rangaufstiegs-Funkeln (2026-09-15, E5) -----------------------------------
 //
 // "Rangaufstieg" (E5) hat laut e3_e5_produktionsauftraege_2026-09-15.md Option A: kein neues

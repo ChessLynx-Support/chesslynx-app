@@ -169,6 +169,61 @@
   },
   "prioritaet": 9,
   "prioritaet_grund": "Endgegner, Phase 10 — Update 1, hinter den Landesherren",
+  "app_export": [
+    {
+      "canvas": [
+        210,
+        326
+      ],
+      "margin": 0.0092,
+      "rel_height": 1.0,
+      "geometry_union": [
+        "S0_standing",
+        "S0b_blink",
+        "W1_kopf_heben"
+      ],
+      "state": "S0_standing",
+      "file": "assets/figuren/gefaehrten/wegmarken/chesslynx_wisent_wegmarke_grund.webp",
+      "zweck": "Grundzustand für den Zustands-Renderer (Saga-Karte). Leinwand und Ausschnitt sind dieselben wie beim Blinzeln und beim gehobenen Kopf (W1) — alle drei Bilder liegen in der App deckungsgleich übereinander."
+    },
+    {
+      "canvas": [
+        210,
+        326
+      ],
+      "margin": 0.0092,
+      "rel_height": 1.0,
+      "geometry_union": [
+        "S0_standing",
+        "S0b_blink",
+        "W1_kopf_heben"
+      ],
+      "state": "S0b_blink",
+      "file": "assets/figuren/gefaehrten/wegmarken/chesslynx_wisent_wegmarke_blinzeln.webp",
+      "zweck": "Blinzeln — als Grundzustand plus Differenz-Ebene zusammengesetzt, nicht als eigener Zustand. Der gelieferte Zustand weicht überall minimal vom Grundzustand ab; die Ebene ändert nur die Lider, sonst flimmert das Bild beim Wechsel.",
+      "compose": [
+        "S0_standing",
+        "02_lider_zu"
+      ]
+    },
+    {
+      "canvas": [
+        210,
+        326
+      ],
+      "margin": 0.0092,
+      "rel_height": 1.0,
+      "geometry_union": [
+        "S0_standing",
+        "S0b_blink",
+        "W1_kopf_heben"
+      ],
+      "state": "W1_kopf_heben",
+      "file": "assets/figuren/gefaehrten/wegmarken/chesslynx_wisent_wegmarke_kopf_heben.webp",
+      "zweck": "Kopf-heben-Zustand (W1) für den Zustands-Renderer (Saga-Karte) — einmaliger Auftritt an der Wisentfeste. Vollbild-Zustand, kein Differenz-Layer (siehe 'verwendung' oben bei diesem Zustand): Kopfbewegung überträgt sich auf den ganzen Körper. App-seitige Verdrahtung (Überblendung S0 -> W1, 260 ms, gekoppelt mit translateY) siehe claude/wisent_kopf_heben_geometrisch_2026-09-14.md."
+    }
+  ],
+  "app_export_hinweis": "Bewusst nur die WEGMARKEN-Familie (Saga-Karte): Grundzustand, Blinzeln und jetzt zusätzlich der Kopf-heben-Zustand (W1) für den einmaligen Auftritt an der Wisentfeste. Sprechzustand (S1) und die Atemwolke (W2) sind fertig und im Rig, werden aber erst exportiert, wenn es einen Screen gibt, der sie zeigt — W2 hängt zudem noch von W1 ab (siehe 'OFFENE ABHÄNGIGKEIT' oben bei diesem Zustand). Jede Datei, die niemand anzeigt, ist Bundle-Gewicht ohne Gegenwert (Begründung wie bei den übrigen Landesherren, claude/zustaende_app_einbindung_2026-09-13.md).",
   "freigabe": {
     "stufe": "APPROVED FOR PRODUCTION",
     "durch": "Christian",

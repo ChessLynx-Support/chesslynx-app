@@ -89,7 +89,13 @@ import { useFocusEffect, useIsFocused } from "@react-navigation/native";
 // dadurch nichts (siehe Datei-Kommentar dort).
 import { useTestAnsicht } from "../lib/testAnsicht";
 import Svg, { Circle, Defs, G, Image as SvgBild, LinearGradient, Mask, Path, RadialGradient, Rect, Stop } from "react-native-svg";
-import { holeBesuchteReviere, loadBonusFortschrittLocal, loadQuestFortschrittLocal } from "../lib/storage";
+import {
+  holeBesuchteReviere,
+  loadBonusFortschrittLocal,
+  loadQuestFortschrittLocal,
+  setWisentAuftrittGezeigt,
+  wisentAuftrittGezeigt,
+} from "../lib/storage";
 import { pruefeSchlosstorStatus } from "../lib/gate";
 import { SCHILDKROETE_ASPEKT, SchildkroeteWegmarke } from "../lib/schildkroete";
 import { QuestTierWegmarke, questTierWegmarkeAspekt } from "../lib/questTiere";
@@ -930,6 +936,14 @@ export function LuchsRevierKarte({
   const [steinbruecke, setSteinbruecke] = useState<WegmarkeStatus>("gesperrt");
   // Reihenfolge-Freischaltung der Gefährten-Reviere (siehe `revierFreigeschaltet` oben).
   const [besuchteReviere, setBesuchteReviere] = useState<string[]>([]);
+  // "Auftritt an der Wisentfeste" (W1_kopf_heben) — siehe lib/storage.ts,
+  // wisentAuftrittGezeigt()/setWisentAuftrittGezeigt(), und lib/gefaehrtenZustaende.tsx,
+  // GefaehrteWegmarke()-Kommentar zu `auftrittAktiv`/`auftrittAnimiert`. `wisentAuftrittAktiv`
+  // entscheidet, ob der Wisent-Torwächter W1 statt S0 zeigt (dauerhaft, sobald einmal wahr);
+  // `wisentAuftrittAnimiert` ist nur in dem einen Frame wahr, in dem dieser Mount selbst die
+  // Überblendung auslöst — siehe useFocusEffect unten.
+  const [wisentAuftrittAktiv, setWisentAuftrittAktiv] = useState(false);
+  const [wisentAuftrittAnimiert, setWisentAuftrittAnimiert] = useState(false);
   // Testmodus-Ansichten (siehe lib/testAnsicht.ts). Lesen bei jedem Fokussieren neu, weil
   // KidHome — anders als die Quest-Screens — beim Zurückkommen aus dem Eltern-Bereich
   // nicht neu gemountet wird.
@@ -950,6 +964,24 @@ export function LuchsRevierKarte({
         const besucht = await holeBesuchteReviere();
         if (abgebrochen) return;
         setBesuchteReviere(besucht);
+
+        // "Auftritt an der Wisentfeste" (siehe Kommentar bei den State-Deklarationen oben):
+        // `besucht` ist hier der FRISCH geladene Stand, nicht der (noch veraltete) `besuchte
+        // Reviere`-State — der Wisent gilt also bereits in diesem Durchlauf als antippbar,
+        // sobald der Wolf gerade eben abgeschlossen wurde, nicht erst einen Render später.
+        const wisentAntippbarJetzt = revierFreigeschaltet("wisent", besucht);
+        const wisentSchonGezeigt = await wisentAuftrittGezeigt();
+        if (abgebrochen) return;
+        if (wisentAntippbarJetzt && !wisentSchonGezeigt) {
+          await setWisentAuftrittGezeigt();
+          if (abgebrochen) return;
+          setWisentAuftrittAktiv(true);
+          setWisentAuftrittAnimiert(true);
+        } else {
+          setWisentAuftrittAktiv(wisentSchonGezeigt);
+          setWisentAuftrittAnimiert(false);
+        }
+
         const naechsterIndex = eintraege.findIndex((f) => !f?.abgeschlossen);
         const neu = {} as Record<QuestId, WegmarkeStatus>;
         WEGMARKEN.forEach((w, i) => {
@@ -1165,6 +1197,11 @@ export function LuchsRevierKarte({
                 hoehe={gBreite * g.aspekt}
                 zustand={antippbar ? "offen" : gefaehrtenVorschau ? "erledigt" : "gesperrt"}
                 onPress={antippbar ? press : undefined}
+                // "Auftritt an der Wisentfeste" (siehe State-Deklarationen oben) — wirkungslos
+                // bei den übrigen fünf Gefährten (kein `kopfHeben`-Bild für sie, siehe
+                // lib/gefaehrtenZustaende.tsx).
+                auftrittAktiv={g.id === "wisent" ? wisentAuftrittAktiv : undefined}
+                auftrittAnimiert={g.id === "wisent" ? wisentAuftrittAnimiert : undefined}
               />
             );
           })}
@@ -1375,6 +1412,8 @@ function Wegmarke({
   zustand,
   onPress,
   pausiert = false,
+  auftrittAktiv,
+  auftrittAnimiert,
 }: {
   /** Standbild — für Wegmarken ganz ohne Zustandsfamilie. */
   bild?: ReturnType<typeof require>;
@@ -1397,6 +1436,10 @@ function Wegmarke({
   gruesst?: boolean;
   /** Glühwürmchen anhalten, solange die Karte nicht sichtbar ist. */
   pausiert?: boolean;
+  /** Nur für `gefaehrte === "wisent"` wirksam — siehe GefaehrteWegmarke()-Kommentar in
+   *  lib/gefaehrtenZustaende.tsx und die State-Deklarationen weiter oben in dieser Datei. */
+  auftrittAktiv?: boolean;
+  auftrittAnimiert?: boolean;
   left: number;
   top: number;
   breite: number;
@@ -1455,15 +1498,18 @@ function Wegmarke({
         </View>
       ) : gefaehrte ? (
         // Dieselbe Regel wie bei den Quest-Tieren: Wer noch im Nebel steht, blinzelt nicht.
-        // Seit dem Update-1-Vorzug (2026-09-15) blinzeln die fünf echten Reviere (Zustand
-        // "offen") wie jede andere erreichbare Station; der Wisent-Torwächter bleibt vorerst
-        // gesperrt, sichtbar wird sein Blinzeln also weiterhin nur in der Testansicht
-        // „gefaehrtenVorschau".
+        // Seit dem Update-1-Vorzug (2026-09-15) blinzeln alle sechs Gefährten (Zustand
+        // "offen") wie jede andere erreichbare Station, sobald sie an der Reihe sind — auch
+        // der Wisent-Torwächter (siehe `revierFreigeschaltet`/Reihenfolge-Freischaltung oben).
+        // Seit 2026-09-16 zeigt er ab genau diesem Moment einmalig den "Auftritt an der
+        // Wisentfeste" (`auftrittAktiv`/`auftrittAnimiert`, siehe Props-Kommentar oben).
         <View style={{ opacity: zustand === "gesperrt" ? GESPERRT_OPACITY : 1 }}>
           <GefaehrteWegmarke
             id={gefaehrte}
             breite={breite}
             blinzeln={zustand !== "gesperrt"}
+            auftrittAktiv={auftrittAktiv}
+            auftrittAnimiert={auftrittAnimiert}
           />
         </View>
       ) : schildkroete ? (

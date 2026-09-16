@@ -84,9 +84,21 @@
 // kommen deshalb jetzt aus `gefaehrteWegmarkeAspekt()` statt aus fest eingetragenen
 // Brüchen — sonst stünde die Figur um bis zu 2 % verzerrt auf der Karte.
 
-import { Image } from "react-native";
+import { useEffect, useRef } from "react";
+import { Animated, Image } from "react-native";
 import { ZustandsFigur, useGeste, GESTE_EINMAL } from "../components/ZustandsTier";
 import type { Leinwand } from "../components/ZustandsTier";
+
+// "Auftritt an der Wisentfeste" (W1_kopf_heben, seit 2026-09-16 freigegeben, siehe
+// claude/wisent_kopf_heben_geometrisch_2026-09-14.md, Empfehlung/Nachtrag). Die Werte sind aus
+// dort übernommen: Überblendung 260 ms (die übrigen Überblendungen in ZustandsTier.tsx laufen
+// mit 90 ms — hier bewusst länger, weil die Bewegung selbst subtiler ist als ein Lidschlag und
+// mehr Zeit braucht, um als Kopfheben statt als Zucken gelesen zu werden), translateY ≈ −10 px
+// AUF DER 1254er-RIG-LEINWAND, auf der die Empfehlung gemessen wurde — deshalb hier als
+// Bruchteil der Figurenbreite geführt, nicht als fester Pixelwert, damit es an jeder
+// Aufrufstelle (Karte ~50 px, Revier 200 px, …) proportional gleich wirkt.
+const AUFTRITT_UEBERBLENDUNG_MS = 260;
+const AUFTRITT_HEBUNG_FRAKTION = 10 / 1254;
 
 export type GefaehrteId =
   | "eichhoernchen"
@@ -107,6 +119,12 @@ type WegmarkenBilder = {
    *  Wolf, Adlerin, Rabe) geliefert UND exportiert; nur beim Wisent bewusst `undefined`
    *  (kein E3-Auftrag für ihn, siehe Produktionsauftragsdoku). */
   freude?: ReturnType<typeof require>;
+  /** W1_kopf_heben — "Auftritt an der Wisentfeste" (siehe Konstanten-Kommentar oben und
+   *  claude/wisent_kopf_heben_geometrisch_2026-09-14.md). Ersetzt `grund` dauerhaft, sobald
+   *  der Wisent-Torwächter zum ersten Mal antippbar wird (siehe `GefaehrteWegmarke` unten und
+   *  LuchsRevierKarte.tsx). Nur beim Wisent geliefert/exportiert, bei allen anderen Gefährten
+   *  `undefined` (kein W1-Zustand für sie vorgesehen). */
+  kopfHeben?: ReturnType<typeof require>;
   leinwand: Leinwand;
 };
 
@@ -146,6 +164,13 @@ export const GEFAEHRTE_WEGMARKE: Record<GefaehrteId, WegmarkenBilder> = {
   wisent: {
     grund: require("../../assets/figuren/gefaehrten/wegmarken/chesslynx_wisent_wegmarke_grund.webp"),
     blinzeln: require("../../assets/figuren/gefaehrten/wegmarken/chesslynx_wisent_wegmarke_blinzeln.webp"),
+    // Noch NICHT exportiert (Stand 2026-09-16) — die Quelle (Grafiken/Wisent/Zustaende/
+    // wisent_W1_kopf_heben.png) liegt vor und ist freigegeben, aber `rig_master.py build
+    // scripts/rig_configs/wisent.json` muss noch einmal auf Christians Rechner laufen, um
+    // diese Datei in App-Auflösung zu erzeugen (siehe claude/status_technik_code.md). Bis
+    // dahin bricht `require` beim Bauen der App — das ist beabsichtigt: ein fehlendes Asset
+    // soll hier laut auffallen, nicht still als leeres Bild durchrutschen.
+    kopfHeben: require("../../assets/figuren/gefaehrten/wegmarken/chesslynx_wisent_wegmarke_kopf_heben.webp"),
     leinwand: { breite: 210, hoehe: 326, figur: [4, 3, 203, 320] },
   },
 };
@@ -215,6 +240,8 @@ export function GefaehrteWegmarke({
   blinzeln = true,
   zwinkernAusloeser,
   freudeAktiv = false,
+  auftrittAktiv = false,
+  auftrittAnimiert = false,
 }: {
   id: GefaehrteId;
   breite: number;
@@ -225,22 +252,67 @@ export function GefaehrteWegmarke({
   /** true → zeigt dauerhaft die Freude-Pose statt Grundzustand+Blinzeln (siehe
    *  Funktionskommentar). Ohne exportiertes Freude-Bild wirkungslos. */
   freudeAktiv?: boolean;
+  /** true → zeigt dauerhaft W1 ("Kopf gehoben") statt Grundzustand+Blinzeln — der neue
+   *  Ruhezustand ab dem "Auftritt an der Wisentfeste" (siehe Konstanten-Kommentar oben).
+   *  Ohne exportiertes `kopfHeben`-Bild wirkungslos (aktuell nur beim Wisent). Schließt sich
+   *  mit Freude aus wie Zwinkern — beides sind andere Kopfhaltungen als die Ausgangspose. */
+  auftrittAktiv?: boolean;
+  /** true → DIESER Übergang zu W1 läuft als Überblendung + kleines Kopfheben (translateY) ab,
+   *  statt sofort im Endzustand zu stehen. Nur für den einen Render-Moment gedacht, in dem der
+   *  Aufrufer den Wechsel selbst gerade zum ersten Mal auslöst (siehe LuchsRevierKarte.tsx,
+   *  `wisentAuftrittGezeigt()` in lib/storage.ts) — bei jedem späteren Mount steht W1 mit
+   *  `auftrittAktiv` allein (ohne dieses Flag) sofort da, ohne die Animation zu wiederholen. */
+  auftrittAnimiert?: boolean;
 }) {
   const w = GEFAEHRTE_WEGMARKE[id];
   const freudeJetzt = freudeAktiv && !!w.freude;
-  // Zwinkern und Freude schließen sich aus: Die Zwinkern-Ebene ist eine Differenz zum
-  // Grundzustand (S0_standing → S2_zwinkern) und würde auf der andersartigen Freude-Pose
-  // (S3_freude, andere Kopfhaltung) sichtbar falsch sitzen — deshalb `zwinkernAusloeser`
-  // in diesem Zustand ignorieren, nicht extra durch den Aufrufer abschalten lassen müssen.
-  const zwinkertJetzt = useGeste(w.zwinkern && !freudeJetzt ? zwinkernAusloeser : undefined, GESTE_EINMAL);
+  const auftrittJetzt = auftrittAktiv && !!w.kopfHeben && !freudeJetzt;
+  // Zwinkern, Freude und Auftritt schließen sich gegenseitig aus: Zwinkern ist eine Differenz
+  // zum Grundzustand (S0_standing → S2_zwinkern) und würde auf einer andersartigen Kopfhaltung
+  // (S3_freude ODER W1_kopf_heben) sichtbar falsch sitzen — deshalb `zwinkernAusloeser` in
+  // beiden Zuständen ignorieren, nicht extra durch den Aufrufer abschalten lassen müssen.
+  const zwinkertJetzt = useGeste(
+    w.zwinkern && !freudeJetzt && !auftrittJetzt ? zwinkernAusloeser : undefined,
+    GESTE_EINMAL
+  );
+
+  // Kopfheben-Überblendung (siehe `auftrittAnimiert`-Kommentar oben): läuft über dieselbe
+  // Ebenen-Überblendung wie Zwinkern (ZustandsTier.tsx blendet `grund` synchron aus, sobald
+  // irgendeine Ebene aktiv ist — mit `aktiv: true` bleibt sie es dauerhaft, genau das "halten"
+  // aus der Empfehlung). `grund` bleibt in diesem Fall bewusst S0 — das ist die UNTERE Ebene
+  // der Überblendung, nicht der Zielzustand.
+  const ebenen =
+    auftrittJetzt && auftrittAnimiert
+      ? [{ bild: w.kopfHeben!, aktiv: true }]
+      : w.zwinkern && !freudeJetzt && !auftrittJetzt
+        ? [{ bild: w.zwinkern, aktiv: zwinkertJetzt }]
+        : undefined;
+
+  // translateY der ganzen Figur, synchron zur Überblendung oben — siehe Konstanten-Kommentar.
+  // Nur in diesem einen animierten Übergang gebraucht; in jedem anderen Fall bleibt der Wert
+  // bei 0 und die Animated.View wirkt sich nicht aus.
+  const hebung = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (!(auftrittJetzt && auftrittAnimiert)) return;
+    Animated.timing(hebung, {
+      toValue: -AUFTRITT_HEBUNG_FRAKTION * breite,
+      duration: AUFTRITT_UEBERBLENDUNG_MS,
+      useNativeDriver: true,
+    }).start();
+    // breite ändert sich an keiner Aufrufstelle nach dem Mount — trotzdem in den Deps, falls
+    // doch, damit die Zielhöhe nie stumm veraltet.
+  }, [auftrittJetzt, auftrittAnimiert, breite, hebung]);
+
   return (
-    <ZustandsFigur
-      leinwand={w.leinwand}
-      figurBreite={breite}
-      grund={freudeJetzt ? w.freude : w.grund}
-      blinzeln={blinzeln && !freudeJetzt ? w.blinzeln : undefined}
-      idle={blinzeln && !freudeJetzt}
-      ebenen={w.zwinkern && !freudeJetzt ? [{ bild: w.zwinkern, aktiv: zwinkertJetzt }] : undefined}
-    />
+    <Animated.View style={auftrittJetzt && auftrittAnimiert ? { transform: [{ translateY: hebung }] } : undefined}>
+      <ZustandsFigur
+        leinwand={w.leinwand}
+        figurBreite={breite}
+        grund={freudeJetzt ? w.freude : auftrittJetzt && !auftrittAnimiert ? w.kopfHeben : w.grund}
+        blinzeln={blinzeln && !freudeJetzt && !auftrittJetzt ? w.blinzeln : undefined}
+        idle={blinzeln && !freudeJetzt && !auftrittJetzt}
+        ebenen={ebenen}
+      />
+    </Animated.View>
   );
 }
