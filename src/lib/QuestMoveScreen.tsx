@@ -83,8 +83,29 @@ import { useLuxSpricht } from "./luxStimme";
 // Bewusst HIER und nicht in den sechs Quest-Dateien: Dies ist die eine Stelle, an der beide
 // Wechsel entstehen — die Quests bleiben unverändert.
 
-/** Atempause, nachdem Lux verstummt ist, bevor es weitergeht. */
-const ATEMPAUSE_MS = 400;
+/**
+ * Atempause, nachdem Lux verstummt ist, bevor es weitergeht.
+ *
+ * Bugfix (Gerätetest 2026-09-15, Nutzer: "Stopp!/Schlagen-Screens lassen sich per Tipp
+ * abbrechen" — der B1-Fix vom 2026-09-14 wurde dadurch umgangen). Ursache: `luxSpricht`
+ * hier kommt aus `useLuxSpricht()` (luxStimme.ts) — dessen EIGENE, engine-nahe Abfrage
+ * meldet "spricht nicht" bereits nach einer einzelnen Messung (PRUEF_TAKT_MS, 250 ms).
+ * Bei einer MEHRZEILIGEN Erklärung (Stopp!-Screens haben meist 2-3 Zeilen) entsteht
+ * zwischen zwei Zeilen aber eine ganz natürliche, gewollte Stille: `useLuxSprechzeile.ts`
+ * bestätigt das Ende einer Zeile erst nach zwei aufeinanderfolgenden Messungen (bis zu
+ * ~400 ms) und legt danach selbst noch eine bewusste Pause von ZEILEN_PAUSE_MS (600 ms,
+ * siehe dort) ein, bevor die nächste Zeile losgeschickt wird — macht zusammen bis zu
+ * ~1000 ms, in denen `useLuxSpricht()` bereits "still" meldet, obwohl die Erklärung noch
+ * nicht zu Ende ist. Ein Tipp auf das Stopp!-Feld, der genau in diese Lücke fällt, ließ
+ * `sobaldLuxFertigIst` fälschlich nach nur 400 ms weiterschalten und schnitt die
+ * restlichen Zeilen ab.
+ *
+ * Fix: die Atempause über diese bekannte, aus den obigen Konstanten herleitbare Lücke
+ * anheben (mit Sicherheitsmarge), statt weiter zu schätzen — bleibt weiterhin deutlich
+ * unter allen Notbremsen unten (min. 2500 ms), macht sich beim einzeiligen Regelfall
+ * (kein Folgezeilen-Warten nötig) nur als etwas längere, unauffällige Pause bemerkbar.
+ */
+const ATEMPAUSE_MS = 1200;
 /**
  * Anlauf für eine Zeile, die gerade erst angestoßen WURDE: Nach `wechselPhase("fertig")`
  * beginnt die Lob-Zeile erst im nächsten Rendergang und braucht dann noch bis zum ersten Ton.
@@ -363,6 +384,20 @@ export function QuestMoveScreen({
   return (
     <Board
       config={config}
+      // Bugfix (Gerätetest 2026-09-15, Nutzer: Läufer/Springer-Vorführphase bricht nicht
+      // sauber ab). Der bisherige HÄNGER-SCHUTZ in onCorrectMove unten verhindert zwar eine
+      // fehlerhafte ZUGAUSFÜHRUNG während "vorfuehrung"/"fertig", nicht aber das eigentliche
+      // Antippen währenddessen: Board.tsx sperrt Taps bisher nur über `animatingTo` — und
+      // dieser State wird erst in einem `useEffect` gesetzt, der auf `demoTarget` reagiert,
+      // also NACH dem ersten Render. In der kurzen Lücke zwischen Mount (demoTarget ist
+      // schon gesetzt) und diesem Effekt (animatingTo noch null) blockiert `handleTap`
+      // nichts — ein Tipp genau dort startete eine Zug-Animation PARALLEL zur laufenden
+      // Vorführ-Animation (beide teilen sich `pieceAnim`/`animatingTo`), was die Vorführung
+      // sichtbar abbrechen ließ. `disabled` wird dagegen synchron aus `phase` berechnet, hat
+      // also diese Lücke nicht — sperrt sowohl den Pressable als auch `handleTap` von Anfang
+      // an zuverlässig für "vorfuehrung" (Vorführ-Animation läuft) und "fertig" (Screen
+      // schaltet gleich weiter, siehe onTrapTap/beendeAufgabe oben).
+      disabled={phase === "vorfuehrung" || phase === "fertig"}
       // Nur während der Vorführ-Phase gesetzt — Board.tsx sperrt Taps währenddessen
       // automatisch (siehe dortiger Kommentar zu animatingTo), ein echter onCorrectMove-
       // Aufruf kann in dieser Phase also nicht auftreten.
