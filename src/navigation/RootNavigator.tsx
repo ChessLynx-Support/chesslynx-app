@@ -154,6 +154,10 @@ import WisentKampf from "../screens/WisentKampf";
 import Umwandlung from "../bonus/Umwandlung";
 import EnPassant from "../bonus/EnPassant";
 import WisentKuerHub from "../screens/WisentKuerHub";
+// Wisent-Endspiel-Kür (2026-09-17, siehe claude/wisent_endspiel_kuer_kuratierung_2026-09-17.md):
+// vierte, eigenständige Kür auf demselben Hub (WisentKuerHub.tsx) — echte Mattführung
+// (Dame-Matt/Turm-Matt) gegen den Bot statt eines kurzen Rätsels.
+import WisentEndspielKuer from "../bonus/WisentEndspielKuer";
 // Ruhmeshalle-Grundgerüst (2026-09-15, Christian: "Wisent Kür, danach Ruhmeshalle
 // Grundgerüst" — Wisent-Kür-Runde ist jetzt committed/getestet/gepusht, siehe
 // claude/update1_vorzug_plan_2026-09-15.md Abschnitt 4, Punkt 9). Gemeinsame Galerie aller
@@ -214,6 +218,9 @@ export type RootStackParamList = {
   Umwandlung: undefined;
   EnPassant: undefined;
   WisentKuerHub: undefined;
+  // Neu (Wisent-Endspiel-Kür, siehe Import-Kommentar oben): keine Parameter, feste
+  // Einzel-Screens genau wie Umwandlung/EnPassant.
+  WisentEndspielKuer: undefined;
   // Neu (echter Bonuskapitel-Navigations-Knotenpunkt, siehe Import-Kommentar oben).
   Schlossvorplatz: undefined;
   ParentGate: undefined;
@@ -558,6 +565,7 @@ const ZURUECK_ZUR_KARTE = new Set<string>([
   "WisentKuerHub",
   "Umwandlung",
   "EnPassant",
+  "WisentEndspielKuer",
   "Ruhmeshalle",
 ]);
 
@@ -701,6 +709,7 @@ export function RootNavigator() {
             <Stack.Screen name="WisentKuerHub" component={WisentKuerHub} />
             <Stack.Screen name="Umwandlung" component={Umwandlung} />
             <Stack.Screen name="EnPassant" component={EnPassant} />
+            <Stack.Screen name="WisentEndspielKuer" component={WisentEndspielKuer} />
             <Stack.Screen name="Ruhmeshalle" component={Ruhmeshalle} />
             </Stack.Navigator>
           </NavigationContainer>

@@ -40,7 +40,7 @@ import { View, Text, Pressable, StyleSheet, SafeAreaView } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { MATT_IN_3_POSITIONEN, createPosition, tryMove, type BoardSquare } from "../lib/chessEngine";
 import { Board } from "../quest1/Board";
-import { saveBonusFortschrittLocal } from "../lib/storage";
+import { saveBonusFortschrittLocal, holeUndSchalteMattIn3Versatz } from "../lib/storage";
 import { KoenigMasterIcon, KoenigMasterDunkelIcon, TurmMasterIcon, DameMasterIcon } from "../lib/pieceMasters";
 import { ExtraSternchenIcon } from "../lib/puzzleIcons";
 import { LuxEckIcon } from "../lib/luxAssets";
@@ -86,7 +86,7 @@ function zeileMitVariante(basis: string): string {
   return basis;
 }
 
-type RaetselId = "turmleiter" | "damenUndTurm" | "reduziert";
+type RaetselId = "turmleiter" | "damenUndTurm" | "reduziert" | "spiegelungALinie" | "drehung180";
 
 // Geometrische Beschreibung je Rätsel (siehe chessEngine.ts/MATT_IN_3_POSITIONEN-Kommentar für
 // die zugrunde liegende, verifizierte Zugfolge). `stueckA` zieht in Zug 1 UND Zug 3 (dieselbe
@@ -146,7 +146,51 @@ const RAETSEL: Record<RaetselId, RaetselDaten> = {
     gegnerKoenigNachZug1: { row: 1, col: 4 }, // e7
     gegnerKoenigNachZug2: { row: 0, col: 4 }, // e8
   },
+  // NEU (2026-09-17, Pool-Erweiterung 3 -> 5, siehe chessEngine.ts/MATT_IN_3_POSITIONEN-
+  // Kommentar und claude/wisent_endspiel_kuer_kuratierung_2026-09-17.md Abschnitt 2): reine
+  // Brett-Isometrien der Turmleiter-Stellung. Alle {row,col}-Koordinaten hier NICHT von Hand
+  // ausgerechnet, sondern programmatisch aus den algebraischen Feldnamen der bereits gegen
+  // echtes chess.js verifizierten Zugfolge abgeleitet und gegengeprüft (siehe
+  // verify/test-wisent-endspiel-kuer-logic.cjs).
+  spiegelungALinie: {
+    fen: MATT_IN_3_POSITIONEN.spiegelungALinie,
+    eigenerKoenig: { row: 0, col: 7 }, // h8
+    stueckBIstDame: false,
+    stueckAStart: { row: 2, col: 0 }, // a6
+    stueckAZwischenziel: { row: 5, col: 0 }, // a3
+    stueckAMattziel: { row: 7, col: 0 }, // a1
+    stueckBStart: { row: 4, col: 7 }, // h4
+    stueckBZiel: { row: 6, col: 7 }, // h2
+    gegnerKoenigStart: { row: 5, col: 3 }, // d3
+    gegnerKoenigNachZug1: { row: 6, col: 3 }, // d2
+    gegnerKoenigNachZug2: { row: 7, col: 3 }, // d1
+  },
+  drehung180: {
+    fen: MATT_IN_3_POSITIONEN.drehung180,
+    eigenerKoenig: { row: 7, col: 7 }, // h1
+    stueckBIstDame: false,
+    stueckAStart: { row: 3, col: 7 }, // h5
+    stueckAZwischenziel: { row: 2, col: 7 }, // h6
+    stueckAMattziel: { row: 0, col: 7 }, // h8
+    stueckBStart: { row: 5, col: 0 }, // a3
+    stueckBZiel: { row: 1, col: 0 }, // a7
+    gegnerKoenigStart: { row: 2, col: 3 }, // d6
+    gegnerKoenigNachZug1: { row: 1, col: 3 }, // d7
+    gegnerKoenigNachZug2: { row: 0, col: 3 }, // d8
+  },
 };
+
+// Feste Reihenfolge der fünf Rätsel-Geometrien für den rotierenden Fenster-Versatz (Christians
+// Entscheidung bei Rückfrage 2026-09-17, siehe storage.ts/holeUndSchalteMattIn3Versatz-
+// Kommentar). Versatz 0 (erster jemals erfolgter Besuch) ergibt exakt die bisherige feste
+// Reihenfolge (Turmleiter -> Dame-und-Turm -> Reduziert) — siehe raetselFuerScreen unten.
+const RAETSEL_REIHENFOLGE: readonly RaetselId[] = [
+  "turmleiter",
+  "damenUndTurm",
+  "reduziert",
+  "spiegelungALinie",
+  "drehung180",
+];
 
 type ScreenId = 0 | 1 | 2 | 3 | 4 | 5;
 type Phase = 0 | 1 | 2; // welcher der drei Weißzüge wird gerade angeboten
@@ -200,23 +244,40 @@ export default function MattIn3() {
   const [gegnerKoenigAt, setGegnerKoenigAt] = useState<BoardSquare>(RAETSEL.turmleiter.gegnerKoenigStart);
   const [hinweisPhase, setHinweisPhase] = useState<HinweisPhase>("still");
   const hinweiseAktiv = useHinweiseAktiv();
+  // Rotierender Fenster-Versatz über den 5er-Pool (2026-09-17, siehe storage.ts/
+  // holeUndSchalteMattIn3Versatz-Kommentar) — 0 als Default, bis der echte, gespeicherte Wert
+  // geladen ist (identisch zur bisherigen festen Reihenfolge, siehe raetselFuerScreen unten).
+  const [versatz, setVersatz] = useState<0 | 1 | 2 | 3 | 4>(0);
+  useEffect(() => {
+    let abgebrochen = false;
+    holeUndSchalteMattIn3Versatz().then((v) => {
+      if (!abgebrochen) setVersatz(v);
+    });
+    return () => {
+      abgebrochen = true;
+    };
+  }, []);
 
-  function raetselFuerScreen(s: ScreenId): RaetselId | null {
-    if (s === 2) return "turmleiter";
-    if (s === 3) return "damenUndTurm";
-    if (s === 4) return "reduziert";
-    return null;
+  // Screens 2/3/4 zeigen ein Fenster von drei aufeinanderfolgenden (zyklisch gewickelten)
+  // Einträgen aus RAETSEL_REIHENFOLGE, beginnend bei `versatz` — Screen 1 (Treib-Entdecken)
+  // bleibt bewusst die feste Turmleiter-Demo (siehe Datei-Kopfkommentar bei
+  // TREIB_ENTDECKEN_FRAMES, unverändert).
+  function raetselFuerScreen(s: ScreenId, versatzWert: number): RaetselId | null {
+    if (s !== 2 && s !== 3 && s !== 4) return null;
+    const fensterIndex = s - 2; // 0, 1, 2
+    const poolIndex = (versatzWert + fensterIndex) % RAETSEL_REIHENFOLGE.length;
+    return RAETSEL_REIHENFOLGE[poolIndex];
   }
-  const raetselId = raetselFuerScreen(screen);
+  const raetselId = raetselFuerScreen(screen, versatz);
   const raetsel = raetselId ? RAETSEL[raetselId] : null;
 
-  const game = useMemo(() => (raetsel ? createPosition(raetsel.fen) : null), [screen]);
+  const game = useMemo(() => (raetsel ? createPosition(raetsel.fen) : null), [screen, versatz]);
 
   useEffect(() => {
     setPhase(0);
     setTreibFrame(0);
     if (raetsel) setGegnerKoenigAt(raetsel.gegnerKoenigStart);
-  }, [screen]);
+  }, [screen, versatz]);
 
   // Screen- ODER Phasen-Wechsel setzt die "Lux fragen"-Geste zurück — jeder der drei
   // Weißzüge eines Rätsels ist eine eigene "frische" Zugaufgabe.

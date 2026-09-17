@@ -751,6 +751,19 @@ export const MATT_IN_3_POSITIONEN = {
   // — dieselbe verifizierte Mechanik, aber andere Felder, damit das Kind nicht einfach exakt
   // dieselben Tipp-Koordinaten wie in Screen 2 wiederholt.
   reduziert: "8/8/4k3/R7/8/7R/8/K7 w - - 0 1",
+  // NEU (2026-09-17, Matt-in-3-Pool-Erweiterung 3 -> 5, siehe claude/
+  // wisent_endspiel_kuer_kuratierung_2026-09-17.md Abschnitt 2): zwei weitere Brett-
+  // Isometrien (Spiegelung/Drehung) der bereits oben verifizierten Turmleiter-Stellung —
+  // Spiegelungen/Drehungen erhalten alle Zug- und Mattbeziehungen exakt, trotzdem
+  // programmatisch (nicht nur behauptet) gegen echtes chess.js nachgeprüft, siehe
+  // verify/test-wisent-endspiel-kuer-logic.cjs.
+  //
+  // "Spiegelung a-Linie": König wird zur a-Linie statt zur h-Linie getrieben.
+  // Zugfolge: Ta6-a3, (Schwarz Kd3-d2), Th4-h2, (Schwarz Kd2-d1), Ta3-a1#.
+  spiegelungALinie: "7K/8/R7/8/7R/3k4/8/8 w - - 0 1",
+  // "180°-Drehung": König wird zur 8. Reihe statt zur 1. Reihe getrieben.
+  // Zugfolge: Th5-h6, (Schwarz Kd6-d7), Ra3-a7, (Schwarz Kd7-d8), Th6-h8#.
+  drehung180: "8/8/3k4/7R/8/R7/8/7K w - - 0 1",
 } as const;
 
 /**
@@ -999,6 +1012,61 @@ export const WOLFSFESTE_MATT_IN_2_POSITIONEN = {
 export const WISENT_BOSS_POSITION = {
   hauptstellung: "4k3/N3rp2/8/B6B/8/8/Q7/4R1K1 w - - 0 1",
 } as const;
+
+/**
+ * Wisent-Endspiel-Kür (optional, Claude-Projekt "ChessLynx",
+ * claude/wisent_endspiel_kuer_kuratierung_2026-09-17.md). 10 Startstellungen je Unterthema
+ * (Dame-Matt/Turm-Matt): a1-a4 = Stufe A (4), b1-b3 = Stufe B (3), c1-c3 = Stufe C (3) — siehe
+ * claude/endspiel_taktik_kuratierung_2026-09-16.md Abschnitt 5 (Starter-Pool a1/a2/b1/b2/c1/c2)
+ * und obiges Kuratierungsdokument Abschnitt 1 (Ergänzung a3/a4/b3/c3).
+ *
+ * Anders als jedes bisherige kuratierte Rätsel in dieser Datei sind das keine Ein- oder
+ * Drei-Zug-Rätsel mit geskripteter Gegenantwort, sondern echte STARTSTELLUNGEN für eine vom
+ * Kind selbst ausgespielte Mattführung (beliebig viele eigene Züge) — der gegnerische, einsame
+ * König antwortet nach jedem Kind-Zug über `wisentEndspielFlucht.ts/waehleFluchtZug` (bewusst
+ * NICHT waldfreundeBot.ts, siehe dortiger Kopfkommentar zur Begründung: der bestehende Bot ist
+ * farbneutral und bewertet über eine Materialbilanz, die für einen nackten, einsamen König ohne
+ * jede eigene Nebenfigur keine Unterscheidung zwischen seinen Zügen treffen kann).
+ *
+ * Alle 20 Stellungen (10 je Unterthema) gegen echtes chess.js@1.4.0 verifiziert: exakte
+ * Materialaufteilung (nur König + die genannte Figur gegen einen einsamen König, keine weiteren
+ * Figuren), gültige Stellung, Weiß am Zug, Partie nicht bereits beendet, schwarzer König nicht
+ * bereits im Schach — siehe verify/test-wisent-endspiel-kuer-logic.cjs, 0 Fehler. Zusätzlich
+ * geprüft: WISENT_ENDSPIEL_TURM_POSITIONEN ist an jedem der zehn Schlüssel exakt dieselbe
+ * Stellung wie WISENT_ENDSPIEL_DAME_POSITIONEN mit Q durch R ersetzt (identische Geometrie,
+ * nur die Übungsfigur unterscheidet sich — wie im Kuratierungsdokument dokumentiert).
+ */
+export const WISENT_ENDSPIEL_DAME_POSITIONEN = {
+  a1: "7k/8/5K2/6Q1/8/8/8/8 w - - 0 1",
+  a2: "k7/8/2K5/5Q2/8/8/8/8 w - - 0 1",
+  a3: "8/8/8/8/6Q1/5K2/8/7k w - - 0 1",
+  a4: "8/8/8/8/5Q2/2K5/8/k7 w - - 0 1",
+  b1: "8/8/4k3/8/8/2K5/8/7Q w - - 0 1",
+  b2: "8/8/3k4/8/8/1K6/8/6Q1 w - - 0 1",
+  b3: "7Q/8/2K5/8/8/4k3/8/8 w - - 0 1",
+  c1: "4k3/8/8/8/8/8/8/K2Q4 w - - 0 1",
+  c2: "3k4/8/8/8/8/8/8/K5Q1 w - - 0 1",
+  c3: "K2Q4/8/8/8/8/8/8/4k3 w - - 0 1",
+} as const;
+
+export const WISENT_ENDSPIEL_TURM_POSITIONEN = {
+  a1: "7k/8/5K2/6R1/8/8/8/8 w - - 0 1",
+  a2: "k7/8/2K5/5R2/8/8/8/8 w - - 0 1",
+  a3: "8/8/8/8/6R1/5K2/8/7k w - - 0 1",
+  a4: "8/8/8/8/5R2/2K5/8/k7 w - - 0 1",
+  b1: "8/8/4k3/8/8/2K5/8/7R w - - 0 1",
+  b2: "8/8/3k4/8/8/1K6/8/6R1 w - - 0 1",
+  b3: "7R/8/2K5/8/8/4k3/8/8 w - - 0 1",
+  c1: "4k3/8/8/8/8/8/8/K2R4 w - - 0 1",
+  c2: "3k4/8/8/8/8/8/8/K5R1 w - - 0 1",
+  c3: "K2R4/8/8/8/8/8/8/4k3 w - - 0 1",
+} as const;
+
+/** Feste Reihenfolge der zehn Aufgaben-Schlüssel je Unterthema, identisch zu den Stufengrößen
+ *  [4, 3, 3] in wisentEndspielFortschritt.ts (Index 0-3 = Stufe A, 4-6 = Stufe B, 7-9 = Stufe C). */
+export const WISENT_ENDSPIEL_AUFGABEN_REIHENFOLGE = [
+  "a1", "a2", "a3", "a4", "b1", "b2", "b3", "c1", "c2", "c3",
+] as const;
 
 /**
  * Umwandlungs-Kür (optional, Claude-Projekt "ChessLynx",

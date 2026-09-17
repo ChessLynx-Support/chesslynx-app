@@ -203,6 +203,12 @@ export type KindProfil = {
     // optional, aus demselben Grund (bestehende Profile kennen die Felder noch nicht).
     umwandlung?: boolean;
     enPassant?: boolean;
+    // Wisent-Endspiel-Kür (2026-09-17, siehe claude/wisent_endspiel_kuer_kuratierung_
+    // 2026-09-17.md): vierte Kür im Hub (screens/WisentKuerHub.tsx). Genau wie umwandlung/
+    // enPassant/wisentKampf optional, aus demselben Grund (bestehende Profile kennen das Feld
+    // noch nicht) — gesetzt, sobald BEIDE Unterthemen (Dame-Matt/Turm-Matt) alle drei Sterne
+    // erreicht haben (siehe lib/wisentEndspielFortschritt.ts).
+    wisentEndspiel?: boolean;
   };
   screenTimeHeute: { minutenGenutzt: number; datum: string };
   erstelltAm: number;

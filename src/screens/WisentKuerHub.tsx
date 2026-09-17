@@ -23,7 +23,7 @@ import { View, Text, Pressable, StyleSheet, SafeAreaView } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { loadBonusFortschrittLocal, wisentKuerAlleDreiGezeigt, setWisentKuerAlleDreiGezeigt } from "../lib/storage";
 import { ExtraSternchenIcon, KronenBauerIcon, SchattenSprungIcon } from "../lib/puzzleIcons";
-import { KoenigMasterDunkelIcon } from "../lib/pieceMasters";
+import { KoenigMasterDunkelIcon, DameMasterIcon } from "../lib/pieceMasters";
 import { BadgeRahmen } from "../components/BadgeRahmen";
 import { LuxEckIcon } from "../lib/luxAssets";
 import { useLuxSprechzeile } from "../lib/useLuxSprechzeile";
@@ -46,7 +46,16 @@ const JEDERZEIT_ZEILE = "Du darfst auch direkt zum Wisent weiterziehen, wenn du 
 
 const UEBERGANGS_PAUSE_MS = 1800;
 
-type Fortschritt = { mattIn3: boolean; umwandlung: boolean; enPassant: boolean } | null;
+// `wisentEndspiel` bewusst NICHT Teil der "drei Geheimnisse"-Zähllogik unten
+// (erledigtCount/zeilenFuer bleiben unverändert auf mattIn3/umwandlung/enPassant beschränkt) —
+// die Wisent-Endspiel-Kür ist kein kurzes "Geheimnis"-Rätsel wie die anderen drei, sondern eine
+// eigene, größere Übung (echte Mattführung gegen den Bot, siehe bonus/WisentEndspielKuer.tsx),
+// daher hier als vierte, eigenständige Karte mit eigenem Fortschrittsabzeichen geführt, ohne die
+// bestehende, sorgfältig abgestimmte Sprechzeilen-Dramaturgie ("eine von drei" / "alle drei
+// gemeistert") anzutasten. Diese Einordnung ist Claudes Annahme, kein von Christian bestätigter
+// Text — siehe Nachtrag in claude/status_technik_code.md, falls er stattdessen eine eigene
+// Sprechzeile für die vierte Kür wünscht.
+type Fortschritt = { mattIn3: boolean; umwandlung: boolean; enPassant: boolean; wisentEndspiel: boolean } | null;
 
 // Platzhalter statt direktem `luxVariante(...)`-Aufruf in `zeilenFuer` — siehe
 // bonus/Umwandlung.tsx-Kommentar bei derselben Konstante (dort ausführlich begründet):
@@ -82,14 +91,15 @@ export default function WisentKuerHub() {
   useEffect(() => {
     let abgebrochen = false;
     (async () => {
-      const [mattIn3, umwandlung, enPassant, schonGezeigt] = await Promise.all([
+      const [mattIn3, umwandlung, enPassant, wisentEndspiel, schonGezeigt] = await Promise.all([
         loadBonusFortschrittLocal("mattIn3"),
         loadBonusFortschrittLocal("umwandlung"),
         loadBonusFortschrittLocal("enPassant"),
+        loadBonusFortschrittLocal("wisentEndspiel"),
         wisentKuerAlleDreiGezeigt(),
       ]);
       if (abgebrochen) return;
-      setFortschritt({ mattIn3, umwandlung, enPassant });
+      setFortschritt({ mattIn3, umwandlung, enPassant, wisentEndspiel });
       setAlle3SchonGezeigt(schonGezeigt);
     })();
     return () => {
@@ -157,6 +167,17 @@ export default function WisentKuerHub() {
             <SchattenSprungIcon size={56} />
           </BadgeRahmen>
         </Pressable>
+        {/* Vierte Karte, siehe Fortschritt-Typkommentar oben: eigenständig, ohne die
+            "eine/zwei/drei von drei"-Sprechzeilen-Zählung zu berühren. */}
+        <Pressable
+          style={styles.karte}
+          onPress={() => navigation.navigate("WisentEndspielKuer")}
+          accessibilityLabel="Wisent-Endspiel-Kür"
+        >
+          <BadgeRahmen size={84} akzent={fortschritt?.wisentEndspiel ? "#D7A52D" : "#C9B79A"}>
+            <DameMasterIcon size={56} />
+          </BadgeRahmen>
+        </Pressable>
       </View>
 
       {/* "Jederzeit verfügbar" (Konzept Abschnitt 4) — eigenständiger, immer sichtbarer und
@@ -201,7 +222,7 @@ const styles = StyleSheet.create({
     transform: [{ rotate: "45deg" }],
   },
   speech: { fontSize: 16, color: "#4A4038", textAlign: "center" },
-  karten: { flexDirection: "row", justifyContent: "center", gap: 22, marginBottom: 36 },
+  karten: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: 22, marginBottom: 36 },
   karte: { alignItems: "center", justifyContent: "center" },
   weiterZumWisent: { alignItems: "center", justifyContent: "center" },
 });

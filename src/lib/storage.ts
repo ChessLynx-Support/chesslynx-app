@@ -18,6 +18,12 @@ import { holeDb, kinderCollectionPfad } from "./firebase";
 // Truth für "welche Elo-Stufe ist die erste/leichteste" bleibt waldfreundeBot.ts.
 import { ersteStufe } from "./waldfreundeBot";
 import { GANZE_PARTIE_ETAPPE_KEY } from "./ganzePartieStand";
+// Wisent-Endspiel-Kür (2026-09-17, siehe Abschnitt weiter unten und Import-Kommentar bei
+// `holeUndSchalteMattIn3Versatz`): nur der Schlüssel wird importiert (für
+// `istSpielstandSchluessel` unten), nicht die Lese-/Schreibfunktionen selbst — die liegen
+// bewusst in wisentEndspielFortschritt.ts und importieren NICHT aus storage.ts zurück (kein
+// Zirkelbezug zwischen den beiden Modulen, siehe dortiger Kopfkommentar).
+import { WISENT_ENDSPIEL_FORTSCHRITT_KEY } from "./wisentEndspielFortschritt";
 
 const KEY_PREFIX = "chesslynx:questFortschritt:";
 const SYNC_QUEUE_KEY = "chesslynx:syncQueue";
@@ -160,6 +166,26 @@ export async function holeUndSchalteKuerVariante(kuerId: "umwandlung" | "enPassa
   const aktuelle: 1 | 2 = raw === "2" ? 2 : 1;
   const naechste: 1 | 2 = aktuelle === 1 ? 2 : 1;
   await AsyncStorage.setItem(KUER_VARIANTE_KEY_PREFIX + kuerId, String(naechste));
+  return aktuelle;
+}
+
+// --- Matt in 3: rotierender Fenster-Versatz über den 5er-Rätsel-Pool (2026-09-17) ----------
+//
+// Matt-in-3-Pool-Erweiterung 3 -> 5 (siehe claude/wisent_endspiel_kuer_kuratierung_
+// 2026-09-17.md Abschnitt 2 und bonus/MattIn3.tsx/RAETSEL_REIHENFOLGE-Kommentar): Christians
+// Entscheidung bei Rückfrage 2026-09-17 war "rotierender Fenster-Versatz" statt eines echten
+// Zufalls — verallgemeinert exakt das Prinzip von `holeUndSchalteKuerVariante` oben (dort ein
+// 1|2-Umschalter, hier ein 0-4-Zähler, der bei jedem Aufruf um eins weiterrückt und dabei
+// zyklisch bei 0 wieder beginnt). Der erste jemals erfolgte Aufruf liefert 0 — das entspricht
+// exakt der bisherigen festen Reihenfolge (Turmleiter -> Dame-und-Turm -> Reduziert), bestehende
+// Spielstände sehen also beim allernächsten Besuch noch dieselben drei Rätsel wie bisher.
+const MATT_IN_3_VERSATZ_KEY = "chesslynx:mattIn3Versatz";
+
+export async function holeUndSchalteMattIn3Versatz(): Promise<0 | 1 | 2 | 3 | 4> {
+  const raw = await AsyncStorage.getItem(MATT_IN_3_VERSATZ_KEY);
+  const aktuelle = (raw ? Number(raw) : 0) as 0 | 1 | 2 | 3 | 4;
+  const naechste = (((aktuelle + 1) % 5) as 0 | 1 | 2 | 3 | 4);
+  await AsyncStorage.setItem(MATT_IN_3_VERSATZ_KEY, String(naechste));
   return aktuelle;
 }
 
@@ -337,13 +363,23 @@ export function istSpielstandSchluessel(k: string): boolean {
     k === WILLKOMMEN_GESEHEN_KEY ||
     k === GANZE_PARTIE_ETAPPE_KEY ||
     k === WISENT_KUER_ALLE_DREI_GEZEIGT_KEY ||
+    k === WISENT_AUFTRITT_GEZEIGT_KEY ||
     k === RUHMESHALLE_GEFEIERT_KEY ||
     k === GEFAEHRTEN_BESUCHT_KEY ||
+    k === MATT_IN_3_VERSATZ_KEY ||
+    k === WISENT_ENDSPIEL_FORTSCHRITT_KEY ||
     k.startsWith(KEY_PREFIX) ||
     k.startsWith(BONUS_KEY_PREFIX) ||
     k.startsWith(KUER_VARIANTE_KEY_PREFIX) ||
     k.startsWith("chesslynx:freispielFortschritt:") ||
     k.startsWith("chesslynx:freispiel:") ||
+    // Korrektur (2026-09-17, im Zuge der Wisent-Endspiel-Kür-Umsetzung gefunden): der
+    // Endlosmodus-Fortschritt (lib/endlosmodusFortschritt.ts, Schlüssel
+    // "chesslynx:endlosmodusFortschritt:v2" und "...:syncAusstehend") fehlte hier bisher
+    // komplett — seit dessen Einführung am 2026-09-15 wäre er von "Lokalen Spielstand löschen"
+    // (Kontolöschung/"Neu beginnen") NIE erfasst worden. Reine Nachrüstung eines bestehenden
+    // Lecks, keine Verhaltensänderung für die hier neu hinzugefügten Schlüssel.
+    k.startsWith("chesslynx:endlosmodusFortschritt:") ||
     k === SYNC_QUEUE_KEY ||
     k === BONUS_SYNC_QUEUE_KEY
   );
