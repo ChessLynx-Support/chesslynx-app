@@ -55,7 +55,11 @@ export type SchachZug = {
   istMatt: boolean;
 };
 
-function iconFuer(typ: Typ, farbe: Farbe): ReactNode {
+// Nachtrag (2026-09-17, Stufe-3-Interaktionsmodell im Endlosmodus, siehe claude/
+// stufe3_interaktionsmodell_konzept_2026-09-17.md): exportiert, damit EndlosmodusPuzzle.tsx
+// dieselbe Icon-Zuordnung wiederverwenden kann, statt sie ein zweites Mal zu schreiben —
+// keine Verhaltensänderung für Quest 6 selbst.
+export function iconFuer(typ: Typ, farbe: Farbe): ReactNode {
   const hell = farbe === "w";
   switch (typ) {
     case "p":

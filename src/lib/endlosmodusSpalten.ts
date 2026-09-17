@@ -21,11 +21,14 @@ import type { GefaehrteId } from "./gefaehrtenZustaende";
 export type EndlosmodusSpalteId =
   | "eichhoernchen_figurGewinnen"
   | "eichhoernchen_figurenwert"
+  | "eichhoernchen_gabel"
   | "rabenfels_schach"
+  | "rabenfels_fesselungSetzen"
   | "dachshoehle_figurGewinnen"
   | "dachshoehle_schach"
   | "dachshoehle_rochade"
   | "adlerhorst_fesselung"
+  | "adlerhorst_spiess"
   | "wolfsfeste_fesselung"
   | "wolfsfeste_mattIn2";
 
@@ -52,11 +55,18 @@ export type EndlosmodusSpalteMeta = {
 export const ENDLOSMODUS_SPALTEN: EndlosmodusSpalteMeta[] = [
   { id: "eichhoernchen_figurGewinnen", gefaehrteId: "eichhoernchen", titel: "Figur gewinnen", status: "bereit" },
   { id: "eichhoernchen_figurenwert", gefaehrteId: "eichhoernchen", titel: "Figurenwert", status: "folgt" },
+  // Nachtrag (2026-09-17, Gefaehrten-Motive-Kuration, siehe claude/
+  // gefaehrten_motive_kuration_2026-09-17.md): zweite Fokus-Spalte fuer Eichhoernchen.
+  { id: "eichhoernchen_gabel", gefaehrteId: "eichhoernchen", titel: "Gabel", status: "bereit" },
   { id: "rabenfels_schach", gefaehrteId: "rabe", titel: "Schach lösen", status: "bereit" },
+  // Nachtrag (2026-09-17): zweite Fokus-Spalte fuer Rabenfels (neues Motiv, siehe oben).
+  { id: "rabenfels_fesselungSetzen", gefaehrteId: "rabe", titel: "Fesselung setzen", status: "bereit" },
   { id: "dachshoehle_figurGewinnen", gefaehrteId: "dachs", titel: "Figur gewinnen", status: "bereit" },
   { id: "dachshoehle_schach", gefaehrteId: "dachs", titel: "Schach lösen", status: "bereit" },
   { id: "dachshoehle_rochade", gefaehrteId: "dachs", titel: "Rochade", status: "bereit" },
   { id: "adlerhorst_fesselung", gefaehrteId: "adlerin", titel: "Fesselung", status: "bereit" },
+  // Nachtrag (2026-09-17): zweite Fokus-Spalte fuer Adlerhorst.
+  { id: "adlerhorst_spiess", gefaehrteId: "adlerin", titel: "Spieß", status: "bereit" },
   { id: "wolfsfeste_fesselung", gefaehrteId: "wolf", titel: "Fesselung", status: "bereit" },
   { id: "wolfsfeste_mattIn2", gefaehrteId: "wolf", titel: "Matt in 2", status: "folgt" },
 ];
