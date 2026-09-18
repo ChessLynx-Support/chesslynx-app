@@ -225,6 +225,17 @@ export const MAP_ASPECT = 1318 / 829;
 export const REFERENZ_BREITE = 390;
 export const REFERENZ_HOEHE = 620;
 
+// 2026-09-18, Christian-Wunsch ("Größe der Tiere über alle Tiere anpassen"): EIN einziger
+// Hebel für die Gesamtgröße ALLER Tierfiguren auf der Karte — sowohl die sechs Wegmarken-
+// Tiere (Igel…Hirsch, per Hand vermessen, siehe WEGMARKEN unten) als auch die Oberland-
+// Gefährten samt Schildkröte (die schon vorher alle durch dieselbe Formel `oberlandBreite()`
+// liefen, siehe dort). 1,0 = heutige Größe, unverändert. Größenverhältnisse der Tiere
+// UNTEREINANDER (Igel kleiner als Hirsch, Wisent größter Gefährte, …) bleiben bei jedem Wert
+// erhalten, weil der Faktor auf beide Systeme gleich und multiplikativ wirkt. Die Fußpunkte
+// (fx/fy) verschieben sich nicht — nur die Bildgröße wächst/schrumpft um den Fußpunkt herum,
+// exakt wie es die Karte bei der Ferne-Skalierung ohnehin schon tut.
+export const TIER_SKALIERUNG = 1.0;
+
 export type QuestId = "quest1" | "quest2" | "quest3" | "quest4" | "quest5" | "quest6";
 // "offen" (neu, Update-1-Vorzug 2026-09-15): erreichbar und voll aufgedeckt, aber weder
 // "als Nächstes markiert" (kein Glühwürmchen-Kranz, der ist für die lineare Quest-Reihenfolge
@@ -341,10 +352,20 @@ const AMBIENT_SCHLEIFEN = [
     // (statt 0.531); fx minimal nachgeführt auf 0.9067 (statt 0.9215 — der alte Wert lag
     // knapp daneben). Am Kartenbild mit eingezeichneter Box+Startpunkt geprüft: Startpunkt
     // sitzt jetzt genau auf der Schornsteinöffnung.
+    //
+    // 2026-09-18, dritte, kleine Nachjustierung (Christian: "2 von 3 passt, eins noch nicht
+    // ganz ideal" — mit rotem Punkt exakt an derselben Stelle wie zuvor markiert): frischer
+    // Screenshot wieder per Template-Matching auf das echte Kartenbild zurückgerechnet, Ziel
+    // diesmal (1505, 2579) statt (1503, 2587) — nur 8px höher. fy jetzt 0.4908 (statt 0.4939),
+    // fx 0.9080 (statt 0.9067). Vermutliche Ursache des kleinen Rests: Die frischeste
+    // Rauchwolke ist am eigentlichen Startpunkt noch fast unsichtbar (Deckkraft 0 %, wächst
+    // laut Lottie-Quelle erst über ~24 Frames auf sichtbare Werte), während sie dabei schon
+    // ein Stück steigt — das sichtbare "Anfangen" liegt dadurch minimal höher als der reine
+    // Geometrie-Startpunkt.
     name: "rauch",
     quelle: require("../../assets/lottie/chesslynx-chimney-smoke.json"),
-    fx: 0.9067,
-    fy: 0.4939,
+    fx: 0.908,
+    fy: 0.4908,
     groesseFrac: 0.2,
     verzoegerungMs: 700,
     tempo: 0.7,
@@ -437,6 +458,15 @@ const AMBIENT_SCHLEIFEN = [
   },
 ] as const;
 
+// Bildbreite eines Wegmarken-Tieres in Referenzpunkten: `px` ist die am Design-Canvas von
+// Hand abgemessene Breite (siehe Kommentare unten bei den einzelnen Quests), skaliert mit
+// demselben globalen `TIER_SKALIERUNG`-Hebel, der auch die Oberland-Gefährten steuert (siehe
+// Kommentar bei TIER_SKALIERUNG oben). Ändert TIER_SKALIERUNG nichts (1,0), ist das Ergebnis
+// exakt der bisherige, von Hand vermessene Wert.
+function wegmarkeBreite(px: number) {
+  return (px * TIER_SKALIERUNG) / REFERENZ_BREITE;
+}
+
 export const WEGMARKEN: WegmarkenEintrag[] = [
   {
     quest: "quest1",
@@ -444,7 +474,7 @@ export const WEGMARKEN: WegmarkenEintrag[] = [
     // 2026-09-13: 16 px tiefer — auf der neuen Karte stand der Igel bei y=590 am Bachufer
     // (gemessene Farbe dort 106/207/201, also Wasser), jetzt mittig auf dem Sandweg.
     fy: 606 / REFERENZ_HOEHE,
-    breiteFrac: 45 / REFERENZ_BREITE,
+    breiteFrac: wegmarkeBreite(45),
     aspekt: questTierWegmarkeAspekt("quest1"),
   },
   {
@@ -452,7 +482,7 @@ export const WEGMARKEN: WegmarkenEintrag[] = [
     fx: 255 / REFERENZ_BREITE,
     // 2026-09-13: 14 px höher, damit der Bär mittig auf dem Weg steht statt am unteren Rand.
     fy: 566 / REFERENZ_HOEHE,
-    breiteFrac: 50 / REFERENZ_BREITE,
+    breiteFrac: wegmarkeBreite(50),
     aspekt: questTierWegmarkeAspekt("quest2"),
   },
   {
@@ -461,7 +491,7 @@ export const WEGMARKEN: WegmarkenEintrag[] = [
     // gemessen 19 px — die Silhouetten berühren sich nicht.
     fx: 175 / REFERENZ_BREITE,
     fy: 475 / REFERENZ_HOEHE,
-    breiteFrac: 56 / REFERENZ_BREITE,
+    breiteFrac: wegmarkeBreite(56),
     aspekt: questTierWegmarkeAspekt("quest3"),
   },
   {
@@ -474,7 +504,7 @@ export const WEGMARKEN: WegmarkenEintrag[] = [
     // Fluss liegt als Kulisse dahinter statt darunter.
     fx: 115 / REFERENZ_BREITE,
     fy: 330 / REFERENZ_HOEHE,
-    breiteFrac: 61 / REFERENZ_BREITE,
+    breiteFrac: wegmarkeBreite(61),
     aspekt: questTierWegmarkeAspekt("quest4"),
   },
   {
@@ -488,7 +518,7 @@ export const WEGMARKEN: WegmarkenEintrag[] = [
     // aus jetzt ungefähr über die Steinbrücke statt quer durchs Wasser.
     fx: 270 / REFERENZ_BREITE,
     fy: 290 / REFERENZ_HOEHE,
-    breiteFrac: 61 / REFERENZ_BREITE,
+    breiteFrac: wegmarkeBreite(61),
     aspekt: questTierWegmarkeAspekt("quest5"),
   },
   {
@@ -499,7 +529,7 @@ export const WEGMARKEN: WegmarkenEintrag[] = [
     // verdeckt genau die Fläche, die als Nächstes angetippt wird.
     fx: 195 / REFERENZ_BREITE,
     fy: 200 / REFERENZ_HOEHE,
-    breiteFrac: 52 / REFERENZ_BREITE,
+    breiteFrac: wegmarkeBreite(52),
     aspekt: questTierWegmarkeAspekt("quest6"),
   },
 ];
@@ -592,9 +622,12 @@ function oberlandFerne(fy: number) {
  * Er ist mit seiner Rute fast so breit wie hoch, nach Breite gestaffelt hätte er winzig
  * ausgesehen. Beim Raben, der ihn ersetzt hat, ist es umgekehrt — schmaler Vogel, fast
  * doppelt so hoch wie breit. Über die Höhe gerechnet stimmen beide.
+ *
+ * 2026-09-18: `TIER_SKALIERUNG` (siehe Kommentar dort) multipliziert hier mit hinein — derselbe
+ * globale Größenhebel, der auch die Wegmarken-Tiere über `wegmarkeBreite()` steuert.
  */
 function oberlandBreite(fy: number, artFaktor: number, aspekt: number) {
-  return (OBERLAND_GRUNDHOEHE * oberlandFerne(fy) * artFaktor) / aspekt;
+  return (OBERLAND_GRUNDHOEHE * TIER_SKALIERUNG * oberlandFerne(fy) * artFaktor) / aspekt;
 }
 
 // Umgebungsleben im Oberland (2026-09-14). Bis das Oberland auf 1159 Zeilen gewachsen ist,
