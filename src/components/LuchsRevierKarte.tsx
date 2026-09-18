@@ -322,19 +322,29 @@ const AMBIENT_SCHLEIFEN = [
   {
     // Über dem Schornstein des Häuschens rechts (das größte/nächste der vier Häuser).
     //
-    // 2026-09-18-Korrektur (Christian am echten Gerät: "Rauch ... bei 2 Häusern nicht über
-    // dem Schornstein"): Der ursprüngliche Wert (fy 0.500 statt der gemessenen Spitze 0.538,
-    // "Rauch steigt, braucht Platz nach oben") saß 100px oberhalb der Schornsteinspitze —
-    // das ist, gemessen am echten Kartenbild (`assets/hintergrund/
-    // luchsrevier_saga_gesamt.webp`, 1658×3795), MITTEN in der Baumkrone dahinter, nicht
-    // mehr sichtbar mit dem Schornstein verbunden (der Ankerpunkt ist die MITTE der
-    // Lottie-Box, nicht ihr unterer Rand). Jetzt nur noch 20px über der gemessenen Spitze
-    // (fy 0.531 statt 0.538) — am echten Bild geprüft, sitzt jetzt sichtbar über der Öffnung
-    // statt im Baum.
+    // 2026-09-18, zweite Korrektur (Christian am echten Gerät, mit rot markiertem Zielpunkt
+    // im Screenshot: "alle 3 nicht korrekt, startend am Schornstein. Der Rauch sollte am
+    // roten Punkt beginnen."): Die erste Korrektur (fy 0.531) ging von der FALSCHEN Annahme
+    // aus, der Ankerpunkt (fx,fy) sei dort, wo der Rauch sichtbar ENTSTEHEN soll — er ist
+    // aber nur die MITTE der quadratischen Lottie-Box. Wo der Rauch innerhalb der Box
+    // tatsächlich entsteht, steht in der Bodymovin-Quelle selbst (`chesslynx-chimney-smoke.
+    // json`, Komposition 200×200): jede der 9 Rauchwolken startet ihren Aufstieg bei
+    // Position (100, 176) — waagerecht exakt Boxmitte (fx passt daher unverändert), senkrecht
+    // aber bei 176/200 = 88 % der Boxhöhe, NICHT bei 50 % (Boxmitte). Der reale Startpunkt
+    // liegt also 0,38·Boxseite UNTERHALB von fy·Höhe, nicht bei fy·Höhe selbst — deshalb saß
+    // der Rauch nach der ersten Korrektur zu tief (am/im Schornstein statt darüber).
+    //
+    // Zielpunkt diesmal nicht mehr am alten (ungenauen) "gemessenen" Wert, sondern direkt aus
+    // Christians rot markiertem Screenshot gewonnen: Bildausschnitt per Template-Matching
+    // (OpenCV) exakt auf `luchsrevier_saga_gesamt.webp` (1658×3795) zurückgerechnet → realer
+    // Zielpunkt (1503, 2587). Damit rückwärts durch die Box-Formel aufgelöst: fy = 0.4939
+    // (statt 0.531); fx minimal nachgeführt auf 0.9067 (statt 0.9215 — der alte Wert lag
+    // knapp daneben). Am Kartenbild mit eingezeichneter Box+Startpunkt geprüft: Startpunkt
+    // sitzt jetzt genau auf der Schornsteinöffnung.
     name: "rauch",
     quelle: require("../../assets/lottie/chesslynx-chimney-smoke.json"),
-    fx: 0.9215,
-    fy: 0.531,
+    fx: 0.9067,
+    fy: 0.4939,
     groesseFrac: 0.2,
     verzoegerungMs: 700,
     tempo: 0.7,
@@ -342,34 +352,41 @@ const AMBIENT_SCHLEIFEN = [
   },
   {
     // 2026-09-17, Christian-Wunsch ("auf alle 4 Häuser, unterschiedliche Intensität"):
-    // zweites Haus, oberhalb/links der Steinbrücke. Schornsteinspitze am echten Bild
-    // abgemessen (real 1476/1993 von 1658×3795).
+    // zweites Haus, oberhalb/links der Steinbrücke.
     //
-    // 2026-09-18-Korrektur (siehe Kommentar bei "rauch" oben, derselbe Fehler mit demselben
-    // 100px-Versatz): fy jetzt 20px statt 100px über der gemessenen Spitze (0.309 statt
-    // 0.278) — am echten Bild geprüft, sitzt jetzt sichtbar über dem Schornstein statt in
-    // der Baumkrone.
+    // 2026-09-18, zweite Korrektur (siehe ausführliche Herleitung beim Kommentar bei "rauch"
+    // oben — derselbe Denkfehler: Ankerpunkt ist Boxmitte, nicht Startpunkt des Rauchs).
+    // Zielpunkt aus Christians rot markiertem Screenshot per Template-Matching auf das echte
+    // Kartenbild zurückgerechnet → realer Zielpunkt (1495, 1982). fy = 0.2691 (statt 0.309),
+    // fx = 0.9019 (statt 0.8905). Am Kartenbild mit eingezeichneter Box+Startpunkt geprüft:
+    // Startpunkt sitzt jetzt genau auf der Schornsteinöffnung.
     name: "rauch2",
     quelle: require("../../assets/lottie/chesslynx-chimney-smoke.json"),
-    fx: 0.8905,
-    fy: 0.309,
+    fx: 0.9019,
+    fy: 0.2691,
     groesseFrac: 0.18,
     verzoegerungMs: 1100,
     tempo: 0.7,
     deckkraft: 0.65,
   },
   {
-    // 2026-09-17, Christian-Wunsch: drittes Haus, links am Wegrand (Doppel-Schornstein,
-    // rechter/deutlicherer Schornstein vermessen: real 226/2184). Kleinere Deckkraft — am
-    // weitesten von den anderen drei Häusern entfernt, soll zurückhaltender wirken.
+    // 2026-09-17, Christian-Wunsch: drittes Haus, links am Wegrand (Doppel-Schornstein).
+    // Kleinere Deckkraft — am weitesten von den anderen drei Häusern entfernt, soll
+    // zurückhaltender wirken.
     //
-    // 2026-09-18-Korrektur (siehe Kommentar bei "rauch" oben, derselbe Fehler): fy jetzt
-    // 20px statt 100px über der gemessenen Spitze (0.381 statt 0.351) — am echten Bild
-    // geprüft, sitzt jetzt sichtbar über dem rechten Schornstein statt in der Baumkrone.
+    // 2026-09-18, zweite Korrektur (siehe ausführliche Herleitung beim Kommentar bei "rauch"
+    // oben — derselbe Denkfehler: Ankerpunkt ist Boxmitte, nicht Startpunkt des Rauchs).
+    // Zusätzlich stellte sich heraus, dass der alte "gemessene" Wert (real 226/2184) den
+    // FALSCHEN der beiden Schornsteine traf — Christians roter Punkt markiert den linken,
+    // höheren Schornstein, nicht den rechten. Zielpunkt daher komplett neu aus dem
+    // Screenshot per Template-Matching gewonnen → realer Zielpunkt (147, 2137). fy = 0.3278
+    // (statt 0.381), fx = 0.0885 (statt 0.1363 — deutliche Verschiebung, weil jetzt der
+    // andere Schornstein gemeint ist). Am Kartenbild mit eingezeichneter Box+Startpunkt
+    // geprüft: Startpunkt sitzt jetzt genau auf der Öffnung des linken Schornsteins.
     name: "rauch3",
     quelle: require("../../assets/lottie/chesslynx-chimney-smoke.json"),
-    fx: 0.1363,
-    fy: 0.381,
+    fx: 0.0885,
+    fy: 0.3278,
     groesseFrac: 0.18,
     verzoegerungMs: 2200,
     tempo: 0.7,
