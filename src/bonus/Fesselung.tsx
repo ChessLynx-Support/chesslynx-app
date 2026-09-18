@@ -208,20 +208,19 @@ export default function Fesselung() {
     setScreen(next);
   }
 
-  function advanceOrGo(next: ScreenId) {
-    if (!isLastLine) {
-      setLineIndex((i) => i + 1);
-      return;
-    }
-    gehZu(next);
-  }
-
   // Nutzerfeedback 2026-09-09 ("In der Einführung bitte selbständig durchführen ohne
   // klicken"): früher liefen NUR die Nicht-TIPP_SCREENS (Zugaufgaben/Vorführung/Abschluss)
   // automatisch von Zeile zu Zeile weiter, TIPP_SCREENS brauchten für jede einzelne Zeile
-  // einen Tipp. Jetzt sprechen alle Screens ihre Zeilen automatisch nacheinander — das
-  // Antippen (tapArea, siehe unten) bleibt zusätzlich als schnellerer manueller Weg
-  // erhalten, ist aber nicht mehr nötig, damit überhaupt etwas passiert.
+  // einen Tipp. Alle Screens sprechen ihre Zeilen seither automatisch nacheinander.
+  // 2026-09-18 (Christian: Einführungen/Erklärungen dürfen nicht überspringbar und während
+  // sie laufen nicht per Eingabe unterbrechbar sein, "Zurück" bleibt die einzige Ausnahme):
+  // Der bis dahin zusätzlich vorhandene manuelle "Weitertippen"-Weg (`advanceOrGo`, per
+  // `Pressable` auf TIPP_SCREENS) ist ersatzlos entfernt — genau dasselbe Vorgehen wie beim
+  // Skip in `lib/Verwandlung.tsx` (2026-09-10). Die reinen Erzähl-Screens 0/1/3 sind jetzt
+  // nur noch `View`s ohne `onPress`; sie laufen ausschließlich über das oben verdrahtete,
+  // an echtes Sprechende gekoppelte `onFertig` weiter. "Zurück" (Header/Hardware-Back) bleibt
+  // unverändert möglich und setzt kein Fortschritts-Flag — die Einführung beginnt beim
+  // nächsten Erreichen wieder bei Screen 0/Zeile 0.
   const autoWeiter = true;
   // Während einer aktiven Zugaufgabe kann die Antipp-Geste stattdessen die
   // Hinweis-Angebots-/Hinweis-Zeile sprechen (siehe handleLuxTap unten) — schluessel/
@@ -343,18 +342,18 @@ export default function Fesselung() {
           (die kommt erst in Screen 1 "Entdecken" hinzu — genau der im Skript beschriebene
           zweistufige Aufbau). */}
       {screen === 0 && (
-        <Pressable style={styles.tapArea} onPress={() => advanceOrGo(1)}>
+        <View style={styles.tapArea}>
           <Board
             config={eigenePinKonfig({ pieceAt: EIGENE_WAECHTER, legalTargets: [] })}
             onCorrectMove={() => {}}
             disabled
           />
-        </Pressable>
+        </View>
       )}
 
       {/* Screen 1 — Entdecken: dieselbe Stellung, jetzt MIT der goldenen Kettenlinie. */}
       {screen === 1 && (
-        <Pressable style={styles.tapArea} onPress={() => advanceOrGo(2)}>
+        <View style={styles.tapArea}>
           <Board
             config={eigenePinKonfig({
               pieceAt: EIGENE_WAECHTER,
@@ -364,7 +363,7 @@ export default function Fesselung() {
             onCorrectMove={() => {}}
             disabled
           />
-        </Pressable>
+        </View>
       )}
 
       {/* Screen 2 — Kernaufgabe: kombinierte Stopp!-Aufgabe. Echte Legalzüge AUF der Linie
@@ -402,7 +401,7 @@ export default function Fesselung() {
       {/* Screen 3 — Perspektivwechsel-Entdecken: dieselbe Fesselungs-Geometrie, jetzt an einer
           GEGNERISCHEN Figur — keine Interaktion, reine Erkenntnis. */}
       {screen === 3 && (
-        <Pressable style={styles.tapArea} onPress={() => advanceOrGo(4)}>
+        <View style={styles.tapArea}>
           <Board
             config={{
               rows: 8,
@@ -420,7 +419,7 @@ export default function Fesselung() {
             onCorrectMove={() => {}}
             disabled
           />
-        </Pressable>
+        </View>
       )}
 
       {/* Screen 4 — Vorführung: Auto-Demo des sicheren Schlagzugs (derselbe demoTarget/

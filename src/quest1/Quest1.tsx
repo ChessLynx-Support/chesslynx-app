@@ -334,7 +334,7 @@ export default function Quest1() {
   // Zählung soll den Verlauf nicht rerendern, sie wird erst bei handleQuestComplete
   // ausgelesen.
   const erinnerungenRef = useRef(0);
-  const { wiederholen, aktuelleZeile } = useLuxSprechzeile(
+  const { wiederholen, aktuelleZeile, fertigGesprochen } = useLuxSprechzeile(
     zeilenSchluessel,
     zeileZuSprechen,
     // Auf dem Verwandlungs-Screen bedeutet "Zeile fertig gesprochen" nicht "nächste Zeile",
@@ -422,10 +422,16 @@ export default function Quest1() {
         // ("Tippe den Igel an...") wird er antippbar. Ohne das wäre ein sehr ungeduldiger
         // Tap während Zeile 0 zwar unschädlich (er würde nur die Zeile weiterschalten,
         // siehe advanceOrGo), aber unnötig früh möglich.
+        //
+        // Nachtrag 2026-09-18 (Christian: während einer Erklärung keine Eingabe möglich):
+        // `isLastLine` allein reicht nicht — es wird schon wahr, sobald die letzte Zeile
+        // ERSCHEINT, nicht erst wenn Lux sie fertig gesprochen hat. Ergänzt um
+        // `fertigGesprochen` (siehe useLuxSprechzeile.ts), damit der Igel erst nach dem
+        // tatsächlichen Sprechende antippbar wird.
         <View style={styles.tapArea}>
           <Pressable
             onPress={() => advanceOrGo("verwandlung")}
-            disabled={!isLastLine}
+            disabled={!isLastLine || !fertigGesprochen}
             hitSlop={{ top: 24, left: 24, right: 24, bottom: 24 }}
             accessibilityLabel={tk("quest1.a11y.igel_antippen")}
           >

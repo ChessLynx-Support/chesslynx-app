@@ -153,6 +153,23 @@ export const OBERLAND_ASPECT = 1159 / 1658;
 // linken Brückenkopf und etwas kleiner, passend zu den Gefährten weiter oben.
 // Ihre Breite kommt seit 2026-09-14 aus derselben Größenformel wie die der Gefährten
 // (siehe `oberlandBreite` weiter unten) — deshalb steht die Konstante jetzt dort.
+//
+// 2026-09-18 — Christian, neue Reihenfolge anhand einer Referenzgrafik mit sieben
+// nummerierten Punkten: "1) Eichhörnchen 2) Rabe 3) Dachs 4) Adlerin 5) Schildkröte 6) Fuchs
+// [= der bestehende Wolf, siehe Rückfrage] 7) Wisent" — von unten nach oben. Positionen 1–4
+// und 6–7 entsprachen bereits genau dieser Reihenfolge (Eichhörnchen>Rabe>Dachs>Adlerin>
+// Wolf>Wisent nach fy), nur die Schildkröte fehlte dazwischen. Versuch: nur VISUELL auf den
+// Pfad zwischen Adlerin und Wolf einreihen (real x≈1075, y≈862), Freischalt-Logik unabhängig
+// lassen. Ergebnis auf dem Gerät: Schildkröte "nicht mehr sichtbar" — genau das
+// Überlappungsrisiko, vor dem der Kommentar an dieser Stelle schon gewarnt hatte (zu wenig
+// Abstand zu Adlerin/Wolf bei GRUNDHOEHE=168, vermutlich von einer der beiden Nachbarfiguren
+// verdeckt). Auf Christians Anweisung ("Rückgängig machen... soll auf die Steinbrücke")
+// zurückgesetzt auf die alte, schon am echten Gerät verifizierte Position (siehe Herleitung
+// oben) — die Schildkröte bleibt damit Station 5 in der ERZÄHLTEN Reihenfolge, aber
+// geografisch weiterhin am Brückenkopf statt auf dem Hauptpfad zwischen Adlerin und Wolf.
+// Für eine wirkliche Zwischenstation auf dem Pfad bräuchte es entweder mehr Abstand zu den
+// Nachbarn (Neuverteilung der fy-Werte, siehe TODO im Kopfkommentar zu den Gefährten) oder
+// eine bewusste Überlappung/Staffelung im Bild, statt der reinen Fußpunkt-Verschiebung hier.
 
 // Nebel-/Wolken-Höhenband — siehe Datei-Kopfkommentar. Herkunft: vom Nutzer bereitgestellte
 // 5-stufige Nebel-/Wolken-Bildreihe (`Grafiken/d1c399e6-….png`, "Nebel 1 Leicht" … "Wolken 5
@@ -362,10 +379,20 @@ const AMBIENT_SCHLEIFEN = [
     // laut Lottie-Quelle erst über ~24 Frames auf sichtbare Werte), während sie dabei schon
     // ein Stück steigt — das sichtbare "Anfangen" liegt dadurch minimal höher als der reine
     // Geometrie-Startpunkt.
+    //
+    // 2026-09-18, vierte Korrektur (Christian, anhand der eigenen Kontroll-Grafik mit
+    // eingezeichnetem Kreuz: "Das Kreuz unten ist daneben"): Berechtigt — die Template-
+    // Matching-Kalibrierung aus der dritten Korrektur war um ~13px zu weit links. Diesmal
+    // nicht mehr über einen Screenshot-Umweg, sondern direkt am Kartenbild nachgemessen: mit
+    // einem feinen 5px-Lineal über `luchsrevier_saga_gesamt.webp` gelegt (siehe Herleitung im
+    // Session-Protokoll) läuft der Schornstein (beide Flächen, hell+Schatten) von real x≈1496
+    // bis x≈1536, Mitte ≈1516; die Öffnung oben liegt bei real y≈2568. fx jetzt 0.9144 (statt
+    // 0.908), fy 0.4867 (statt 0.4908). Am Kartenbild mit eingezeichnetem Kreuz geprüft:
+    // Kreuz sitzt jetzt mittig auf der Öffnung, nicht mehr am linken Rand des Schornsteins.
     name: "rauch",
     quelle: require("../../assets/lottie/chesslynx-chimney-smoke.json"),
-    fx: 0.908,
-    fy: 0.4908,
+    fx: 0.9144,
+    fy: 0.4867,
     groesseFrac: 0.2,
     verzoegerungMs: 700,
     tempo: 0.7,
@@ -597,14 +624,34 @@ export const WEGMARKEN: WegmarkenEintrag[] = [
 // und Wisent in etwa gleich." Nachrechnung: Beide Zielgleichungen (Eichhörnchen(fy≈unten)≈77
 // UND Wisent(fy≈oben)≈100, mit den ORIGINAL-Artfaktoren/-Ferne) lösen unabhängig voneinander
 // zu GRUNDHOEHE≈170 auf — ein sauberer Beleg, dass eine einzige Konstante beide Vorgaben
-// treffen würde. Physisch nicht umsetzbar: Bei 170 wäre der Wisent allein ~100pt hoch bei nur
-// ~273pt Gesamthöhe des Oberland-Bands (breite=REFERENZ_BREITE) — bei den engen fy-Abständen
-// der sechs Stationen (siehe unten, z. B. Eichhörnchen–Rabe nur 30 Bildzeilen auseinander)
-// würde das zu deutlichen Überlappungen führen. Deshalb hier der vorsichtigere Kompromiss
-// 100 → 130 (+30 %, Eichhörnchen ≈59pt, Wisent ≈77pt an seiner neuen Position unten) — spürbar
-// näher an Christians Vorgabe, ohne die Nachbarn zu verdecken. Bitte auf dem Gerät prüfen, ob
-// das reicht oder ob eine echte Neuverteilung der sechs fy-Abstände nötig wird.
-const OBERLAND_GRUNDHOEHE = 130;
+// treffen würde. Damals als "physisch nicht umsetzbar" verworfen (Überlappungsrisiko bei den
+// engen fy-Abständen, z. B. Eichhörnchen–Rabe) und stattdessen der vorsichtigere Kompromiss
+// 100 → 130 gewählt (Eichhörnchen ≈59pt, Wisent ≈77pt) — spürbar näher an Christians Vorgabe,
+// aber eben nicht dort.
+//
+// 2026-09-18 — Christian, zweiter Anlauf: "Die Tiere im Oberland sind spürbar kleiner als die
+// Tiere der Basisquests. Das möchte ich angeglichen haben." Nachgemessen (Höhe in
+// Referenzpunkten, wie oben bei Q1–Q6): Bei GRUNDHOEHE=130 liegen die sechs Gefährten bei nur
+// 62–77, während die Hauptkarte bei 99–108 liegt (Igel=77 ausgenommen) — ein Rückstand von
+// grob einem Drittel, der auf dem Gerät genau als "spürbar kleiner" auffällt.
+//
+// Diesmal der Sprung auf die damals schon errechnete Zielgröße: GRUNDHOEHE 130 → 168, damit
+// der Wisent (das größte, letzte Tier der Kette) mit ≈100pt genau in die Größe von Hirsch/
+// Bär/Pferd einreiht; das Eichhörnchen (kleinstes Tier) landet bei ≈80pt, nahe am Igel-Wert
+// 77 — beides exakt Christians ursprüngliche Vorgabe vom 2026-09-17.
+//
+// Der 2026-09-17 zurückgestellte Überlappungs-Einwand wurde NICHT neu geprüft, sondern nur
+// rechnerisch abgeschätzt: Die sechs Stationen liegen inzwischen (nach mehreren "etwas weiter
+// unten, entlang des Weges"-Korrekturen derselben Sitzung) spürbar weiter auseinander als zum
+// Zeitpunkt jenes Einwands (kleinster Fußpunkt-Abstand heute Wolf–Wisent, ~188 Bildzeilen
+// Luftlinie, statt der damals genannten 30 bei Eichhörnchen–Rabe) — das spricht dafür, dass
+// mehr Platz da ist als 2026-09-17. Ob es bei GRUNDHOEHE=168 tatsächlich reicht, ist damit
+// aber NICHT bewiesen, nur plausibler geworden. BITTE AUF DEM GERÄT GEZIELT PRÜFEN: Berühren
+// oder überlappen sich benachbarte Gefährten-Figuren sichtbar (v. a. die engsten Paare
+// Eichhörnchen/Rabe und Wolf/Wisent)? Falls ja, ist der nächste Schritt keine weitere
+// Größenkorrektur, sondern eine Neuverteilung der sechs fy-Abstände (siehe TODO oben bei den
+// Gefährten-Kommentaren).
+const OBERLAND_GRUNDHOEHE = 168;
 /** Fernfaktor am unteren Rand des Oberlands (Naht zur Hauptkarte) … */
 const OBERLAND_FERNE_UNTEN = 0.58;
 /** … und ganz oben am Gipfel. Dazwischen linear. */
@@ -687,27 +734,29 @@ const GEFAEHRTEN_ROH = [
   {
     id: "eichhoernchen",
     name: "Eichhörnchen-Lichtung",
-    // 2026-09-17 (zweite Runde, echter Geräte-Screenshot mit allen sieben Positionen):
-    // deutlich weiter nach unten/links gerückt (vorher 1114 · 1145), um genau die von
-    // Christian bemängelte Wegstrecke zwischen Hirsch/Burgtor und den Oberland-Gefährten
-    // zu schließen — der neue Fußpunkt liegt jetzt jenseits der alten Oberland/Hauptkarte-
-    // Naht (fy > 1), was seit der Saga-Karten-Verschmelzung unproblematisch ist (siehe
-    // Kopfkommentar zu `sagaKarte`/`OBERLAND_ASPECT`: fy = Bildzeile/O gilt durchgehend im
-    // gesamten verschmolzenen Bild). Koordinate per Punkt-Erkennung aus dem Screenshot
-    // umgerechnet und gegen das echte Kartenbild auf Wegmitte nachgemessen.
-    fx: 634 / 1658,
-    fy: 1433 / O,
+    // 2026-09-18 (Kaskaden-Umsortierung, Christian anhand eines neuen Referenzbilds mit 6
+    // roten Punkten: "Eichhörnchen weiter nach unten zu Punkt 1. Rabe fast auf die Position,
+    // wo das Eichhörnchen aktuell steht usw."): Jedes der sechs Tiere rückt eine Wegstufe
+    // weiter nach unten — das Eichhörnchen bekommt dabei einen KOMPLETT NEUEN, noch tieferen
+    // Punkt (das Referenzbild zeigt ihn deutlich unterhalb seiner bisherigen Stelle), alle
+    // anderen übernehmen ungefähr den bisherigen Fußpunkt des jeweils nächsttieferen Tiers
+    // (siehe die einzelnen Kommentare unten). Neuer Fußpunkt hier: auf dem echten Kartenbild
+    // per Pixel-Lineal auf der Wegmitte nachgemessen, deutlich unterhalb der alten Stelle
+    // (vorher 634 · 1433) und noch klar vor den Turmspitzen des unteren Schlosses.
+    fx: 780 / 1658,
+    fy: 1530 / O,
     artFaktor: 0.78,
     aspekt: gefaehrteWegmarkeAspekt("eichhoernchen"),
   },
   {
     id: "rabe",
     name: "Rabenfels",
-    // 2026-09-17 (dritte Runde, Christian: "etwas weiter unten, entlang des Weges" nach
-    // Gerätetest): noch einmal 21 Zeilen tiefer (vorher 1074 · 1149), x auf die Wegmitte an
-    // der neuen Stelle nachgemessen.
-    fx: 1040 / 1658,
-    fy: 1170 / O,
+    // 2026-09-18 (Kaskaden-Umsortierung, siehe Kommentar beim Eichhörnchen oben): rückt auf
+    // den bisherigen Fußpunkt des Eichhörnchens (vorher 1040 · 1170 → jetzt exakt die alte
+    // Eichhörnchen-Stelle), wie von Christian beschrieben ("Rabe fast auf die Position, wo
+    // das Eichhörnchen aktuell steht").
+    fx: 634 / 1658,
+    fy: 1433 / O,
     // 0,92 statt der 0,96 des Fuchses: Der Rabe ist ein schlanker Vogel und soll kleiner
     // wirken als die Adlerin (1,00), mit der er sich die Klasse teilt.
     artFaktor: 0.92,
@@ -716,42 +765,42 @@ const GEFAEHRTEN_ROH = [
   {
     id: "dachs",
     name: "Dachshöhle",
-    // 2026-09-17 (dritte Runde, Christian: "etwas weiter unten, entlang des Weges" nach
-    // Gerätetest): noch einmal 40 Zeilen tiefer (vorher 789 · 1009), auf der Wegmitte
-    // nachgemessen.
-    fx: 789 / 1658,
-    fy: 1049 / O,
+    // 2026-09-18 (Kaskaden-Umsortierung, siehe Kommentar beim Eichhörnchen oben): rückt auf
+    // den bisherigen Fußpunkt des Raben (vorher 789 · 1049 → jetzt die alte Raben-Stelle).
+    fx: 1040 / 1658,
+    fy: 1170 / O,
     artFaktor: 0.9,
     aspekt: gefaehrteWegmarkeAspekt("dachs"),
   },
   {
     id: "adlerin",
     name: "Adlerhorst",
-    // 2026-09-17 (echter Geräte-Screenshot): leichte Korrektur (vorher 1035 · 892), x/y auf
-    // die Wegmitte an der neuen Stelle nachgemessen.
-    fx: 951 / 1658,
-    fy: 905 / O,
+    // 2026-09-18 (Kaskaden-Umsortierung, siehe Kommentar beim Eichhörnchen oben): rückt auf
+    // den bisherigen Fußpunkt des Dachses (vorher 951 · 905 → jetzt die alte Dachs-Stelle).
+    fx: 789 / 1658,
+    fy: 1049 / O,
     artFaktor: 1.0,
     aspekt: gefaehrteWegmarkeAspekt("adlerin"),
   },
   {
     id: "wolf",
     name: "Wolfsfeste",
-    // 2026-09-17 (dritte Runde, Christian: "etwas weiter unten, entlang des Weges" nach
-    // Gerätetest): noch einmal 40 Zeilen tiefer und etwas nach links auf die Wegmitte
-    // (vorher 1200 · 760).
-    fx: 1155 / 1658,
-    fy: 800 / O,
+    // 2026-09-18 (Kaskaden-Umsortierung, siehe Kommentar beim Eichhörnchen oben): rückt auf
+    // den bisherigen Fußpunkt der Adlerin (vorher 1155 · 800 → jetzt die alte Adlerin-Stelle).
+    fx: 951 / 1658,
+    fy: 905 / O,
     artFaktor: 1.08,
     aspekt: gefaehrteWegmarkeAspekt("wolf"),
   },
   {
     id: "wisent",
     name: "Wisent — vor dem Schlosstor",
-    // 2026-09-17 (echter Geräte-Screenshot, zweite Runde): noch einmal leicht nachjustiert
-    // (vorher 1015 · 600), x/y auf die Wegmitte an der neuen Stelle nachgemessen.
-    fx: 1044 / 1658,
-    fy: 648 / O,
+    // 2026-09-18 (Kaskaden-Umsortierung, siehe Kommentar beim Eichhörnchen oben): rückt auf
+    // den bisherigen Fußpunkt des Wolfs (vorher 1044 · 648 → jetzt die alte Wolf-Stelle). Der
+    // bisherige, noch höher gelegene Wisent-Punkt direkt vor dem oberen Schlosstor bleibt ab
+    // jetzt unbesetzt — das war laut Christians Punkteliste (6 Punkte für 6 Tiere) so gewollt.
+    fx: 1155 / 1658,
+    fy: 800 / O,
     artFaktor: 1.15,
     aspekt: gefaehrteWegmarkeAspekt("wisent"),
   },
@@ -784,6 +833,9 @@ function revierFreigeschaltet(id: GefaehrteId, besuchteReviere: string[]): boole
 }
 
 // Schildkröten-Wegpunkt (siehe Kopfkommentar weiter oben): linker Brückenkopf auf der Wiese.
+// 2026-09-18: Ein Versuch, sie stattdessen auf den Hauptpfad zwischen Adlerin und Wolf zu
+// stellen, wurde zurückgenommen (auf dem Gerät nicht mehr sichtbar, siehe Kopfkommentar) —
+// zurück auf die hier verifizierte Position.
 const SCHILDKROETE_WEGPUNKT = {
   fx: 335 / 1658,
   fy: 1055 / O,

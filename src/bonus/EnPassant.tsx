@@ -192,10 +192,12 @@ export default function EnPassant() {
     setScreen(next);
   }
 
-  function tippeWeiter(next: ScreenId) {
-    if (uebergangsTimer.current) clearTimeout(uebergangsTimer.current);
-    gehZu(next);
-  }
+  // 2026-09-18 (Christian: Einführungen/Erklärungen dürfen nicht überspringbar und während
+  // sie laufen nicht per Eingabe unterbrechbar sein, "Zurück" bleibt die einzige Ausnahme —
+  // siehe ausführliche Begründung in bonus/Fesselung.tsx): Der frühere manuelle
+  // "Weitertippen"-Weg (`tippeWeiter`, per `Pressable` auf den reinen Erzähl-Screens) ist
+  // ersatzlos entfernt. Die Screens laufen ausschließlich über das an echtes Sprechende
+  // gekoppelte `onFertig` weiter.
 
   const uebergangsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
@@ -271,7 +273,7 @@ export default function EnPassant() {
           `vorAnimationGezeigt` steht der gegnerische Bauer noch auf seinem Ausgangsfeld,
           danach auf der tatsächlichen FEN-Stellung. */}
       {screen === 0 && (
-        <Pressable style={styles.tapArea} onPress={() => tippeWeiter(1)}>
+        <View style={styles.tapArea}>
           <Board
             config={{
               rows: 8,
@@ -291,7 +293,7 @@ export default function EnPassant() {
             onCorrectMove={() => {}}
             disabled
           />
-        </Pressable>
+        </View>
       )}
 
       {/* Screen 1, Teilzug 0 — Kür-Aufgabe (interaktiv): Schlagen im Vorbeigehen. `opponentAt`
@@ -319,7 +321,7 @@ export default function EnPassant() {
       {/* Screen 1, Teilzug 1 — Ergebnis-Erzählung, nicht interaktiv: eigener Bauer auf dem
           Zielfeld, gegnerischer Bauer verschwunden. */}
       {screen === 1 && teilzug === 1 && (
-        <Pressable style={styles.tapArea} onPress={() => tippeWeiter(2)}>
+        <View style={styles.tapArea}>
           <Board
             config={{
               rows: 8,
@@ -335,7 +337,7 @@ export default function EnPassant() {
             onCorrectMove={() => {}}
             disabled
           />
-        </Pressable>
+        </View>
       )}
 
       {/* Screen 2 — Abschluss: Abzeichen "Schatten-Sprung", zurück zum Kür-Auswahl-Hub. */}

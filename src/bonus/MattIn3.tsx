@@ -333,13 +333,12 @@ export default function MattIn3() {
     setScreen(next);
   }
 
-  function advanceOrGo(next: ScreenId) {
-    if (!isLastLine) {
-      setLineIndex((i) => i + 1);
-      return;
-    }
-    gehZu(next);
-  }
+  // 2026-09-18 (Christian: Einführungen/Erklärungen dürfen nicht überspringbar und während
+  // sie laufen nicht per Eingabe unterbrechbar sein, "Zurück" bleibt die einzige Ausnahme —
+  // siehe ausführliche Begründung in bonus/Fesselung.tsx): Der frühere manuelle
+  // "Weitertippen"-Weg (`advanceOrGo`, per `Pressable` auf dem Vorstellungs-Screen) ist
+  // ersatzlos entfernt. Der Screen läuft ausschließlich über das an echtes Sprechende
+  // gekoppelte `onFertig` weiter.
 
   // Siehe identischer Kommentar/Zweck in Fesselung.tsx.
   const uebergangsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -448,7 +447,7 @@ export default function MattIn3() {
 
       {/* Screen 0 — Einladung: freiwilliger, einladender Ton statt Pflicht-Vorstellung. */}
       {screen === 0 && (
-        <Pressable style={styles.tapArea} onPress={() => advanceOrGo(1)}>
+        <View style={styles.tapArea}>
           <Board
             config={{
               rows: 8,
@@ -465,7 +464,7 @@ export default function MattIn3() {
             onCorrectMove={() => {}}
             disabled
           />
-        </Pressable>
+        </View>
       )}
 
       {/* Screen 1 — Treib-Entdecken: vier antippbare Standbilder (siehe Kopfkommentar bei

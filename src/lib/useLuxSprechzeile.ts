@@ -131,6 +131,20 @@ export function useLuxSprechzeile(
     typeof zeile === "function" ? "" : zeile ?? ""
   );
 
+  // Nachtrag 2026-09-18 (Christian: "Erklärungen/Einführungen ... während sie laufen eine
+  // Eingabe nicht möglich"): bisher gab es keinen Weg für aufrufende Screens, zwischen "die
+  // letzte Zeile WIRD gerade angezeigt" und "die letzte Zeile IST fertig gesprochen" zu
+  // unterscheiden — Quest 1-6 gattern ihr Brett/ihr Tipp-Ziel bislang über den reinen
+  // Zeilenindex (`isLastLine`), der schon beim ERSCHEINEN der letzten Zeile wahr wird, nicht
+  // erst wenn Lux sie zu Ende gesprochen hat. Ein ungeduldiges Kind konnte dadurch während der
+  // Anweisung selbst schon einen Zug versuchen. `fertigGesprochen` schließt diese Lücke: false
+  // ab dem Moment, in dem eine neue Zeile zu sprechen beginnt, true erst im selben Moment, in
+  // dem der Hook auch onFertig/die Erinnerung auslösen würde (siehe erledigt() unten) — also
+  // exakt dann, wenn die Zeile tatsächlich (engine-bestätigt oder übers Sicherheitsnetz) zu
+  // Ende gesprochen ist. Rückwärtskompatibel: bestehende Aufrufer, die den Wert nicht
+  // destrukturieren, verhalten sich unverändert.
+  const [fertigGesprochen, setFertigGesprochen] = useState(false);
+
   // Bugfix (Nutzer-Feedback 2026-09-08: Lux wiederholte nach 8 Sekunden eine Zeile und
   // wechselte danach unvermittelt — ganz ohne Bildschirmwechsel — zum Text eines ANDEREN
   // Screens). Ursache: `sprich()` in luxStimme.ts ruft `Speech.stop()` unmittelbar vor
@@ -159,6 +173,7 @@ export function useLuxSprechzeile(
     const text = typeof quelle === "function" ? quelle() : quelle;
     if (!text) return;
     setAktuelleZeile(text);
+    setFertigGesprochen(false);
     const eigeneGeneration = ++generation.current;
     // Gerätetest 2026-09-11 (Web-Vorschau: "nach Vorstellung des Hirsch lässt sich nicht
     // weiterklicken"): meldet die Sprachausgabe ihr Ende nicht (im Browser verschluckt die
@@ -173,6 +188,10 @@ export function useLuxSprechzeile(
     const startZeit = Date.now();
     const erledigt = () => {
       if (eigeneGeneration !== generation.current) return;
+      // Genau hier gilt die Zeile als tatsächlich zu Ende gesprochen (siehe Kommentar bei
+      // fertigGesprochen oben) — unabhängig davon, ob unten onFertig oder die Erinnerung
+      // greift.
+      setFertigGesprochen(true);
       if (onFertigRef.current) {
         // Gerätetest 2026-09-11 (Nutzer: "Übergang wirkt an Stellen abgehackt, längere
         // Pausen einplanen"): kurze Atempause zwischen dem Ende einer Zeile und dem, was
@@ -346,5 +365,5 @@ export function useLuxSprechzeile(
     zeileSprechenRef.current();
   }
 
-  return { wiederholen, aktuelleZeile };
+  return { wiederholen, aktuelleZeile, fertigGesprochen };
 }

@@ -166,12 +166,12 @@ export default function WisentKampf() {
     setScreen(next);
   }
 
-  // Manuelles Antippen der reinen Erzähl-Screens (0/1/2/5) — derselbe zusätzliche, schnellere
-  // Weg neben dem automatischen Übergang wie in bonus/Fesselung.tsx (`advanceOrGo`/tapArea).
-  function tippeWeiter(next: ScreenId) {
-    if (uebergangsTimer.current) clearTimeout(uebergangsTimer.current);
-    gehZu(next);
-  }
+  // 2026-09-18 (Christian: Einführungen/Erklärungen dürfen nicht überspringbar und während
+  // sie laufen nicht per Eingabe unterbrechbar sein, "Zurück" bleibt die einzige Ausnahme —
+  // siehe ausführliche Begründung in bonus/Fesselung.tsx): Der frühere manuelle
+  // "Weitertippen"-Weg (`tippeWeiter`, per `Pressable` auf den reinen Erzähl-Screens 0/1/2/5)
+  // ist ersatzlos entfernt. Die Screens laufen ausschließlich über das an echtes Sprechende
+  // gekoppelte `onFertig`/`naechsterUebergangsScreen` weiter.
 
   useEffect(() => {
     setTeilzug(0);
@@ -278,11 +278,11 @@ export default function WisentKampf() {
         </View>
       )}
 
-      {/* Screen 0 — Anmoderation: statisches Brett, volle Ausgangsstellung. Antippbar (siehe
-          tippeWeiter) für ein Kind, das nicht auf die Sprachausgabe warten möchte — derselbe
-          zusätzliche Weg wie in bonus/Fesselung.tsx. */}
+      {/* Screen 0 — Anmoderation: statisches Brett, volle Ausgangsstellung. Läuft ausschließlich
+          über das automatische Sprechende-Signal weiter, siehe Kommentar bei `tippeWeiter`
+          oben — kein Antippen mehr, damit die Einführung nicht überspringbar ist. */}
       {screen === 0 && (
-        <Pressable style={styles.tapArea} onPress={() => tippeWeiter(1)}>
+        <View style={styles.tapArea}>
           <Board
             config={{
               rows: 8,
@@ -300,14 +300,14 @@ export default function WisentKampf() {
             onCorrectMove={() => {}}
             disabled
           />
-        </Pressable>
+        </View>
       )}
 
       {/* Screen 1 — Entdecken: Fesselung. Dieselbe Stellung, jetzt mit Kettenlinie-Signal
           (eigener Turm e1 bis fremder König e8 — der gefesselte Wächter steht dazwischen auf
           e7, genau wie in bonus/Fesselung.tsx etabliert). */}
       {screen === 1 && (
-        <Pressable style={styles.tapArea} onPress={() => tippeWeiter(2)}>
+        <View style={styles.tapArea}>
           <Board
             config={{
               rows: 8,
@@ -326,13 +326,13 @@ export default function WisentKampf() {
             onCorrectMove={() => {}}
             disabled
           />
-        </Pressable>
+        </View>
       )}
 
       {/* Screen 2 — Entdecken: die scheinbare Deckung. Reine Erzähl-Zeile, Brett unverändert
           (Kettenlinie bleibt sichtbar — sie gilt weiterhin). */}
       {screen === 2 && (
-        <Pressable style={styles.tapArea} onPress={() => tippeWeiter(3)}>
+        <View style={styles.tapArea}>
           <Board
             config={{
               rows: 8,
@@ -351,7 +351,7 @@ export default function WisentKampf() {
             onCorrectMove={() => {}}
             disabled
           />
-        </Pressable>
+        </View>
       )}
 
       {/* Screen 3, Teilzug 0 — Kernaufgabe Zug 1 (interaktiv): Dame schlägt den Bauern f7. */}
@@ -377,9 +377,10 @@ export default function WisentKampf() {
         />
       )}
       {/* Screen 3, Teilzug 1 — reine Erzählung der erzwungenen Antwort, nicht interaktiv:
-          König bereits auf d7, Dame bereits auf f7. Antippbar zum Überspringen der Pause. */}
+          König bereits auf d7, Dame bereits auf f7. Läuft ausschließlich über das
+          automatische Sprechende-Signal weiter, siehe Kommentar bei `tippeWeiter` oben. */}
       {screen === 3 && teilzug === 1 && (
-        <Pressable style={styles.tapArea} onPress={() => tippeWeiter(4)}>
+        <View style={styles.tapArea}>
           <Board
             config={{
               rows: 8,
@@ -396,7 +397,7 @@ export default function WisentKampf() {
             onCorrectMove={() => {}}
             disabled
           />
-        </Pressable>
+        </View>
       )}
 
       {/* Screen 4, Teilzug 0 — Kernaufgabe Zug 2 (interaktiv): Dame setzt matt, nach d5 ODER
@@ -422,10 +423,10 @@ export default function WisentKampf() {
         />
       )}
       {/* Screen 4, Teilzug 1 — finale Mattstellung, nicht interaktiv. Turm e7 bleibt nur
-          stehen, wenn das Kind NICHT geschlagen hat (Ziel war d5). Antippbar zum
-          Überspringen der Pause. */}
+          stehen, wenn das Kind NICHT geschlagen hat (Ziel war d5). Läuft ausschließlich über
+          das automatische Sprechende-Signal weiter, siehe Kommentar bei `tippeWeiter` oben. */}
       {screen === 4 && teilzug === 1 && (
-        <Pressable style={styles.tapArea} onPress={() => tippeWeiter(5)}>
+        <View style={styles.tapArea}>
           <Board
             config={{
               rows: 8,
@@ -444,12 +445,13 @@ export default function WisentKampf() {
             onCorrectMove={() => {}}
             disabled
           />
-        </Pressable>
+        </View>
       )}
 
-      {/* Screen 5 — Würdigung: finale Mattstellung bleibt sichtbar, reine Erzähl-Zeile. */}
+      {/* Screen 5 — Würdigung: finale Mattstellung bleibt sichtbar, reine Erzähl-Zeile. Läuft
+          ausschließlich über das automatische Sprechende-Signal weiter. */}
       {screen === 5 && (
-        <Pressable style={styles.tapArea} onPress={() => tippeWeiter(6)}>
+        <View style={styles.tapArea}>
           <Board
             config={{
               rows: 8,
@@ -468,7 +470,7 @@ export default function WisentKampf() {
             onCorrectMove={() => {}}
             disabled
           />
-        </Pressable>
+        </View>
       )}
 
       {/* Screen 6 — Abschluss: 3 Sterne fest vergeben (kein Sterne-Raster), keine eigene

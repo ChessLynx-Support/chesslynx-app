@@ -182,13 +182,12 @@ export default function MattIn2() {
     setScreen(next);
   }
 
-  function advanceOrGo(next: ScreenId) {
-    if (!isLastLine) {
-      setLineIndex((i) => i + 1);
-      return;
-    }
-    gehZu(next);
-  }
+  // 2026-09-18 (Christian: Einführungen/Erklärungen dürfen nicht überspringbar und während
+  // sie laufen nicht per Eingabe unterbrechbar sein, "Zurück" bleibt die einzige Ausnahme —
+  // siehe ausführliche Begründung in bonus/Fesselung.tsx): Der frühere manuelle
+  // "Weitertippen"-Weg (`advanceOrGo`, per `Pressable` auf dem Vorstellungs-Screen) ist
+  // ersatzlos entfernt. Der Screen läuft ausschließlich über das an echtes Sprechende
+  // gekoppelte `onFertig` weiter.
 
   // Teilzug (und die Wahl-Screen-Merkhilfe) bei jedem Screen-Wechsel zurücksetzen — dieselbe
   // useEffect-Konvention wie Rochade.tsx's `demoDone`-Reset.
@@ -292,7 +291,7 @@ export default function MattIn2() {
 
       {/* Screen 0 — Vorstellung: statisches Brett (Schlagen-Geometrie), keine Interaktion. */}
       {screen === 0 && (
-        <Pressable style={styles.tapArea} onPress={() => advanceOrGo(1)}>
+        <View style={styles.tapArea}>
           <Board
             config={{
               rows: 8,
@@ -307,7 +306,7 @@ export default function MattIn2() {
             onCorrectMove={() => {}}
             disabled
           />
-        </Pressable>
+        </View>
       )}
 
       {/* Screen 1 — Beispiel "Schlagen": Zug 1 (Turm schlägt Springer auf h5), dann Zug 2

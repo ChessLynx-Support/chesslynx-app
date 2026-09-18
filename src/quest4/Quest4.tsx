@@ -221,7 +221,7 @@ export default function Quest4() {
   // Zählung soll den Verlauf nicht rerendern, sie wird erst bei handleQuestComplete
   // ausgelesen.
   const erinnerungenRef = useRef(0);
-  const { wiederholen, aktuelleZeile } = useLuxSprechzeile(
+  const { wiederholen, aktuelleZeile, fertigGesprochen } = useLuxSprechzeile(
     zeilenSchluessel,
     zeileZuSprechen,
     // Auf dem Verwandlungs-Screen bedeutet "Zeile fertig gesprochen" nicht "nächste Zeile",
@@ -280,10 +280,14 @@ export default function Quest4() {
         // Muster): Pressable jetzt direkt am Pferde-Icon (großzügiger hitSlop), LuxAtem
         // lässt es sichtbar pulsieren, disabled={!isLastLine} sperrt Taps, bis die letzte
         // Zeile ("Tippe das Pferd an...") gezeigt wird.
+        //
+        // Nachtrag 2026-09-18 (siehe Quest1.tsx-Kommentar zum identischen Muster): zusätzlich
+        // `fertigGesprochen`, sonst ist das Pferd schon antippbar, sobald die letzte Zeile
+        // ERSCHEINT, nicht erst wenn Lux sie fertig gesprochen hat.
         <View style={styles.tapArea}>
           <Pressable
             onPress={() => advanceOrGo("verwandlung")}
-            disabled={!isLastLine}
+            disabled={!isLastLine || !fertigGesprochen}
             hitSlop={{ top: 24, left: 24, right: 24, bottom: 24 }}
             accessibilityLabel={tk("quest4.a11y.pferd_antippen")}
           >

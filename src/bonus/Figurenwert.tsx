@@ -171,13 +171,12 @@ export default function Figurenwert() {
     setScreen(next);
   }
 
-  function advanceOrGo(next: ScreenId) {
-    if (!isLastLine) {
-      setLineIndex((i) => i + 1);
-      return;
-    }
-    gehZu(next);
-  }
+  // 2026-09-18 (Christian: Einführungen/Erklärungen dürfen nicht überspringbar und während
+  // sie laufen nicht per Eingabe unterbrechbar sein, "Zurück" bleibt die einzige Ausnahme —
+  // siehe ausführliche Begründung in bonus/Fesselung.tsx): Der frühere manuelle
+  // "Weitertippen"-Weg (`advanceOrGo`, per `Pressable` auf den Vorstellungs-Screens) ist
+  // ersatzlos entfernt. Die Screens laufen ausschließlich über das an echtes Sprechende
+  // gekoppelte `onFertig` weiter.
 
   // Screen-Wechsel setzt die "Lux fragen"-Geste zurück — die nächste Aufgabe startet
   // wieder bei "einmal antippen = wiederholen".
@@ -287,7 +286,7 @@ export default function Figurenwert() {
       {/* Screen 0 — Vorstellung: Sternenleiter baut sich Zeile für Zeile auf, bereits gezeigte
           Figuren bleiben stehen (siehe VORSTELLUNG_ENTHUELLT oben). */}
       {screen === 0 && (
-        <Pressable style={styles.tapArea} onPress={() => advanceOrGo(1)}>
+        <View style={styles.tapArea}>
           <Sternenleiter>
             {VORSTELLUNG_ENTHUELLT[lineIndex].includes("bauer") && (
               <FigurenWertKarte icon={<BauerMasterIcon size={40} />} wert={1} />
@@ -305,16 +304,16 @@ export default function Figurenwert() {
               <FigurenWertKarte icon={<DameMasterIcon size={40} />} wert={9} />
             )}
           </Sternenleiter>
-        </Pressable>
+        </View>
       )}
 
       {/* Screen 1 — Der König ist unbezahlbar: kein Zahlenwert, goldener Schimmer. */}
       {screen === 1 && (
-        <Pressable style={styles.tapArea} onPress={() => advanceOrGo(2)}>
+        <View style={styles.tapArea}>
           <Sternenleiter>
             <FigurenWertKarte icon={<KoenigMasterIcon size={48} />} koenig iconGroesse={48} />
           </Sternenleiter>
-        </Pressable>
+        </View>
       )}
 
       {/* Screen 2 — Gleichwert-Entdecken: Springer UND Läufer gleichzeitig schlagbar, beide

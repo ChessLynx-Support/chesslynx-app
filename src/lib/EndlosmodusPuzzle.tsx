@@ -3,12 +3,19 @@
 // QuestMoveScreen.tsx wiederverwendet: volle FEN-Validierung statt `createPosition()`s
 // skipValidation, und bedrohtAt/angreiferAt unabhängig von der ziehenden Figur).
 //
-// Bewusst OHNE Lux-Sprechzeile — wie schon screens/Revier.tsx (siehe dortiger Kommentar):
-// für den Endlosmodus existiert noch keine freigegebene Sprechzeile ("Sprechzeilen-Vorgabe
-// ... Ich-/Wir-Perspektive", claude/fahrplan_story_endlosmodus_und_launch_2026-09-09.md,
-// Teil B1 — noch offen). Die Erfolgsrückmeldung läuft deshalb rein visuell/haptisch über
-// die bereits bestehende QuestGeschafft-Komponente (Funkeln + Haptik + Klang), genau wie an
-// anderen Stellen der App ohne zusätzliche gesprochene Zeile.
+// Nachtrag (2026-09-18, Christian: "Sprachausgabe Deutsch vervollständigen", siehe claude/
+// sprachausgabe_nichtueberspringbarkeit_audit_2026-09-18.md, Fund P2): Bis hierhin galt
+// "Bewusst OHNE Lux-Sprechzeile — wie schon screens/Revier.tsx" (siehe dortiger, jetzt
+// überholter Kommentar), weil für den Endlosmodus noch keine freigegebene Sprechzeile
+// existierte. Die Spalten-Einführung (Begriff + knappe Erklärung, z. B. "Das ist eine
+// Gabel...") spricht jetzt screens/EndlosmodusSpalte.tsx beim Betreten der Spalte — hier
+// (pro Einzelaufgabe) wird zusätzlich der ohnehin schon angezeigte Hinweistext (siehe
+// `hinweisText` unten) laut vorgelesen, sobald das Kind auf "💡 Hinweis" tippt. Bewusst KEIN
+// `onFertig`/keine Sperre für die Brett-Eingabe währenddessen: Anders als eine Einführung ist
+// ein Hinweis eine vom Kind selbst angeforderte Zusatzinfo, kein Pflichttext — das Kind darf
+// weiterprobieren, während Lux ihn vorliest. Die Erfolgsrückmeldung selbst bleibt weiterhin
+// rein visuell/haptisch über QuestGeschafft (Funkeln + Haptik + Klang), ohne eigene
+// gesprochene Zeile — dafür gibt es (wie überall sonst) keinen Text, der sie bräuchte.
 //
 // Nachtrag (2026-09-17, Christian: "Hinweise von Lux, falls der gesuchte Zug nicht gefunden
 // wird und direkt die Möglichkeit, es nochmal zu probieren", siehe claude/taktik_
@@ -52,6 +59,7 @@ import { QuestGeschafft } from "../components/QuestGeschafft";
 import { SternIcon } from "./sternenleiter";
 import { t } from "./sprache";
 import { useHinweiseAktiv } from "./luxHinweis";
+import { useLuxSprechzeile } from "./useLuxSprechzeile";
 import type { EndlosmodusAufgabe } from "./endlosmodusAufgaben";
 
 /** Dauer der Erfolgs-Überlagerung, bevor onSolved() feuert — kurz genug, um nicht zu
@@ -284,6 +292,27 @@ export function EndlosmodusPuzzle({
     ? t(FIGUR_NAME_DE[loesungsFigur.typ], FIGUR_NAME_EN[loesungsFigur.typ])
     : t("Figur", "piece");
 
+  // Einmal berechnet statt (wie bis 2026-09-18) inline im JSX dupliziert — dieselbe
+  // Berechnung speist jetzt sowohl die Anzeige (hinweisBlase unten) als auch die neue
+  // Sprachausgabe (siehe Datei-Kopfkommentar).
+  const hinweisText =
+    hinweisSichtbar && aufgabe.stufe !== undefined && !geloest
+      ? aufgabe.stufe === 3
+        ? hinweisTextFuerStufe3(aktuelleHinweisstufe, aufgabe, figurName, zielFeld)
+        : hinweisTextFuerStufe(aufgabe.stufe)
+      : undefined;
+  // Schlüssel wechselt zwischen "aus" und einem konkreten Hinweis-Schlüssel, sobald das Kind
+  // auf "💡 Hinweis" tippt/es wieder schließt — siehe useLuxSprechzeile.ts: ein Schlüssel-
+  // wechsel stoppt eine noch laufende Sprachausgabe sauber (z. B. beim vorzeitigen Schließen)
+  // und löst bei erneutem Öffnen zuverlässig eine neue Sprechausgabe aus, auch wenn sich der
+  // Hinweistext selbst nicht geändert hat.
+  const hinweisSchluessel = hinweisSichtbar && !geloest
+    ? `hinweis-${aufgabe.fen}-${resetSchluessel}-${aktuelleHinweisstufe}`
+    : "hinweis-aus";
+  // Bewusst kein onFertig (kein Weiterlauf zu irgendwas) und erinnerung:false (ein
+  // selbst angeforderter Hinweis soll sich nicht von selbst alle 8 Sekunden wiederholen).
+  useLuxSprechzeile(hinweisSchluessel, hinweisText, undefined, { erinnerung: false });
+
   return (
     <View style={styles.wurzel}>
       <Board config={config} onCorrectMove={handleCorrectMove} onFeldTap={handleFeldTap} disabled={geloest} />
@@ -318,13 +347,9 @@ export function EndlosmodusPuzzle({
           )}
         </View>
       )}
-      {hinweisSichtbar && aufgabe.stufe !== undefined && !geloest && (
+      {hinweisText && (
         <View style={styles.hinweisBlase}>
-          <Text style={styles.hinweisText}>
-            {aufgabe.stufe === 3
-              ? hinweisTextFuerStufe3(aktuelleHinweisstufe, aufgabe, figurName, zielFeld)
-              : hinweisTextFuerStufe(aufgabe.stufe)}
-          </Text>
+          <Text style={styles.hinweisText}>{hinweisText}</Text>
         </View>
       )}
       {geloest && (

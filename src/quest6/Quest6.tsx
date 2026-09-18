@@ -408,7 +408,7 @@ export default function Quest6() {
   // gilt auch für die Schach-Brücke und das Mini-Spiel; eingeschobene Zeilen (Stopp!,
   // Rückmeldungen) lösen nie eine Erinnerung aus und zählen daher nicht.
   const erinnerungenRef = useRef(0);
-  const { wiederholen, aktuelleZeile } = useLuxSprechzeile(zeilenSchluessel, zeileZuSprechen, beiZeilenende, {
+  const { wiederholen, aktuelleZeile, fertigGesprochen } = useLuxSprechzeile(zeilenSchluessel, zeileZuSprechen, beiZeilenende, {
     onErinnerung: () => {
       erinnerungenRef.current += 1;
     },
@@ -424,7 +424,11 @@ export default function Quest6() {
     await saveQuestFortschrittLocal("quest6", { sterne, abgeschlossen: true, letzterSchritt: "screen7" });
   }
 
-  const brettAktiv = isLastLine && !einschub;
+  // Nachtrag 2026-09-18 (Christian: während einer Erklärung keine Eingabe möglich): zusätzlich
+  // `fertigGesprochen` (siehe useLuxSprechzeile.ts/Quest1.tsx-Kommentar) — sonst wären die
+  // Schach-Brücke (Screen 4), das Mini-Spiel (Screen 5) und der Matt-Moment (Screen 6) schon
+  // bedienbar, sobald die letzte Zeile ERSCHEINT, nicht erst wenn Lux sie fertig gesprochen hat.
+  const brettAktiv = isLastLine && !einschub && fertigGesprochen;
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -455,10 +459,14 @@ export default function Quest6() {
         // Update (2026-09-08, Task #110, siehe Quest1.tsx-Kommentar zum identischen
         // Muster): Pressable direkt am Hirsch-Icon, LuxAtem lässt ihn pulsieren,
         // disabled={!isLastLine} sperrt Taps bis zur letzten Zeile.
+        //
+        // Nachtrag 2026-09-18 (siehe Quest1.tsx-Kommentar zum identischen Muster): zusätzlich
+        // `fertigGesprochen`, sonst ist der Hirsch schon antippbar, sobald die letzte Zeile
+        // ERSCHEINT, nicht erst wenn Lux sie fertig gesprochen hat.
         <View style={styles.tapArea}>
           <Pressable
             onPress={() => advanceOrGo("verwandlung")}
-            disabled={!isLastLine}
+            disabled={!isLastLine || !fertigGesprochen}
             hitSlop={{ top: 24, left: 24, right: 24, bottom: 24 }}
             accessibilityLabel="Den Hirsch antippen, um die Verwandlung zu sehen"
           >
