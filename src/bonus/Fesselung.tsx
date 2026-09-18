@@ -39,7 +39,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { View, Text, Pressable, StyleSheet, SafeAreaView } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import { FESSELUNG_POSITIONS, createPosition, legalTargetsFor, tryMove, type BoardSquare } from "../lib/chessEngine";
 import { Board, type BoardConfig } from "../quest1/Board";
 import { saveBonusFortschrittLocal } from "../lib/storage";
@@ -155,6 +155,15 @@ function hinweisInhaltFuer(screen: ScreenId): string {
 
 export default function Fesselung() {
   const navigation = useNavigation<any>();
+  // Nachtrag 2026-09-17 (Bonuskapitel→Gefährtensaga-Neuordnung, siehe claude/
+  // schlossvorplatz_ruhmeshalle_kritik_2026-09-16.md): dieses Kapitel läuft jetzt als
+  // "Erstlehre" im Adlerhorst-Revier (screens/Revier.tsx, lib/revierErstlehre.ts) statt in
+  // einer festen Schlossvorplatz-Kette — `rueckkehrZiel`/`rueckkehrParams` funktionieren
+  // exakt wie das bereits bestehende Muster in bonus/MattIn3.tsx. Ohne Params (z. B. beim
+  // isolierten `__DEV__`-Testknopf) landet man auf der Gefährten-Karte.
+  const route = useRoute<any>();
+  const rueckkehrZiel: string = route.params?.rueckkehrZiel ?? "KidHome";
+  const rueckkehrParams = route.params?.rueckkehrParams;
   const [screen, setScreen] = useState<ScreenId>(0);
   const [lineIndex, setLineIndex] = useState(0);
   const [hinweisPhase, setHinweisPhase] = useState<HinweisPhase>("still");
@@ -486,11 +495,13 @@ export default function Fesselung() {
       )}
 
       {screen === 6 && (
-        // Update (Rochade-Umsetzung, siehe bonus/Rochade.tsx): führt jetzt zum nächsten
-        // Bonuskapitel weiter statt zurück zu KidHome — die Bonuskapitel sind laut Skript
-        // eine ununterbrochene Kette ("der Weg zur Wisentfeste-Burg"), kein Satz einzeln
-        // erreichbarer Stationen.
-        <Pressable style={styles.tapArea} onPress={() => navigation.navigate("Rochade")}>
+        // Nachtrag 2026-09-17: führt jetzt zurück zum `rueckkehrZiel` (Standard: das
+        // Adlerhorst-Revier, aus dem diese Erstlehre gestartet wurde, siehe Datei-
+        // Kopfimport) statt fest zum nächsten Bonuskapitel — die frühere "ununterbrochene
+        // Kette" (Fesselung→Rochade→Figurenwert→MattIn2→Schlossvorplatz) ist mit dem
+        // Wegfall von Schlossvorplatz.tsx entfallen, jedes Kapitel ist jetzt eine für sich
+        // stehende Erstlehre im jeweiligen Revier.
+        <Pressable style={styles.tapArea} onPress={() => navigation.navigate(rueckkehrZiel, rueckkehrParams)}>
           <QuestGeschafft>
             <KetteIcon size={92} />
           </QuestGeschafft>

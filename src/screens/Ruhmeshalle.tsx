@@ -10,9 +10,16 @@
 // Bewusste Auslassungen dieses ersten Schritts (exakt dieselbe Begründungsstruktur wie
 // screens/Revier.tsx, siehe dortiger Kopfkommentar):
 //   - Kulisse: `WaldHintergrund` ohne `variante`, dieselbe Platzhalter-Kulisse wie Revier.tsx/
-//     Bonuskapitel/Schlossvorplatz. Die eigentlichen Ruhmeshalle-Assets (E7 Rahmen-
+//     die Bonuskapitel-Screens. Die eigentlichen Ruhmeshalle-Assets (E7 Rahmen-
 //     illustration, E8 Leer-Schattenrisse, E8b Wisent-Nebelschleier — siehe
 //     checkliste_produktionsphasen.md, Phase 9) sind noch nicht beauftragt.
+//
+// Nachtrag 2026-09-17 (Bonuskapitel→Gefährtensaga-Neuordnung, siehe claude/schlossvorplatz_
+// ruhmeshalle_kritik_2026-09-16.md): der Zugang lief bis hierhin über einen bildschirmfixierten
+// Eckknopf in KidHome — der ist entfallen. Erreichbar ist dieser Screen jetzt ausschließlich
+// über den Burgtor-Ring auf der Saga-Karte (LuchsRevierKarte.tsx), freigeschaltet ab
+// Eichhörnchen ≥ 1 Stern im Endlosmodus. Dieser Screen selbst bleibt davon unberührt — er kennt
+// sein eigenes Freischalt-Kriterium nicht, nur seine Aufrufer.
 //   - Statt E8 (gemalte Leer-Schattenrisse) zeigt ein noch nicht gradierter Gefährte hier
 //     einen schlichten gestrichelten Rahmen ohne Figur — ehrlich als Platzhalter erkennbar,
 //     statt eine echte Schattenriss-Illustration zu simulieren.

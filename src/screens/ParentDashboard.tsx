@@ -146,14 +146,19 @@ const FIGUR_REIHENFOLGE = [
 
 // Bonuskapitel-Fortschrittsanzeige (Task #112, ergänzt 2026-09-08) — siehe Claude-Projekt
 // "ChessLynx", priorisierter_umsetzungsplan.md ("ParentDashboard um eine Bonuskapitel-
-// Fortschrittsanzeige ergänzen"). Reihenfolge exakt wie die tatsächliche Bonuskapitel-Kette
-// (siehe RootNavigator.tsx/bonus/*.tsx) — die vier ersten sind gate-pflichtig fürs
-// Schlosstor (siehe lib/gate.ts), Matt in 3 ist das echte, optionale Extra-Kapitel.
+// Fortschrittsanzeige ergänzen").
+//
+// Nachtrag 2026-09-17 (Bonuskapitel→Gefährtensaga-Neuordnung, siehe claude/
+// schlossvorplatz_ruhmeshalle_kritik_2026-09-16.md und claude/erobern_screen_reviere_
+// ruhmeshalle_befund_2026-09-17.md): die vier ersten sind jetzt als "Erstlehre" direkt in
+// ihre Gefährten-Reviere eingebunden (siehe lib/revierErstlehre.ts) und NICHT mehr
+// Voraussetzung für das Burgtor/die Wisentfeste — `gatePflichtig` ist daher überall false.
+// Das Feld bleibt als Anzeige-Gruppierung ("Erstlehre" vs. echtes Extra-Kapitel) erhalten.
 const BONUSKAPITEL_REIHENFOLGE = [
-  { id: "fesselung", name: "Fesselung", gatePflichtig: true },
-  { id: "rochade", name: "Rochade", gatePflichtig: true },
-  { id: "figurenwert", name: "Figurenwert", gatePflichtig: true },
-  { id: "mattIn2", name: "Matt in 2", gatePflichtig: true },
+  { id: "fesselung", name: "Fesselung", gatePflichtig: false },
+  { id: "rochade", name: "Rochade", gatePflichtig: false },
+  { id: "figurenwert", name: "Figurenwert", gatePflichtig: false },
+  { id: "mattIn2", name: "Matt in 2", gatePflichtig: false },
   { id: "mattIn3", name: "Matt in 3 (Extra)", gatePflichtig: false },
 ] as const;
 
@@ -587,10 +592,14 @@ export function ParentDashboard({ navigation }: any) {
   // Kinderprofile (vor der Einführung dieses Datenmodell-Felds, siehe firebase.ts-Kommentar
   // zu bonusFortschritt) das Feld ggf. noch gar nicht besitzen — soll dann als "noch nicht
   // begonnen" statt als Absturz behandelt werden.
-  const gatePflichtigeErledigtAnzahl = BONUSKAPITEL_REIHENFOLGE.filter(
-    (k) => k.gatePflichtig && kindProfil?.bonusFortschritt?.[k.id]
+  //
+  // Nachtrag 2026-09-17: nicht mehr "gate-pflichtig" (kein Schlosstor-Gate mehr, siehe
+  // BONUSKAPITEL_REIHENFOLGE-Kommentar oben) — gezählt werden jetzt die vier echten
+  // Erstlehre-Kapitel (alles außer "Matt in 3 (Extra)").
+  const erstlehreErledigtAnzahl = BONUSKAPITEL_REIHENFOLGE.filter(
+    (k) => k.id !== "mattIn3" && kindProfil?.bonusFortschritt?.[k.id]
   ).length;
-  const gatePflichtigeGesamtAnzahl = BONUSKAPITEL_REIHENFOLGE.filter((k) => k.gatePflichtig).length;
+  const erstlehreGesamtAnzahl = BONUSKAPITEL_REIHENFOLGE.filter((k) => k.id !== "mattIn3").length;
   const consentAktuell =
     einstellungen?.einwilligungErteiltAm != null && einstellungen?.einwilligungVersion === CONSENT_VERSION;
   const nutzungGesamt = taeglichesLimit === ZEITLIMIT_KEIN_LIMIT ? null : taeglichesLimit + heutigeNutzung.bonusMinuten;
@@ -680,9 +689,7 @@ export function ParentDashboard({ navigation }: any) {
               })}
             </View>
             <Text style={styles.body}>
-              {gatePflichtigeErledigtAnzahl} von {gatePflichtigeGesamtAnzahl} Pflichtkapiteln fürs Schlosstor
-              geschafft
-              {gatePflichtigeErledigtAnzahl === gatePflichtigeGesamtAnzahl ? " — das Schlosstor ist offen!" : "."}
+              {erstlehreErledigtAnzahl} von {erstlehreGesamtAnzahl} Erstlehre-Kapiteln in den Revieren geschafft.
             </Text>
           </>
         )}
@@ -1233,10 +1240,10 @@ export function ParentDashboard({ navigation }: any) {
           NICHT die eigentliche Freispiel-Kartenanbindung (Schritt #77 aus der
           Roadmap, siehe projektwissen.md), die weiterhin offen ist — die Buttons hier
           sind ein reiner Entwickler-/Test-Shortcut, kein Kind-Zugang. Die
-          Bonuskapitel-Buttons springen bewusst direkt zur jeweiligen Route (nicht nur
-          zu Schlossvorplatz), da dessen eigene Kette nur das jeweils nächste
-          unvollständige Kapitel freigibt — für gezieltes Testen einzelner Kapitel
-          reicht das nicht.
+          Bonuskapitel-Buttons springen bewusst direkt zur jeweiligen Route (nicht über
+          den Umweg über ein Revier), da die eigentliche Erstlehre-Kachel in Revier.tsx
+          erst nach dem Laden des jeweiligen Reviers erscheint — für gezieltes Testen
+          einzelner Kapitel reicht das nicht.
 
           Update (2026-09-09, Nutzer-Feedback nach Gerätetest: "Bitte im Elternmenü
           auch alle Basisquests einzeln auswählen lassen, König kann aktuell nicht
@@ -1320,14 +1327,14 @@ export function ParentDashboard({ navigation }: any) {
               <Pressable style={styles.testKnopf} onPress={() => navigation.navigate("MattIn3")}>
                 <Text style={styles.testKnopfText}>Matt in 3</Text>
               </Pressable>
-              <Pressable style={styles.testKnopf} onPress={() => navigation.navigate("Schlossvorplatz")}>
-                <Text style={styles.testKnopfText}>Schlossvorplatz</Text>
-              </Pressable>
             </View>
             {/* Paket 3 (2026-09-11): Steinbrücke + Kapitel „Die ganze Partie". Der
-                Schildkröten-Wegpunkt auf der Karte ist erst bei offenem Schlosstor antippbar —
-                "Schlosstor-Test" markiert dafür alle sechs Quests (bereits geschaffte behalten
-                ihre Sterne) und die vier Pflicht-Lernkapitel lokal als geschafft. */}
+                Schildkröten-Wegpunkt auf der Karte ist erst antippbar, sobald alle sechs
+                Basisquests geschafft sind (siehe lib/gate.ts) — "Burgtor-Test" markiert dafür
+                alle sechs Quests (bereits geschaffte behalten ihre Sterne).
+                Nachtrag 2026-09-17: die vier Erstlehre-Kapitel werden hier trotzdem gleich
+                mitgesetzt, rein als praktischer Test-Shortcut — sie sind seit der
+                Bonuskapitel→Gefährtensaga-Neuordnung nicht mehr Voraussetzung fürs Burgtor. */}
             <Text style={styles.testGruppenTitel}>Steinbrücke (Schildkröte)</Text>
             <View style={styles.testKnopfReihe}>
               <Pressable style={styles.testKnopf} onPress={() => navigation.navigate("GanzePartie")}>
@@ -1374,14 +1381,16 @@ export function ParentDashboard({ navigation }: any) {
                   for (const id of ["fesselung", "rochade", "figurenwert", "mattIn2"] as const) {
                     await saveBonusFortschrittLocal(id, true);
                   }
-                  setTestMeldung("✓ Schlosstor ist offen — zurück zur Karte, die Schildkröte pulsiert.");
+                  setTestMeldung(
+                    "✓ Burgtor ist offen — Erstlehre-Kapitel zusätzlich als geschafft markiert, Ruhmeshalle-Ring öffnet sich ab 1 Stern bei Eichhörnchen."
+                  );
                 }}
               >
-                <Text style={styles.testKnopfText}>Schlosstor-Test (alles geschafft)</Text>
+                <Text style={styles.testKnopfText}>Burgtor-Test (alles geschafft)</Text>
               </Pressable>
             </View>
             {/* Nutzerwunsch 2026-09-14 („Inhalt komplett freigespielt, sonst sehe ich das
-                nicht"): Der Schlosstor-Test oben öffnet nur das Gate — er lässt Matt in 3
+                nicht"): Der Burgtor-Test oben öffnet nur das Gate — er lässt Matt in 3
                 (die Kür), das Kapitel „Die ganze Partie" und die Willkommenssequenz
                 unberührt. Die Steinbrücke springt dann beim Besuch weiterhin sofort ins
                 Kapitel, statt ihre beiden Kacheln zu zeigen, und wer die Karte ansehen will,
@@ -1407,8 +1416,8 @@ export function ParentDashboard({ navigation }: any) {
                       await saveQuestFortschrittLocal(id, { sterne: 3, abgeschlossen: true, letzterSchritt: "test" });
                     }
                   }
-                  // Alle fünf Lernkapitel, also inklusive Matt in 3 — das ist die nicht
-                  // gate-pflichtige Kür und fehlt im Schlosstor-Test bewusst.
+                  // Alle fünf Lernkapitel, also inklusive Matt in 3 — das ist die echte,
+                  // optionale Kür und fehlt im Burgtor-Test bewusst.
                   for (const id of ["fesselung", "rochade", "figurenwert", "mattIn2", "mattIn3"] as const) {
                     await saveBonusFortschrittLocal(id, true);
                   }
@@ -1424,7 +1433,7 @@ export function ParentDashboard({ navigation }: any) {
                   setGanzePartieGeschafft(true);
                   setGanzePartieEtappe(0);
                   setTestMeldung(
-                    "✓ Alles freigespielt: sechs Abenteuer, fünf Lernkapitel, „Die ganze Partie\", Schlosstor offen, Begrüßung übersprungen. Die sieben Gefährten im Oberland bleiben gesperrt — die kommen erst mit Update 1."
+                    "✓ Alles freigespielt: sechs Abenteuer, fünf Lernkapitel, „Die ganze Partie\", Burgtor offen, Begrüßung übersprungen. Die sieben Gefährten im Oberland bleiben gesperrt — die kommen erst mit Update 1."
                   );
                 }}
               >

@@ -35,7 +35,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { View, Text, Pressable, StyleSheet, SafeAreaView } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import { ROCHADE_POSITIONS, createPosition, tryMove, type BoardSquare } from "../lib/chessEngine";
 import { Board, type BoardConfig } from "../quest1/Board";
 import { saveBonusFortschrittLocal } from "../lib/storage";
@@ -166,6 +166,14 @@ function hinweisInhaltFuer(screen: ScreenId, uebungAktuelle: UebungsPosition | n
 
 export default function Rochade() {
   const navigation = useNavigation<any>();
+  // Nachtrag 2026-09-17 (Bonuskapitel→Gefährtensaga-Neuordnung, siehe claude/
+  // schlossvorplatz_ruhmeshalle_kritik_2026-09-16.md): dieses Kapitel läuft jetzt als
+  // "Erstlehre" im Dachshöhle-Revier (screens/Revier.tsx, lib/revierErstlehre.ts) statt in
+  // einer festen Schlossvorplatz-Kette — `rueckkehrZiel`/`rueckkehrParams` funktionieren
+  // exakt wie das bereits bestehende Muster in bonus/MattIn3.tsx.
+  const route = useRoute<any>();
+  const rueckkehrZiel: string = route.params?.rueckkehrZiel ?? "KidHome";
+  const rueckkehrParams = route.params?.rueckkehrParams;
   const [screen, setScreen] = useState<ScreenId>(0);
   const [lineIndex, setLineIndex] = useState(0);
   const [demoDone, setDemoDone] = useState(false);
@@ -468,9 +476,11 @@ export default function Rochade() {
       )}
 
       {screen === 6 && (
-        // Führt weiter zum nächsten Bonuskapitel (Figurenwert) — siehe Fesselung.tsx-
-        // Kommentar zur ununterbrochenen Bonuskapitel-Kette.
-        <Pressable style={styles.tapArea} onPress={() => navigation.navigate("Figurenwert")}>
+        // Nachtrag 2026-09-17: führt jetzt zurück zum `rueckkehrZiel` (Standard: das
+        // Dachshöhle-Revier, aus dem diese Erstlehre gestartet wurde) statt fest zum
+        // nächsten Bonuskapitel — siehe Fesselung.tsx-Kommentar, warum die frühere
+        // ununterbrochene Kette entfallen ist.
+        <Pressable style={styles.tapArea} onPress={() => navigation.navigate(rueckkehrZiel, rueckkehrParams)}>
           <QuestGeschafft>
             <RochadeIcon size={92} />
           </QuestGeschafft>

@@ -189,20 +189,24 @@ export async function holeUndSchalteMattIn3Versatz(): Promise<0 | 1 | 2 | 3 | 4>
   return aktuelle;
 }
 
-// "Alle drei erledigt"-Sonderzeile im Hub (Konzept Abschnitt 4) ist ausdrücklich "einmalig" —
+// "Alle vier erledigt"-Sonderzeile im Hub (Konzept Abschnitt 4) ist ausdrücklich "einmalig" —
 // dasselbe Flag-Prinzip wie WILLKOMMEN_GESEHEN_KEY oben, nur für diesen einen Moment.
-const WISENT_KUER_ALLE_DREI_GEZEIGT_KEY = "chesslynx:wisentKuerAlleDreiGezeigt";
+// Nachtrag 2026-09-17: seit der Wisent-Endspiel-Kür sind es vier statt drei Kürs — der
+// gespeicherte Schlüsselname selbst bleibt bewusst "AlleDrei" (Bestandsinstallationen behalten
+// ihren Wert; ein reines Umbenennen des Schlüssels hätte hier keinen Nutzen), nur die
+// TypeScript-Bezeichner heißen jetzt "AlleVier".
+const WISENT_KUER_ALLE_VIER_GEZEIGT_KEY = "chesslynx:wisentKuerAlleDreiGezeigt";
 
-export async function wisentKuerAlleDreiGezeigt(): Promise<boolean> {
-  return (await AsyncStorage.getItem(WISENT_KUER_ALLE_DREI_GEZEIGT_KEY)) === "1";
+export async function wisentKuerAlleVierGezeigt(): Promise<boolean> {
+  return (await AsyncStorage.getItem(WISENT_KUER_ALLE_VIER_GEZEIGT_KEY)) === "1";
 }
 
-export async function setWisentKuerAlleDreiGezeigt(): Promise<void> {
-  await AsyncStorage.setItem(WISENT_KUER_ALLE_DREI_GEZEIGT_KEY, "1");
+export async function setWisentKuerAlleVierGezeigt(): Promise<void> {
+  await AsyncStorage.setItem(WISENT_KUER_ALLE_VIER_GEZEIGT_KEY, "1");
 }
 
 // "Auftritt an der Wisentfeste" (W1_kopf_heben, siehe claude/wisent_kopf_heben_geometrisch_
-// 2026-09-14.md, Nachtrag 2026-09-16) — derselbe Zweck wie WISENT_KUER_ALLE_DREI_GEZEIGT_KEY
+// 2026-09-14.md, Nachtrag 2026-09-16) — derselbe Zweck wie WISENT_KUER_ALLE_VIER_GEZEIGT_KEY
 // oben: Der Wisent-Torwächter auf der Karte (LuchsRevierKarte.tsx) hebt beim allerersten Mal,
 // das er antippbar wird (Wolf-Revier gerade abgeschlossen), einmalig Kopf und Hals — App-
 // seitige Bewegungskopplung (Überblendung S0 → W1 + translateY) zur an sich sehr kleinen
@@ -229,7 +233,7 @@ export async function setWisentAuftrittGezeigt(): Promise<void> {
 // jedem `useFocusEffect` frisch, aber gerade der ALLERERSTE Besuch nach der Graduierung soll
 // trotzdem funkeln — ein Komponenten-interner Vergleich hätte keinen Baseline-Wert von VOR
 // diesem ersten Laden und würde genau diesen wichtigsten Moment verpassen. Analog
-// WISENT_KUER_ALLE_DREI_GEZEIGT_KEY oben, nur als Set von Gefährten-IDs statt eines einzelnen
+// WISENT_KUER_ALLE_VIER_GEZEIGT_KEY oben, nur als Set von Gefährten-IDs statt eines einzelnen
 // Flags.
 const RUHMESHALLE_GEFEIERT_KEY = "chesslynx:ruhmeshalleGefeiert";
 
@@ -362,7 +366,7 @@ export function istSpielstandSchluessel(k: string): boolean {
   return (
     k === WILLKOMMEN_GESEHEN_KEY ||
     k === GANZE_PARTIE_ETAPPE_KEY ||
-    k === WISENT_KUER_ALLE_DREI_GEZEIGT_KEY ||
+    k === WISENT_KUER_ALLE_VIER_GEZEIGT_KEY ||
     k === WISENT_AUFTRITT_GEZEIGT_KEY ||
     k === RUHMESHALLE_GEFEIERT_KEY ||
     k === GEFAEHRTEN_BESUCHT_KEY ||

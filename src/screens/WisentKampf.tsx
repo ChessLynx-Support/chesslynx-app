@@ -38,8 +38,8 @@
 // Zustand, inklusive der automatisch nachvollzogenen schwarzen Antwort) — deshalb `useMemo`
 // mit leerer Dependency-Liste statt je Screen neu erzeugt.
 //
-// Kulisse: `WaldHintergrund` als Platzhalter (dieselbe, die auch Revier.tsx/Schlossvorplatz
-// nutzen) — die eigentliche Wisentfeste-Kulisse (Asset E10) ist noch nicht beauftragt, siehe
+// Kulisse: `WaldHintergrund` als Platzhalter (dieselbe, die auch Revier.tsx nutzt) — die
+// eigentliche Wisentfeste-Kulisse (Asset E10) ist noch nicht beauftragt, siehe
 // claude/update1_vorzug_plan_2026-09-15.md, Abschnitt 2.
 
 import { useEffect, useMemo, useRef, useState } from "react";

@@ -50,10 +50,12 @@
 // richtet sich an Kinder ab 5 ohne Lesefähigkeit (siehe projektwissen.md); der Mockup-Textlayer
 // war nur eine Verständigungshilfe mit dem Nutzer, keine Vorgabe für den echten Bildschirm.
 //
-// Schlossvorplatz-Zugang: der gestrichelte Gold-Ring am Burgtor der Wisentfeste ersetzt den
-// bisherigen 7. KidHome-Button (siehe RootNavigator.tsx) — immer antippbar, unabhängig vom
-// Hauptquest-Fortschritt (Schlossvorplatz.tsx zeigt selbst einen Hinweis, falls die sechs
-// Basisquests noch nicht komplett sind).
+// Ruhmeshalle-Zugang: der gestrichelte Gold-Ring am Burgtor der Wisentfeste ersetzte
+// ursprünglich den 7. KidHome-Button (siehe RootNavigator.tsx) und führte zunächst,
+// unabhängig vom Fortschritt, zum inzwischen entfernten Schlossvorplatz.tsx. Nachtrag
+// 2026-09-17 (Bonuskapitel→Gefährtensaga-Neuordnung, siehe claude/schlossvorplatz_
+// ruhmeshalle_kritik_2026-09-16.md): derselbe Ring führt jetzt zur Ruhmeshalle, erst
+// antippbar ab Eichhörnchen ≥ 1 Stern (siehe `ringFreigeschaltet` weiter unten).
 //
 // Bekannte Android/Fabric-Fallstricke in dieser Codebase (siehe RootNavigator.tsx- und
 // WaldHintergrund.tsx-Kommentare zu genau diesem wiederholt aufgetretenen Bug): mehrere absolut
@@ -96,7 +98,8 @@ import {
   setWisentAuftrittGezeigt,
   wisentAuftrittGezeigt,
 } from "../lib/storage";
-import { pruefeSchlosstorStatus } from "../lib/gate";
+import { pruefeGefaehrtenErreichtStatus } from "../lib/gate";
+import { ladeEndlosmodusFortschritt, sterneFuerGefaehrte } from "../lib/endlosmodusFortschritt";
 import { SCHILDKROETE_ASPEKT, SchildkroeteWegmarke } from "../lib/schildkroete";
 import { QuestTierWegmarke, questTierWegmarkeAspekt } from "../lib/questTiere";
 import { GefaehrteWegmarke, gefaehrteWegmarkeAspekt } from "../lib/gefaehrtenZustaende";
@@ -104,18 +107,35 @@ import type { GefaehrteId } from "../lib/gefaehrtenZustaende";
 import { AmbientLoop } from "./AmbientLoop";
 import { Gluehwuermchen } from "./Gluehwuermchen";
 
-const hintergrund = require("../../assets/hintergrund/luchsrevier_wisentfeste.webp");
-// Paket 3 (2026-09-11): Oberland-Kartenstück mit der Steinbrücke, siehe Datei-Kopfkommentar.
-const oberland = require("../../assets/hintergrund/luchsrevier_oberland.webp");
-// Seitenverhältnis Höhe/Breite des Oberland-Stücks (1658×519px) — gleiche Breite wie die
-// bisherige Karte, deshalb schließen beide bei jeder Bildschirmbreite nahtlos aneinander an.
-// Update 2026-09-14: Das Oberland ist von 519 auf 1159 Zeilen gewachsen. Der HQ-Master
-// (Grafiken/Sonniges_Tal_der_Maerchenschloesser_3576x8192_v2.png) trug oberhalb des bisherigen
-// Ausschnitts noch 640 ungenutzte Zeilen — Hochgebirge, ein Schloss auf dem Fels, ein
-// Wasserfall und der Weg, der dorthin führt. Genau dort stehen jetzt die fünf Gefährten
-// (siehe GEFAEHRTEN weiter unten). Der Ausschnitt beginnt seither bei Zeile 0 statt bei 640;
-// die unteren 519 Zeilen sind unverändert dieselben wie zuvor (nachgemessen: Abweichung
-// 1,49/255, also reines WebP-Rauschen).
+// 2026-09-17 — Christian-Auftrag ("ganz ohne Ausschnitt, nur die gesamte Saga Karte"): Bis
+// hierhin waren Oberland und Karte ZWEI separate Dateien (`luchsrevier_oberland.webp`,
+// `luchsrevier_wisentfeste.webp`), als Geschwister-`ImageBackground` übereinandergestapelt.
+// Beide stammen aus demselben HQ-Master und schließen dadurch bereits pixelgenau aneinander
+// an (Kantenabweichung ~3/255, siehe claude/saga_karte_angleichung_2026-09-13.md und
+// claude/oberland_gewachsen_gefaehrten_2026-09-14.md) — die Naht war also schon vorher
+// unsichtbar. Jetzt EIN durchgehendes Bild (`luchsrevier_saga_gesamt.webp`, senkrechte
+// Verkettung derselben beiden Ausschnitte, siehe assets/hintergrund/README bzw. Kommentar
+// bei OBERLAND_ASPEKT unten), EINE `ImageBackground` mit allen Kindern direkt darin — genau
+// das im Datei-Kopfkommentar beschriebene Android/Fabric-sichere Muster, jetzt konsequent
+// für die GANZE Karte statt nur je Hälfte. Nebenwirkung, die hier bewusst mitgenommen wurde:
+// die bisherige gespiegelte Doppelung der Nebeltextur an der Naht (siehe Git-Historie) und
+// ihr manueller "einen Punkt höher"-Ausgleich entfallen ersatzlos — eine einzige, durchgehende
+// Nebel-Maske über die Gesamthöhe braucht diesen Kunstgriff nicht mehr.
+//
+// `oberlandHoehe`/`hoehe` (unten in der Komponente berechnet) bleiben als interne Wegmarke
+// bestehen, wo im gemeinsamen Bild die Karte beginnt — nur für die Positionierung der Karte-
+// seitigen Elemente (Wegmarken, Burgtor, Ambient-Schleifen, Nebel-Lichtungen), NICHT mehr für
+// eine zweite Bilddatei. Jede vormals "Karte-lokale" Top-Position bekommt deshalb jetzt ein
+// `oberlandHoehe +` vorangestellt (siehe die jeweiligen Stellen unten) — die Oberland-seitigen
+// bleiben unverändert, weil das Oberland weiterhin bei Zeile 0 des gemeinsamen Bilds beginnt.
+const sagaKarte = require("../../assets/hintergrund/luchsrevier_saga_gesamt.webp");
+// Seitenverhältnis Höhe/Breite NUR des Oberland-Anteils (1658×1159px, die oberen 1159 von
+// 3795 Zeilen des gemeinsamen Bilds) — gleiche Breite wie die Karte darunter, deshalb
+// schließen beide bei jeder Bildschirmbreite nahtlos aneinander an. Historie (als das Oberland
+// noch eine eigene Datei war): Update 2026-09-14, das Oberland ist von 519 auf 1159 Zeilen
+// gewachsen — der HQ-Master trug oberhalb des bisherigen Ausschnitts noch 640 ungenutzte
+// Zeilen (Hochgebirge, Schloss, Wasserfall), auf denen seither die sechs Gefährten stehen
+// (siehe GEFAEHRTEN weiter unten).
 export const OBERLAND_ASPECT = 1159 / 1658;
 
 // (Der frühere NEBEL_RANDSTREIFEN_FRAC entfällt seit 2026-09-13: er glich einen weißen
@@ -269,30 +289,16 @@ export type WegmarkenEintrag = {
 // 0.9215/0.538, die Blasen im dunkleren Wasser UNTER dem Wasserfall (im Fall selbst wäre
 // weiß auf weiß unsichtbar). Wer die Karte austauscht, muss hier neu messen.
 //
-// Damit laufen acht Schleifen gleichzeitig. Falls das auf schwachen Android-Geräten ruckelt,
-// ist der richtige Hebel, die vier alten zu entschlacken (sie sind die großflächigen) —
-// nicht die neuen, die den Gerätetest-Befund beheben.
+// 2026-09-17 — "baum" (Baumwiegen) und "wasser" (Wasserglanz) entfernt: Christian meldete
+// per Screenshot zwei auffällige grüne Scheiben genau an deren Plätzen ("vermutlich
+// Animationen. Das funktioniert nicht") — vermutlich ein eingefrorenes/erstes Bild der
+// jeweiligen Lottie-Datei statt der gedachten Schimmer-Bewegung. Die übrigen Schleifen sind
+// NICHT automatisch mitbetroffen (andere Quelldateien), außer den beiden in AMBIENT_OBERLAND
+// mit exakt denselben Quelldateien ("wipfel"/"wasserfall") — die wurden am 2026-09-18
+// nachträglich ebenfalls entfernt, siehe Kommentar dort. Gleichzeitig: Rauch jetzt an allen vier
+// Häusern der Karte statt nur an einem (Christian-Wunsch, "unterschiedliche Intensität") —
+// Positionen wie beim ersten Rauch per Schornstein-Spitze am echten Bild abgemessen.
 const AMBIENT_SCHLEIFEN = [
-  {
-    name: "baum",
-    quelle: require("../../assets/lottie/chesslynx-tree-sway.json"),
-    fx: 0.09,
-    fy: 0.35,
-    groesseFrac: 0.15,
-    verzoegerungMs: 0,
-    tempo: 0.8,
-    deckkraft: 0.75,
-  },
-  {
-    name: "wasser",
-    quelle: require("../../assets/lottie/chesslynx-water-shimmer.json"),
-    fx: 0.62,
-    fy: 0.55,
-    groesseFrac: 0.15,
-    verzoegerungMs: 1300,
-    tempo: 0.9,
-    deckkraft: 0.7,
-  },
   {
     name: "vogel",
     quelle: require("../../assets/lottie/chesslynx-bird-flyaway.json"),
@@ -314,9 +320,10 @@ const AMBIENT_SCHLEIFEN = [
     deckkraft: 0.65,
   },
   {
-    // Über dem Schornstein des Häuschens rechts. Der Ausschnitt ist bewusst hoch gesetzt
-    // (fy 0.500 statt der gemessenen Spitze 0.538): Rauch steigt, das Motiv braucht den
-    // Platz nach oben, nicht mittig um den Schornstein herum.
+    // Über dem Schornstein des Häuschens rechts (das größte/nächste der vier Häuser). Der
+    // Ausschnitt ist bewusst hoch gesetzt (fy 0.500 statt der gemessenen Spitze 0.538):
+    // Rauch steigt, das Motiv braucht den Platz nach oben, nicht mittig um den Schornstein
+    // herum.
     name: "rauch",
     quelle: require("../../assets/lottie/chesslynx-chimney-smoke.json"),
     fx: 0.9215,
@@ -325,6 +332,46 @@ const AMBIENT_SCHLEIFEN = [
     verzoegerungMs: 700,
     tempo: 0.7,
     deckkraft: 0.85,
+  },
+  {
+    // 2026-09-17, Christian-Wunsch ("auf alle 4 Häuser, unterschiedliche Intensität"):
+    // zweites Haus, oberhalb/links der Steinbrücke. Schornsteinspitze am echten Bild
+    // abgemessen (real 1476/1993 von 1658×3795), fy wie beim ersten Rauch leicht über die
+    // Spitze hinaus nach oben gesetzt.
+    name: "rauch2",
+    quelle: require("../../assets/lottie/chesslynx-chimney-smoke.json"),
+    fx: 0.8905,
+    fy: 0.278,
+    groesseFrac: 0.18,
+    verzoegerungMs: 1100,
+    tempo: 0.7,
+    deckkraft: 0.65,
+  },
+  {
+    // 2026-09-17, Christian-Wunsch: drittes Haus, links am Wegrand (Doppel-Schornstein,
+    // rechter/deutlicherer Schornstein vermessen: real 226/2184). Kleinere Deckkraft — am
+    // weitesten von den anderen drei Häusern entfernt, soll zurückhaltender wirken.
+    name: "rauch3",
+    quelle: require("../../assets/lottie/chesslynx-chimney-smoke.json"),
+    fx: 0.1363,
+    fy: 0.351,
+    groesseFrac: 0.18,
+    verzoegerungMs: 2200,
+    tempo: 0.7,
+    deckkraft: 0.5,
+  },
+  {
+    // 2026-09-17, Christian-Wunsch: viertes Haus, kleine/entferntere Hütte ohne klar
+    // erkennbaren Schornstein — Rauch daher kleiner und deutlich zurückhaltender, knapp
+    // über dem Dachfirst (real 1363/3085) angesetzt statt über einem echten Schornstein.
+    name: "rauch4",
+    quelle: require("../../assets/lottie/chesslynx-chimney-smoke.json"),
+    fx: 0.8221,
+    fy: 0.7,
+    groesseFrac: 0.12,
+    verzoegerungMs: 3400,
+    tempo: 0.7,
+    deckkraft: 0.3,
   },
   {
     name: "blasen",
@@ -425,7 +472,8 @@ export const WEGMARKEN: WegmarkenEintrag[] = [
   },
 ];
 
-// Burgtor der Wisentfeste (Schlossvorplatz-Zugang) — Kreis-Mittelpunkt + Durchmesser, ebenfalls
+// Burgtor der Wisentfeste (Ruhmeshalle-Zugang, siehe Nachtrag 2026-09-17 oben) — Kreis-
+// Mittelpunkt + Durchmesser, ebenfalls
 // als Anteil der Referenzmaße (siehe Design-Canvas: ehemals `.gate-tap { left:236px; top:52px;
 // width:54px; height:54px }`, hier auf Mittelpunkt umgerechnet: 236+27, 52+27).
 // ---------------------------------------------------------------------------------------
@@ -481,7 +529,20 @@ export const WEGMARKEN: WegmarkenEintrag[] = [
 // mit GRUNDHOEHE = 100 (der Q1–Q6-Wert), einer schwachen linearen Ferne und einem Artfaktor,
 // der dieselbe Spanne nutzt wie der Igel auf der Hauptkarte. Die Ferne ist bewusst schwach:
 // Sie soll die Tiefe andeuten, nicht die Artgröße überstimmen. Vorher tat sie genau das.
-const OBERLAND_GRUNDHOEHE = 100;
+//
+// 2026-09-17 — Christian-Befund (Screenshot mit Größenvergleich): "Die Größenverhältnisse
+// sollten unten und oben in etwa gleich sein... Igel und Eichhörnchen in etwa gleich, Hirsch
+// und Wisent in etwa gleich." Nachrechnung: Beide Zielgleichungen (Eichhörnchen(fy≈unten)≈77
+// UND Wisent(fy≈oben)≈100, mit den ORIGINAL-Artfaktoren/-Ferne) lösen unabhängig voneinander
+// zu GRUNDHOEHE≈170 auf — ein sauberer Beleg, dass eine einzige Konstante beide Vorgaben
+// treffen würde. Physisch nicht umsetzbar: Bei 170 wäre der Wisent allein ~100pt hoch bei nur
+// ~273pt Gesamthöhe des Oberland-Bands (breite=REFERENZ_BREITE) — bei den engen fy-Abständen
+// der sechs Stationen (siehe unten, z. B. Eichhörnchen–Rabe nur 30 Bildzeilen auseinander)
+// würde das zu deutlichen Überlappungen führen. Deshalb hier der vorsichtigere Kompromiss
+// 100 → 130 (+30 %, Eichhörnchen ≈59pt, Wisent ≈77pt an seiner neuen Position unten) — spürbar
+// näher an Christians Vorgabe, ohne die Nachbarn zu verdecken. Bitte auf dem Gerät prüfen, ob
+// das reicht oder ob eine echte Neuverteilung der sechs fy-Abstände nötig wird.
+const OBERLAND_GRUNDHOEHE = 130;
 /** Fernfaktor am unteren Rand des Oberlands (Naht zur Hauptkarte) … */
 const OBERLAND_FERNE_UNTEN = 0.58;
 /** … und ganz oben am Gipfel. Dazwischen linear. */
@@ -512,27 +573,16 @@ function oberlandBreite(fy: number, artFaktor: number, aspekt: number) {
 //
 // Koordinaten als Anteil von Kartenbreite und OBERLAND-Höhe. Wie unten gilt: versetzte
 // Startverzögerungen, sonst fällt der Gleichtakt als Maschine auf.
+//
+// 2026-09-18 — "wasserfall" und "wipfel" vorsorglich entfernt, aus demselben Grund wie
+// "wasser"/"baum" in AMBIENT_SCHLEIFEN am 2026-09-17 (siehe dortiger Kommentar): exakt
+// dieselben zwei Quelldateien (chesslynx-water-shimmer.json / chesslynx-tree-sway.json),
+// also vermutlich dieselben grünen Standbild-Flecken. Anders als bei AMBIENT_SCHLEIFEN war
+// das hier noch nicht per Geräte-Screenshot bestätigt — Christian hat sich auf Nachfrage für
+// die vorsorgliche Entfernung entschieden, statt erst den nächsten Gerätetest abzuwarten.
+// Bitte trotzdem beim nächsten Gerätetest gegenprüfen, ob im Oberland jetzt wirklich nichts
+// mehr auffällt.
 const AMBIENT_OBERLAND = [
-  {
-    name: "wasserfall",
-    quelle: require("../../assets/lottie/chesslynx-water-shimmer.json"),
-    fx: 0.77,
-    fy: 0.62,
-    groesseFrac: 0.2,
-    verzoegerungMs: 0,
-    tempo: 0.9,
-    deckkraft: 0.5,
-  },
-  {
-    name: "wipfel",
-    quelle: require("../../assets/lottie/chesslynx-tree-sway.json"),
-    fx: 0.13,
-    fy: 0.84,
-    groesseFrac: 0.22,
-    verzoegerungMs: 1700,
-    tempo: 0.8,
-    deckkraft: 0.6,
-  },
   {
     name: "bergvogel",
     quelle: require("../../assets/lottie/chesslynx-bird-flyaway.json"),
@@ -572,19 +622,27 @@ const GEFAEHRTEN_ROH = [
   {
     id: "eichhoernchen",
     name: "Eichhörnchen-Lichtung",
-    fx: 1130 / 1658,
-    fy: 1155 / O,
+    // 2026-09-17 (zweite Runde, echter Geräte-Screenshot mit allen sieben Positionen):
+    // deutlich weiter nach unten/links gerückt (vorher 1114 · 1145), um genau die von
+    // Christian bemängelte Wegstrecke zwischen Hirsch/Burgtor und den Oberland-Gefährten
+    // zu schließen — der neue Fußpunkt liegt jetzt jenseits der alten Oberland/Hauptkarte-
+    // Naht (fy > 1), was seit der Saga-Karten-Verschmelzung unproblematisch ist (siehe
+    // Kopfkommentar zu `sagaKarte`/`OBERLAND_ASPECT`: fy = Bildzeile/O gilt durchgehend im
+    // gesamten verschmolzenen Bild). Koordinate per Punkt-Erkennung aus dem Screenshot
+    // umgerechnet und gegen das echte Kartenbild auf Wegmitte nachgemessen.
+    fx: 634 / 1658,
+    fy: 1433 / O,
     artFaktor: 0.78,
     aspekt: gefaehrteWegmarkeAspekt("eichhoernchen"),
   },
   {
     id: "rabe",
     name: "Rabenfels",
-    // 2026-09-14, vierte Korrekturrunde: noch einmal 35 Zeilen tiefer (vorher 1090). Der Weg
-    // ist dort 821–1157 breit, x 940 liegt darin. Der Platz bleibt beim Wechsel vom Fuchs
-    // auf den Raben unverändert — nur die Figur ist eine andere.
-    fx: 940 / 1658,
-    fy: 1125 / O,
+    // 2026-09-17 (dritte Runde, Christian: "etwas weiter unten, entlang des Weges" nach
+    // Gerätetest): noch einmal 21 Zeilen tiefer (vorher 1074 · 1149), x auf die Wegmitte an
+    // der neuen Stelle nachgemessen.
+    fx: 1040 / 1658,
+    fy: 1170 / O,
     // 0,92 statt der 0,96 des Fuchses: Der Rabe ist ein schlanker Vogel und soll kleiner
     // wirken als die Adlerin (1,00), mit der er sich die Klasse teilt.
     artFaktor: 0.92,
@@ -593,38 +651,42 @@ const GEFAEHRTEN_ROH = [
   {
     id: "dachs",
     name: "Dachshöhle",
-    fx: 760 / 1658,
-    fy: 1015 / O,
+    // 2026-09-17 (dritte Runde, Christian: "etwas weiter unten, entlang des Weges" nach
+    // Gerätetest): noch einmal 40 Zeilen tiefer (vorher 789 · 1009), auf der Wegmitte
+    // nachgemessen.
+    fx: 789 / 1658,
+    fy: 1049 / O,
     artFaktor: 0.9,
     aspekt: gefaehrteWegmarkeAspekt("dachs"),
   },
   {
     id: "adlerin",
     name: "Adlerhorst",
-    // 2026-09-14, letzte Runde: 1030 → 1075 → 1035 und 14 Zeilen tiefer. Der Weg läuft auf
-    // y 892 von x 844 bis 1093; 1035 liegt darin, rechts der Wegmitte (968), aber nicht mehr
-    // am äußersten Rand wie bei 1075.
-    fx: 1035 / 1658,
-    fy: 892 / O,
+    // 2026-09-17 (echter Geräte-Screenshot): leichte Korrektur (vorher 1035 · 892), x/y auf
+    // die Wegmitte an der neuen Stelle nachgemessen.
+    fx: 951 / 1658,
+    fy: 905 / O,
     artFaktor: 1.0,
     aspekt: gefaehrteWegmarkeAspekt("adlerin"),
   },
   {
     id: "wolf",
     name: "Wolfsfeste",
-    // 2026-09-14, letzte Runde: nach unten und rechts (vorher 1160 · 710). Auf y 710 liegt
-    // die Kehre noch breit (x 976–1220); dreißig Zeilen tiefer ist der Weg dort schon nach
-    // rechts abgebogen (x 1126–1288), und 1205 steht mittig darauf.
-    fx: 1205 / 1658,
-    fy: 740 / O,
+    // 2026-09-17 (dritte Runde, Christian: "etwas weiter unten, entlang des Weges" nach
+    // Gerätetest): noch einmal 40 Zeilen tiefer und etwas nach links auf die Wegmitte
+    // (vorher 1200 · 760).
+    fx: 1155 / 1658,
+    fy: 800 / O,
     artFaktor: 1.08,
     aspekt: gefaehrteWegmarkeAspekt("wolf"),
   },
   {
     id: "wisent",
     name: "Wisent — vor dem Schlosstor",
-    fx: 1017 / 1658,
-    fy: 552 / O,
+    // 2026-09-17 (echter Geräte-Screenshot, zweite Runde): noch einmal leicht nachjustiert
+    // (vorher 1015 · 600), x/y auf die Wegmitte an der neuen Stelle nachgemessen.
+    fx: 1044 / 1658,
+    fy: 648 / O,
     artFaktor: 1.15,
     aspekt: gefaehrteWegmarkeAspekt("wisent"),
   },
@@ -664,6 +726,17 @@ const SCHILDKROETE_WEGPUNKT = {
 };
 
 const BURGTOR = { fx: 263 / REFERENZ_BREITE, fy: 79 / REFERENZ_HOEHE, durchmesserFrac: 54 / REFERENZ_BREITE };
+
+// Motto-Moment-Grundverdrahtung (2026-09-18, siehe claude/motto_moment_freischaltung_
+// entscheidung_2026-09-17.md, Abschnitt "Kartenmechanik"): siebter Kartenpunkt "analog zur
+// Burg" — Christian: "Punkt 7 soll der Ort für den Motto Moment sein, analog zur Burg."
+// fx/fy sind OBERLAND-relativ (wie GEFAEHRTEN/AMBIENT_OBERLAND, Anteil von Kartenbreite/
+// Oberlandhöhe), nicht REFERENZ_BREITE/-HOEHE-relativ wie BURGTOR — der Punkt liegt laut
+// Konzept auf dem Schlossturm im Oberland, nicht auf der Hauptkarte. Koordinate von
+// Christian direkt vorgegeben (nicht aus dem KI-Konzeptbild übernommen, siehe Dok):
+// fx=0.6816, fy=0.2234. Durchmesser identisch mit BURGTOR ("analog zur Burg" gilt laut Dok
+// auch für die Optik — Ring/Icon wie beim Burgtor, kein eigenes Button-Design).
+const MOTTO_MOMENT = { fx: 0.6816, fy: 0.2234, durchmesserFrac: BURGTOR.durchmesserFrac };
 
 type Klarung = {
   cx: number;
@@ -812,21 +885,33 @@ function figurLichtung(
   };
 }
 
+// 2026-09-17 (Saga-Karte-Verschmelzung, siehe Kommentar bei `sagaKarte` oben): `oberlandHoehe`
+// als neuer Parameter — alle `cy`-Werte hier waren bisher relativ zur EIGENEN, Karte-lokalen
+// `ImageBackground` (0 = Naht zum Oberland). Jetzt liegen Karte und Oberland im selben Bild
+// und in derselben Nebel-Maske, deshalb müssen die `cy`-Werte GLOBAL sein (0 = oberste Zeile
+// des Oberlands) — daher `oberlandHoehe +` vor jedem `cy`. `cx`/`fx` bleiben unverändert, die
+// Breite ist auf beiden Seiten der Naht identisch.
 function baueNebelKlarungen(
   status: Record<QuestId, WegmarkeStatus> | null,
   breite: number,
-  hoehe: number
+  hoehe: number,
+  oberlandHoehe: number
 ): Klarung[] {
   const pfadRadius = 0.1 * breite;
   const klarungen: Klarung[] = [
     // Lichtungs-Eingang unten (vor der ersten Wegmarke) — immer leicht angelichtet.
-    { cx: WEGMARKEN[0].fx * breite, cy: hoehe, r: 0.14 * breite, zentrum: NEBEL_KLARUNG_NAECHSTES },
+    {
+      cx: WEGMARKEN[0].fx * breite,
+      cy: oberlandHoehe + hoehe,
+      r: 0.14 * breite,
+      zentrum: NEBEL_KLARUNG_NAECHSTES,
+    },
   ];
 
   WEGMARKEN.forEach((w, i) => {
     const zustand = status?.[w.quest] ?? "gesperrt";
     const cx = w.fx * breite;
-    const cy = w.fy * hoehe;
+    const cy = oberlandHoehe + w.fy * hoehe;
     if (zustand === "erledigt" || zustand === "naechstes") {
       klarungen.push(figurLichtung(cx, cy, w.breiteFrac * breite, w.aspekt));
     }
@@ -837,7 +922,7 @@ function baueNebelKlarungen(
     if (zustand === "erledigt") {
       const ziel = WEGMARKEN[i + 1] ?? BURGTOR;
       const zielX = ziel.fx * breite;
-      const zielY = ziel.fy * hoehe;
+      const zielY = oberlandHoehe + ziel.fy * hoehe;
       const schritte = 4;
       for (let s = 1; s < schritte; s++) {
         const t = s / schritte;
@@ -853,7 +938,7 @@ function baueNebelKlarungen(
 
   klarungen.push({
     cx: BURGTOR.fx * breite,
-    cy: BURGTOR.fy * hoehe,
+    cy: oberlandHoehe + BURGTOR.fy * hoehe,
     r: 0.13 * breite,
     zentrum: NEBEL_KLARUNG_BURGTOR,
   });
@@ -863,7 +948,12 @@ function baueNebelKlarungen(
 
 type Props = {
   onSelectQuest: (quest: QuestId) => void;
-  onSelectSchlossvorplatz: () => void;
+  // Nachtrag 2026-09-17 (Bonuskapitel→Gefährtensaga-Neuordnung, siehe claude/
+  // schlossvorplatz_ruhmeshalle_kritik_2026-09-16.md und claude/erobern_screen_reviere_
+  // ruhmeshalle_befund_2026-09-17.md): führt jetzt zur Ruhmeshalle statt zum entfernten
+  // Schlossvorplatz — derselbe Burgtor-Ring, nur umgewidmet. Erst antippbar, sobald
+  // Eichhörnchen ≥ 1 Stern hat (siehe `ringFreigeschaltet` weiter unten).
+  onSelectRuhmeshalle: () => void;
   // Paket 3 (2026-09-11): Schildkröten-Wegpunkt an der Steinbrücke.
   onSelectSteinbruecke?: () => void;
   // Meldet die gemessenen Höhen (Oberland-Stück, bisherige Karte), damit KidHome die
@@ -914,17 +1004,27 @@ type Props = {
   // sechste, letzte Station bereits Teil von `GEFAEHRTEN`, freigeschaltet also erst, sobald
   // sein Vorgänger in dieser Liste (der Wolf) besucht wurde.
   onSelectWisent?: () => void;
+  // Motto-Moment-Grundverdrahtung (2026-09-18, siehe MOTTO_MOMENT-Kommentar oben und claude/
+  // motto_moment_freischaltung_entscheidung_2026-09-17.md): siebter Kartenpunkt, analog zum
+  // Burgtor-Ring — erst antippbar, sobald `bonusFortschritt.wisentKampf === true` ist (Boss-
+  // Puzzle geschafft; die drei optionalen Wisent-Kürs sind ausdrücklich NICHT Voraussetzung,
+  // siehe Entscheidungsdokument). Ohne diese Prop bleibt der Punkt wie bisher gesperrt/im
+  // Nebel, genau wie bei `onSelectGefaehrte`/`onSelectWisent`. Führt zu einem noch leeren
+  // Platzhalter-Screen (screens/MottoMoment.tsx) — der eigentliche Inhalt (Verschmelzungs-
+  // Animation, Abzeichen) ist laut Dok bewusst noch nicht gescopt.
+  onSelectMottoMoment?: () => void;
 };
 
 export function LuchsRevierKarte({
   onSelectQuest,
-  onSelectSchlossvorplatz,
+  onSelectRuhmeshalle,
   onSelectSteinbruecke,
   onHoehen,
   onSteinbrueckeWartet,
   breiteVorgabe,
   onSelectGefaehrte,
   onSelectWisent,
+  onSelectMottoMoment,
 }: Props) {
   // Schleifen laufen nur, solange die Karte wirklich vorn ist — vier gleichzeitig laufende
   // Lottie-Ansichten kosten auf Android sonst auch dann Leistung, wenn ein Quest-Screen
@@ -936,6 +1036,14 @@ export function LuchsRevierKarte({
   const [steinbruecke, setSteinbruecke] = useState<WegmarkeStatus>("gesperrt");
   // Reihenfolge-Freischaltung der Gefährten-Reviere (siehe `revierFreigeschaltet` oben).
   const [besuchteReviere, setBesuchteReviere] = useState<string[]>([]);
+  // Nachtrag 2026-09-17 (Bonuskapitel→Gefährtensaga-Neuordnung): der Burgtor-Ring führt jetzt
+  // zur Ruhmeshalle und ist erst antippbar, sobald Eichhörnchen ≥ 1 Stern im Endlosmodus hat
+  // (Christian-Entscheidung, "empfohlen"-Option). Siehe useFocusEffect unten.
+  const [ringFreigeschaltet, setRingFreigeschaltet] = useState(false);
+  // Motto-Moment-Grundverdrahtung (siehe Props-Kommentar bei `onSelectMottoMoment` oben):
+  // `bonusFortschritt.wisentKampf === true`, dieselbe Quelle, die Ruhmeshalle.tsx für den
+  // Wisent-Sonderplatz liest.
+  const [mottoMomentFreigeschaltet, setMottoMomentFreigeschaltet] = useState(false);
   // "Auftritt an der Wisentfeste" (W1_kopf_heben) — siehe lib/storage.ts,
   // wisentAuftrittGezeigt()/setWisentAuftrittGezeigt(), und lib/gefaehrtenZustaende.tsx,
   // GefaehrteWegmarke()-Kommentar zu `auftrittAktiv`/`auftrittAnimiert`. `wisentAuftrittAktiv`
@@ -954,8 +1062,7 @@ export function LuchsRevierKarte({
   onSteinbrueckeWartetRef.current = onSteinbrueckeWartet;
 
   // Fortschritt neu laden, sobald die Karte (wieder) sichtbar wird — z. B. nach Rückkehr aus
-  // einer gerade abgeschlossenen Quest. Analog zum bereits etablierten Muster in
-  // Schlossvorplatz.tsx.
+  // einer gerade abgeschlossenen Quest oder einem Erstlehre-Kapitel.
   useFocusEffect(
     useCallback(() => {
       let abgebrochen = false;
@@ -990,14 +1097,23 @@ export function LuchsRevierKarte({
         setStatus(neu);
 
         // Paket 3: Schildkröten-Wegpunkt.
-        const [tor, ganzePartie] = await Promise.all([
-          pruefeSchlosstorStatus(),
+        const [tor, ganzePartie, endlosmodusFortschritt, wisentKampfGeschafft] = await Promise.all([
+          pruefeGefaehrtenErreichtStatus(),
           loadBonusFortschrittLocal("ganzePartie"),
+          ladeEndlosmodusFortschritt(),
+          loadBonusFortschrittLocal("wisentKampf"),
         ]);
         if (abgebrochen) return;
         const zustand: WegmarkeStatus = !tor.offen ? "gesperrt" : ganzePartie ? "erledigt" : "naechstes";
         setSteinbruecke(zustand);
         if (zustand === "naechstes") onSteinbrueckeWartetRef.current?.();
+
+        // Nachtrag 2026-09-17: Burgtor-Ring → Ruhmeshalle, freigeschaltet ab Eichhörnchen ≥ 1
+        // Stern (siehe Props.onSelectRuhmeshalle-Kommentar oben).
+        setRingFreigeschaltet(sterneFuerGefaehrte("eichhoernchen", endlosmodusFortschritt) >= 1);
+        // Motto-Moment-Grundverdrahtung (siehe State-Deklaration oben): Freischaltbedingung ist
+        // ausschließlich das Wisent-Boss-Puzzle, nicht die drei optionalen Kürs.
+        setMottoMomentFreigeschaltet(wisentKampfGeschafft === true);
       })();
       return () => {
         abgebrochen = true;
@@ -1023,10 +1139,19 @@ export function LuchsRevierKarte({
   // angeschnittene Zeile wird beim Zeichnen weichgerechnet und bekommt entsprechend weniger
   // Nebeldeckung ab, während die Karte darunter ihre volle bekommt. Auf ganze Punkte
   // gerundet fällt die Naht auf eine Pixelgrenze und das Problem entfällt.
+  //
+  // 2026-09-17 (Saga-Karte-Verschmelzung): Die ZWEI-Bild-Naht, die diese Rundung ursprünglich
+  // betraf, gibt es nicht mehr (siehe Kommentar bei `sagaKarte` oben) — `oberlandHoehe` ist
+  // jetzt nur noch der interne Versatz, ab dem die Karte-seitigen Elemente im GEMEINSAMEN Bild
+  // beginnen. Die Rundung bleibt trotzdem stehen, schadet nicht und hält den Wert stabil.
   const oberlandHoehe = Math.round(breite * OBERLAND_ASPECT);
   const burgtorDurchmesser = BURGTOR.durchmesserFrac * breite;
+  const mottoMomentDurchmesser = MOTTO_MOMENT.durchmesserFrac * breite;
+  // Wie bei den Gefährten (`onSelectGefaehrte`, siehe Props-Kommentar): die Prop allein macht
+  // noch nichts antippbar, erst zusammen mit der Freischaltbedingung.
+  const mottoMomentAntippbar = mottoMomentFreigeschaltet && Boolean(onSelectMottoMoment);
   const torOffen = steinbruecke !== "gesperrt";
-  const nebelKlarungen = breite > 0 ? baueNebelKlarungen(status, breite, hoehe) : [];
+  const nebelKlarungen = breite > 0 ? baueNebelKlarungen(status, breite, hoehe, oberlandHoehe) : [];
   // In der Testmodus-Vorschau liegt über dem Oberland kein Nebel mehr (Nutzerwunsch
   // 2026-09-14: "ungedimmt und nebelfrei anzeigen bitte"). Die sieben Lichtungen allein
   // genügten dafür nicht — sieben kleine Aufhellungen in einem sonst vollen Höhenband
@@ -1056,7 +1181,9 @@ export function LuchsRevierKarte({
       const t = s / 3;
       nebelKlarungen.push({
         cx: vonX + (turtleX - vonX) * t,
-        cy: vonY * (1 - t),
+        // 2026-09-17 (Saga-Karte-Verschmelzung): global statt Karte-lokal — bei t=1 landet der
+        // Punkt jetzt auf `oberlandHoehe` (die Naht zum Oberland), vorher auf 0.
+        cy: oberlandHoehe + vonY * (1 - t),
         r: 0.1 * breite,
         zentrum: NEBEL_KLARUNG_VOLL,
       });
@@ -1119,8 +1246,28 @@ export function LuchsRevierKarte({
         figurLichtung(g.fx * breite, g.fy * oberlandHoehe, g.breiteFrac * breite, g.aspekt, lichtung)
       );
     }
+
+    // Motto-Moment-Punkt (siehe MOTTO_MOMENT-Kommentar oben): dieselbe Behandlung wie die
+    // Gefährten — voll frei, sobald antippbar, sonst nur so leicht angelichtet wie das
+    // Burgtor ("neugierig machend statt versperrt", nicht die volle GESPERRT_OPACITY-
+    // Nebeldeckung eines ganz gewöhnlichen gesperrten Punkts). Wie bei `onSelectGefaehrte`
+    // macht die Prop allein noch nichts antippbar — erst Prop UND Freischaltbedingung
+    // zusammen (siehe `mottoMomentAntippbar` weiter oben).
+    oberlandKlarungen.push({
+      cx: MOTTO_MOMENT.fx * breite,
+      cy: MOTTO_MOMENT.fy * oberlandHoehe,
+      r: 0.13 * breite,
+      zentrum: mottoMomentAntippbar ? NEBEL_KLARUNG_VOLL : NEBEL_KLARUNG_BURGTOR,
+    });
   }
   const turtleBreite = SCHILDKROETE_WEGPUNKT.breiteFrac * breite;
+
+  // 2026-09-17 (Saga-Karte-Verschmelzung, siehe Kommentar bei `sagaKarte` oben): eine einzige
+  // Lichtungs-Liste für die eine gemeinsame Nebel-Maske. `oberlandKlarungen` trug schon immer
+  // globale `cy`-Werte (Oberland beginnt bei 0), `nebelKlarungen` jetzt auch (siehe
+  // `baueNebelKlarungen` und der "torOffen"-Block oben) — beide lassen sich deshalb einfach
+  // aneinanderhängen.
+  const alleKlarungen = [...oberlandKlarungen, ...nebelKlarungen];
 
   useEffect(() => {
     if (breite > 0) onHoehen?.({ oberland: oberlandHoehe, karte: hoehe });
@@ -1130,7 +1277,11 @@ export function LuchsRevierKarte({
   return (
     <View style={[styles.wrap, breite > 0 && { width: breite }]} onLayout={onLayout} collapsable={false}>
       {breite > 0 && (
-        <ImageBackground source={oberland} style={{ width: breite, height: oberlandHoehe }} resizeMode="cover">
+        <ImageBackground
+          source={sagaKarte}
+          style={{ width: breite, height: oberlandHoehe + hoehe }}
+          resizeMode="cover"
+        >
           <Wegmarke
             schildkroete
             left={turtleX}
@@ -1156,7 +1307,7 @@ export function LuchsRevierKarte({
               />
             );
           })}
-          {/* Die fünf Gefährten. Bewusst dieselbe `Wegmarke`-Komponente wie alle anderen
+          {/* Die sechs Gefährten. Bewusst dieselbe `Wegmarke`-Komponente wie alle anderen
               Stationen — sie bringt Fußpunkt-Verankerung und Bodenschatten mit. Update-1-
               Vorzug (2026-09-15): sobald `onSelectGefaehrte` gesetzt ist, KÖNNEN sie antippbar
               werden (siehe Props-Kommentar) — ohne die Prop bleibt das Verhalten wie zuvor
@@ -1205,78 +1356,27 @@ export function LuchsRevierKarte({
               />
             );
           })}
-          {/* Nebel wie auf der Karte darunter, aber vertikal gespiegelt: so trifft die
-              Unterkante dieses Stücks genau auf dieselbe Nebelzeile (Oberkante des
-              Höhenbands) wie die Oberkante der Karte — kein sichtbarer Nebel-Sprung an der
-              Naht. Spiegelung auf dem inneren Bild, Maske auf der Gruppe, damit die Maske
-              selbst ungespiegelt in Kartenkoordinaten bleibt. */}
-          {/* Einen Punkt höher als das Oberland-Stück selbst: Der Nebel des Oberlands und
-              der Nebel der Karte überlappen sich dadurch an der Naht, statt sich exakt zu
-              berühren. Selbst wenn die Rundung oben auf einem Gerät mit krummer
-              Pixeldichte nicht ganz aufgeht, bleibt so keine Zeile ohne Nebel. Der Nebel
-              ist deckend und in beiden Hälften aus derselben Textur an derselben Stelle
-              gezeichnet — die Überlappung ist deshalb unsichtbar. */}
-          <Svg
-            width={breite}
-            height={oberlandHoehe + 1}
-            style={{ position: "absolute", left: 0, top: 0 }}
-            pointerEvents="none"
-          >
-            <Defs>
-              {oberlandKlarungen.map((k, i) => {
-                // Die Lichtungen des Oberlands liegen bereits in Gesamtkoordinaten (y=0 ist
-                // der obere Rand des Oberlands), deshalb kein Versatz.
-                const [innen, aussen] = klarungsFarben(k, nebelVerlauf, nebelGesamtHoehe, 0);
-                return (
-                  <RadialGradient key={i} id={`oberlandKlarung-${i}`} cx="50%" cy="50%" r="50%">
-                    <Stop offset="0%" stopColor={innen} stopOpacity={1} />
-                    {/* Der Kern hält den Innenwert, bis die Figur ganz frei ist — erst
-                        danach wird zur Umgebung ausgeblendet. */}
-                    <Stop offset={`${Math.round((k.kern ?? 0) * 100)}%`} stopColor={innen} stopOpacity={1} />
-                    <Stop offset="100%" stopColor={aussen} stopOpacity={1} />
-                  </RadialGradient>
-                );
-              })}
-              {/* Senkrechter Dichteverlauf in Koordinaten der GESAMTEN Karte (Oberland +
-                  Karte), damit beide Hälften dieselbe Kurve sehen und an der Naht nichts
-                  springt. Siehe baueNebelVerlauf. */}
-              <LinearGradient
-                id="oberlandNebelHoehe"
-                x1={0}
-                y1={0}
-                x2={0}
-                y2={nebelGesamtHoehe}
-                gradientUnits="userSpaceOnUse"
-              >
-                {nebelVerlauf.map((v, i) => (
-                  <Stop key={i} offset={v.offset} stopColor={grauwert(v.wert)} stopOpacity={1} />
-                ))}
-              </LinearGradient>
-              <Mask id="oberlandMaske" maskUnits="userSpaceOnUse" x={0} y={0} width={breite} height={oberlandHoehe + 1}>
-                <Rect x={0} y={0} width={breite} height={oberlandHoehe + 1} fill="url(#oberlandNebelHoehe)" />
-                {oberlandKlarungen.map((k, i) => (
-                  <Circle key={i} cx={k.cx} cy={k.cy} r={k.r} fill={`url(#oberlandKlarung-${i})`} />
-                ))}
-              </Mask>
-            </Defs>
-            <G mask="url(#oberlandMaske)">
-              {/* Die neue Textur deckt Oberland UND Karte in einem Stück ab — deshalb hier
-                  einfach über die Gesamthöhe gezeichnet, ohne Spiegelung und ohne den
-                  früheren Randstreifen-Versatz. */}
-              <SvgBild
-                href={nebelTextur}
-                x={0}
-                y={0}
-                width={breite}
-                height={nebelGesamtHoehe}
-                preserveAspectRatio="none"
-              />
-            </G>
-          </Svg>
-        </ImageBackground>
-      )}
-      {breite > 0 && (
-        <ImageBackground source={hintergrund} style={{ width: breite, height: hoehe }} resizeMode="cover">
+
+          {/* Motto-Moment-Punkt (Grundverdrahtung, siehe MOTTO_MOMENT-Kommentar oben): siebter
+              Kartenpunkt, dieselbe Pressable-Ring-Optik wie der Burgtor-Ring weiter unten
+              (`styles.burgtor`) — laut Entscheidungsdok "analog zur Burg", auch optisch. */}
+          <Pressable
+            onPress={mottoMomentAntippbar ? onSelectMottoMoment : undefined}
+            accessibilityLabel={mottoMomentAntippbar ? "Zum Motto-Moment" : "Motto-Moment (noch gesperrt)"}
+            hitSlop={{ top: 8, left: 8, right: 8, bottom: 8 }}
+            style={[
+              styles.burgtor,
+              {
+                left: MOTTO_MOMENT.fx * breite - mottoMomentDurchmesser / 2,
+                top: MOTTO_MOMENT.fy * oberlandHoehe - mottoMomentDurchmesser / 2,
+                width: mottoMomentDurchmesser,
+                height: mottoMomentDurchmesser,
+                borderRadius: mottoMomentDurchmesser / 2,
+                opacity: mottoMomentAntippbar ? 1 : GESPERRT_OPACITY,
+              },
+            ]}
+          />
+
           {AMBIENT_SCHLEIFEN.map((s) => {
             const seite = s.groesseFrac * breite;
             return (
@@ -1284,7 +1384,7 @@ export function LuchsRevierKarte({
                 key={s.name}
                 quelle={s.quelle}
                 groesse={seite}
-                position={{ left: s.fx * breite - seite / 2, top: s.fy * hoehe - seite / 2 }}
+                position={{ left: s.fx * breite - seite / 2, top: oberlandHoehe + s.fy * hoehe - seite / 2 }}
                 verzoegerungMs={s.verzoegerungMs}
                 tempo={s.tempo}
                 deckkraft={s.deckkraft}
@@ -1294,17 +1394,18 @@ export function LuchsRevierKarte({
           })}
 
           <Pressable
-            onPress={onSelectSchlossvorplatz}
-            accessibilityLabel="Zum Schlossvorplatz"
+            onPress={ringFreigeschaltet ? onSelectRuhmeshalle : undefined}
+            accessibilityLabel={ringFreigeschaltet ? "Zur Ruhmeshalle" : "Ruhmeshalle (noch gesperrt)"}
             hitSlop={{ top: 8, left: 8, right: 8, bottom: 8 }}
             style={[
               styles.burgtor,
               {
                 left: BURGTOR.fx * breite - burgtorDurchmesser / 2,
-                top: BURGTOR.fy * hoehe - burgtorDurchmesser / 2,
+                top: oberlandHoehe + BURGTOR.fy * hoehe - burgtorDurchmesser / 2,
                 width: burgtorDurchmesser,
                 height: burgtorDurchmesser,
                 borderRadius: burgtorDurchmesser / 2,
+                opacity: ringFreigeschaltet ? 1 : GESPERRT_OPACITY,
               },
             ]}
           />
@@ -1327,7 +1428,7 @@ export function LuchsRevierKarte({
                 gruesst={zustand === "naechstes" || (alleGruessen && zustand === "erledigt")}
                 pausiert={!karteSichtbar}
                 left={w.fx * breite}
-                top={w.fy * hoehe}
+                top={oberlandHoehe + w.fy * hoehe}
                 breite={bildBreite}
                 hoehe={bildHoehe}
                 zustand={zustand}
@@ -1340,20 +1441,18 @@ export function LuchsRevierKarte({
               diese rein optische Ebene die Taps auf die darunterliegenden Wegmarken/das Burgtor
               nicht blockiert — genau wie beim Puls-Ring/Schatten einzelner Wegmarken oben. Ein
               einzelnes <Svg>-Element als direktes ImageBackground-Kind, konsistent mit dem
-              Android/Fabric-Fallstrick-Hinweis im Datei-Kopfkommentar. */}
-          <Svg
-            width={breite}
-            height={hoehe}
-            style={StyleSheet.absoluteFill}
-            pointerEvents="none"
-          >
+              Android/Fabric-Fallstrick-Hinweis im Datei-Kopfkommentar.
+              2026-09-17 (Saga-Karte-Verschmelzung): vorher zwei separate <Svg>-Ebenen (eine je
+              Bildstück) mit gespiegelter Textur-Überlappung an der Naht, siehe Git-Historie —
+              seit die Karte EIN Bild ist, genügt eine einzige, durchgehende Maske über die
+              Gesamthöhe. Kein Versatz, keine Spiegelung, kein "einen Punkt höher"-Ausgleich
+              mehr nötig. */}
+          <Svg width={breite} height={nebelGesamtHoehe} style={StyleSheet.absoluteFill} pointerEvents="none">
             <Defs>
-              {nebelKlarungen.map((k, i) => {
-                // Die Lichtungen der Karte werden in Kartenkoordinaten gebaut — für den
-                // senkrechten Verlauf zählt die Gesamthöhe, also um die Oberlandhöhe versetzt.
-                const [innen, aussen] = klarungsFarben(k, nebelVerlauf, nebelGesamtHoehe, oberlandHoehe);
+              {alleKlarungen.map((k, i) => {
+                const [innen, aussen] = klarungsFarben(k, nebelVerlauf, nebelGesamtHoehe, 0);
                 return (
-                  <RadialGradient key={i} id={`nebelKlarung-${i}`} cx="50%" cy="50%" r="50%">
+                  <RadialGradient key={i} id={`klarung-${i}`} cx="50%" cy="50%" r="50%">
                     <Stop offset="0%" stopColor={innen} stopOpacity={1} />
                     {/* Der Kern hält den Innenwert, bis die Figur ganz frei ist — erst
                         danach wird zur Umgebung ausgeblendet. */}
@@ -1362,36 +1461,35 @@ export function LuchsRevierKarte({
                   </RadialGradient>
                 );
               })}
-              {/* Derselbe Verlauf wie im Oberland, nur um die Oberlandhöhe nach oben
-                  versetzt, weil dieses SVG bei y=0 erst unterhalb davon beginnt. */}
               <LinearGradient
-                id="karteNebelHoehe"
+                id="nebelHoehe"
                 x1={0}
-                y1={-oberlandHoehe}
+                y1={0}
                 x2={0}
-                y2={hoehe}
+                y2={nebelGesamtHoehe}
                 gradientUnits="userSpaceOnUse"
               >
                 {nebelVerlauf.map((v, i) => (
                   <Stop key={i} offset={v.offset} stopColor={grauwert(v.wert)} stopOpacity={1} />
                 ))}
               </LinearGradient>
-              <Mask id="nebelMaske" maskUnits="userSpaceOnUse" x={0} y={0} width={breite} height={hoehe}>
-                <Rect x={0} y={0} width={breite} height={hoehe} fill="url(#karteNebelHoehe)" />
-                {nebelKlarungen.map((k, i) => (
-                  <Circle key={i} cx={k.cx} cy={k.cy} r={k.r} fill={`url(#nebelKlarung-${i})`} />
+              <Mask id="nebelMaske" maskUnits="userSpaceOnUse" x={0} y={0} width={breite} height={nebelGesamtHoehe}>
+                <Rect x={0} y={0} width={breite} height={nebelGesamtHoehe} fill="url(#nebelHoehe)" />
+                {alleKlarungen.map((k, i) => (
+                  <Circle key={i} cx={k.cx} cy={k.cy} r={k.r} fill={`url(#klarung-${i})`} />
                 ))}
               </Mask>
             </Defs>
-            <SvgBild
-              href={nebelTextur}
-              x={0}
-              y={-oberlandHoehe}
-              width={breite}
-              height={nebelGesamtHoehe}
-              preserveAspectRatio="none"
-              mask="url(#nebelMaske)"
-            />
+            <G mask="url(#nebelMaske)">
+              <SvgBild
+                href={nebelTextur}
+                x={0}
+                y={0}
+                width={breite}
+                height={nebelGesamtHoehe}
+                preserveAspectRatio="none"
+              />
+            </G>
           </Svg>
         </ImageBackground>
       )}

@@ -4,24 +4,31 @@
 // Wisent-Torwächter (LuchsRevierKarte.tsx) zu screens/WisentKampf.tsx — der Torwächter führt
 // jetzt hierher, "weiter zum Wisent" bleibt von hier aus jederzeit ein eigener Tipp.
 //
-// Drei gleichrangige, frei wählbare Kürs (Entscheidung 2026-09-10, siehe Konzeptdokument):
-// Matt in 3 (bereits bestehendes Bonuskapitel, siehe bonus/MattIn3.tsx), Umwandlung
-// (bonus/Umwandlung.tsx, neu), En passant (bonus/EnPassant.tsx, neu). Kein Gate — alle drei
-// sind optional, "Du darfst wählen ... oder auch keine!".
+// Vier gleichrangige, frei wählbare Kürs (die ersten drei aus der Entscheidung 2026-09-10,
+// siehe Konzeptdokument; die vierte aus claude/wisent_endspiel_kuer_kuratierung_2026-09-17.md,
+// Nachtrag "Richtig integrieren", 2026-09-17): Matt in 3 (bereits bestehendes Bonuskapitel,
+// siehe bonus/MattIn3.tsx), Umwandlung (bonus/Umwandlung.tsx), En passant
+// (bonus/EnPassant.tsx), Wisent-Endspiel-Kür (bonus/WisentEndspielKuer.tsx, neu). Kein Gate —
+// alle vier sind optional, "Du darfst wählen ... oder auch keine!".
 //
 // Bewusst KEIN Tap-Through-Bildschirm mit fester Screen-Sequenz wie die übrigen
-// Bonuskapitel/Kürs — dieser Screen zeigt IMMER alle vier Optionen gleichzeitig (3 Kürs +
+// Bonuskapitel/Kürs — dieser Screen zeigt IMMER alle fünf Optionen gleichzeitig (4 Kürs +
 // "weiter zum Wisent"), nur die GESPROCHENE Begleitzeile ändert sich je nach Fortschritt
-// (0/1/2/3 von 3 erledigt). Fortschritt wird bei jedem Erreichen neu aus AsyncStorage gelesen
-// (`loadBonusFortschrittLocal`), damit ein frisch abgeschlossenes Kür-Kapitel (das über
-// `navigation.navigate("WisentKuerHub")` hierher zurückkehrt) sofort korrekt gezählt wird —
-// kein zusätzlicher Fokus-Listener nötig, weil jede Rückkehr hierher ein echter
+// (0/1/2/3/4 von 4 erledigt). Fortschritt wird bei jedem Erreichen neu aus AsyncStorage
+// gelesen (`loadBonusFortschrittLocal`), damit ein frisch abgeschlossenes Kür-Kapitel (das
+// über `navigation.navigate("WisentKuerHub")` hierher zurückkehrt) sofort korrekt gezählt
+// wird — kein zusätzlicher Fokus-Listener nötig, weil jede Rückkehr hierher ein echter
 // Navigations-Sprung ist (kein Zurück-Wisch), der die Komponente neu mounted.
+//
+// Nachtrag 2026-09-17: Die Wisent-Endspiel-Kür lief zunächst als eigenständige, nicht
+// mitgezählte vierte Karte (Claudes eigene, ungefragte Annahme beim Ausliefern) — Christian
+// wollte sie stattdessen "richtig integriert" haben. Jetzt zählt sie wie die anderen drei mit,
+// und alle Sprechzeilen unten sind dafür (und allgemein) überarbeitet.
 
 import { useEffect, useState } from "react";
 import { View, Text, Pressable, StyleSheet, SafeAreaView } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import { loadBonusFortschrittLocal, wisentKuerAlleDreiGezeigt, setWisentKuerAlleDreiGezeigt } from "../lib/storage";
+import { loadBonusFortschrittLocal, wisentKuerAlleVierGezeigt, setWisentKuerAlleVierGezeigt } from "../lib/storage";
 import { ExtraSternchenIcon, KronenBauerIcon, SchattenSprungIcon } from "../lib/puzzleIcons";
 import { KoenigMasterDunkelIcon, DameMasterIcon } from "../lib/pieceMasters";
 import { BadgeRahmen } from "../components/BadgeRahmen";
@@ -31,30 +38,37 @@ import { useUntertitelAktiv } from "../lib/untertitelEinstellung";
 import { luxVariante } from "../lib/luxVarianten";
 import { WaldHintergrund } from "../components/WaldHintergrund";
 
+// Alle Sprechzeilen dieses Screens am 2026-09-17 durchgesehen und überarbeitet (Christian:
+// "Richtig integrieren und die Texte generell prüfen und überarbeiten") — nicht nur
+// "drei" durch "vier" ersetzt, sondern jede Stufe einzeln neu durchdacht:
+// - Erstbesuch (0 von 4) benennt jetzt alle vier Aufgaben, nicht mehr nur drei.
+// - "Eine von vier" und "zwei von vier" waren vorher zusammen nur zwei Zwischenstufen
+//   (bei drei Kürs gab es nur "eine" und "zwei" dazwischen) — bei vier Kürs braucht es eine
+//   Stufe mehr. Die alte "zwei von drei"-Zeile ("Nur noch eine übrig") passte inhaltlich
+//   ohnehin immer schon zum Zustand "genau eine Aufgabe fehlt noch", nicht zu einer festen
+//   Positionsnummer — sie wandert deshalb unverändert auf die neue Stufe "drei von vier"
+//   (dort ist es wieder genau eine, die fehlt). Neu geschrieben sind "eine von vier" (jetzt
+//   mit Zahlenangabe, weil bei vier Aufgaben "eine kennst du schon" allein weniger Orientierung
+//   gibt) und die neue Zwischenstufe "zwei von vier" (Halbzeit-Formulierung).
 const ERSTBESUCH_ZEILEN = [
-  "Bevor wir zum Wisent aufbrechen, gibt es noch drei besondere Aufgaben für mutige Entdecker.",
-  "Die Umwandlung, das Schlagen im Vorbeigehen – und das Treiben des Königs.",
+  "Bevor wir zum Wisent aufbrechen, gibt es noch vier besondere Aufgaben für mutige Entdecker.",
+  "Die Umwandlung, das Schlagen im Vorbeigehen, das Treiben des Königs – und eine ganze Mattführung, ganz auf dich allein gestellt.",
   "Du darfst wählen, welche du zuerst probierst – oder auch keine!",
 ];
-const EIN_VON_DREI_VARIANTEN = [
-  "Eine kennst du schon! Willst du noch eine probieren?",
+const EIN_VON_VIER_VARIANTEN = [
+  "Eine kennst du schon! Drei weitere warten noch auf dich.",
   "Weiter geht's — welche schauen wir uns als Nächstes an?",
 ];
-const ZWEI_VON_DREI_VARIANTEN = ["Nur noch eine übrig — traust du dich?", "Fast geschafft! Die letzte wartet noch auf dich."];
-const ALLE_DREI_ZEILE = "Du hast alle drei Geheimnisse gemeistert — der Wisent wird staunen!";
+const ZWEI_VON_VIER_VARIANTEN = [
+  "Schon die Hälfte geschafft! Zwei weitere warten noch.",
+  "Zwei hast du schon gemeistert — auf zur nächsten?",
+];
+const DREI_VON_VIER_VARIANTEN = ["Nur noch eine übrig — traust du dich?", "Fast geschafft! Die letzte wartet noch auf dich."];
+const ALLE_VIER_ZEILE = "Du hast alle vier Geheimnisse gemeistert — der Wisent wird staunen!";
 const JEDERZEIT_ZEILE = "Du darfst auch direkt zum Wisent weiterziehen, wenn du magst.";
 
 const UEBERGANGS_PAUSE_MS = 1800;
 
-// `wisentEndspiel` bewusst NICHT Teil der "drei Geheimnisse"-Zähllogik unten
-// (erledigtCount/zeilenFuer bleiben unverändert auf mattIn3/umwandlung/enPassant beschränkt) —
-// die Wisent-Endspiel-Kür ist kein kurzes "Geheimnis"-Rätsel wie die anderen drei, sondern eine
-// eigene, größere Übung (echte Mattführung gegen den Bot, siehe bonus/WisentEndspielKuer.tsx),
-// daher hier als vierte, eigenständige Karte mit eigenem Fortschrittsabzeichen geführt, ohne die
-// bestehende, sorgfältig abgestimmte Sprechzeilen-Dramaturgie ("eine von drei" / "alle drei
-// gemeistert") anzutasten. Diese Einordnung ist Claudes Annahme, kein von Christian bestätigter
-// Text — siehe Nachtrag in claude/status_technik_code.md, falls er stattdessen eine eigene
-// Sprechzeile für die vierte Kür wünscht.
 type Fortschritt = { mattIn3: boolean; umwandlung: boolean; enPassant: boolean; wisentEndspiel: boolean } | null;
 
 // Platzhalter statt direktem `luxVariante(...)`-Aufruf in `zeilenFuer` — siehe
@@ -62,27 +76,30 @@ type Fortschritt = { mattIn3: boolean; umwandlung: boolean; enPassant: boolean; 
 // `zeilenFuer` läuft bei JEDEM Render (u. a. für `lines.length`), `luxVariante` darf aber nur
 // beim tatsächlichen Sprechen laufen. Aufgelöst wird erst in `zeileAufloesen`, das
 // ausschließlich innerhalb der an useLuxSprechzeile übergebenen lazy Funktion läuft.
-const PLATZHALTER_1_VON_3 = "__KUERHUB_1VON3__";
-const PLATZHALTER_2_VON_3 = "__KUERHUB_2VON3__";
+const PLATZHALTER_1_VON_4 = "__KUERHUB_1VON4__";
+const PLATZHALTER_2_VON_4 = "__KUERHUB_2VON4__";
+const PLATZHALTER_3_VON_4 = "__KUERHUB_3VON4__";
 
-function zeilenFuer(erledigtCount: number, alle3SchonGezeigt: boolean): string[] {
+function zeilenFuer(erledigtCount: number, alle4SchonGezeigt: boolean): string[] {
   if (erledigtCount === 0) return ERSTBESUCH_ZEILEN;
-  if (erledigtCount === 1) return [PLATZHALTER_1_VON_3, JEDERZEIT_ZEILE];
-  if (erledigtCount === 2) return [PLATZHALTER_2_VON_3, JEDERZEIT_ZEILE];
-  // erledigtCount === 3
-  return alle3SchonGezeigt ? [JEDERZEIT_ZEILE] : [ALLE_DREI_ZEILE, JEDERZEIT_ZEILE];
+  if (erledigtCount === 1) return [PLATZHALTER_1_VON_4, JEDERZEIT_ZEILE];
+  if (erledigtCount === 2) return [PLATZHALTER_2_VON_4, JEDERZEIT_ZEILE];
+  if (erledigtCount === 3) return [PLATZHALTER_3_VON_4, JEDERZEIT_ZEILE];
+  // erledigtCount === 4
+  return alle4SchonGezeigt ? [JEDERZEIT_ZEILE] : [ALLE_VIER_ZEILE, JEDERZEIT_ZEILE];
 }
 
 function zeileAufloesen(basis: string): string {
-  if (basis === PLATZHALTER_1_VON_3) return luxVariante(EIN_VON_DREI_VARIANTEN, "kuerhub-1von3");
-  if (basis === PLATZHALTER_2_VON_3) return luxVariante(ZWEI_VON_DREI_VARIANTEN, "kuerhub-2von3");
+  if (basis === PLATZHALTER_1_VON_4) return luxVariante(EIN_VON_VIER_VARIANTEN, "kuerhub-1von4");
+  if (basis === PLATZHALTER_2_VON_4) return luxVariante(ZWEI_VON_VIER_VARIANTEN, "kuerhub-2von4");
+  if (basis === PLATZHALTER_3_VON_4) return luxVariante(DREI_VON_VIER_VARIANTEN, "kuerhub-3von4");
   return basis;
 }
 
 export default function WisentKuerHub() {
   const navigation = useNavigation<any>();
   const [fortschritt, setFortschritt] = useState<Fortschritt>(null);
-  const [alle3SchonGezeigt, setAlle3SchonGezeigt] = useState(true); // Default "schon gezeigt" =
+  const [alle4SchonGezeigt, setAlle4SchonGezeigt] = useState(true); // Default "schon gezeigt" =
   // KEINE Sonderzeile, bis der echte Wert geladen ist — sicherer Default als umgekehrt, siehe
   // lib/luxHinweis.ts/useHinweisEinfuehrungGezeigt-Kommentar für dasselbe Prinzip: die Sonder-
   // zeile soll ein Kind, das sie schon kennt, nicht durch einen Ladezustands-Zufall erneut hören.
@@ -96,11 +113,11 @@ export default function WisentKuerHub() {
         loadBonusFortschrittLocal("umwandlung"),
         loadBonusFortschrittLocal("enPassant"),
         loadBonusFortschrittLocal("wisentEndspiel"),
-        wisentKuerAlleDreiGezeigt(),
+        wisentKuerAlleVierGezeigt(),
       ]);
       if (abgebrochen) return;
       setFortschritt({ mattIn3, umwandlung, enPassant, wisentEndspiel });
-      setAlle3SchonGezeigt(schonGezeigt);
+      setAlle4SchonGezeigt(schonGezeigt);
     })();
     return () => {
       abgebrochen = true;
@@ -108,19 +125,19 @@ export default function WisentKuerHub() {
   }, []);
 
   const erledigtCount = fortschritt
-    ? [fortschritt.mattIn3, fortschritt.umwandlung, fortschritt.enPassant].filter(Boolean).length
+    ? [fortschritt.mattIn3, fortschritt.umwandlung, fortschritt.enPassant, fortschritt.wisentEndspiel].filter(Boolean).length
     : 0;
-  const lines = fortschritt ? zeilenFuer(erledigtCount, alle3SchonGezeigt) : [];
+  const lines = fortschritt ? zeilenFuer(erledigtCount, alle4SchonGezeigt) : [];
   const isLastLine = lineIndex === lines.length - 1;
 
-  const sprechSchluessel = `${erledigtCount}-${alle3SchonGezeigt}-${lineIndex}`;
+  const sprechSchluessel = `${erledigtCount}-${alle4SchonGezeigt}-${lineIndex}`;
   const { wiederholen, aktuelleZeile } = useLuxSprechzeile(
     fortschritt ? sprechSchluessel : "laedt",
     fortschritt ? () => zeileAufloesen(lines[lineIndex]) : undefined,
     !isLastLine
       ? () => setLineIndex((i) => i + 1)
-      : erledigtCount === 3 && !alle3SchonGezeigt
-        ? () => setWisentKuerAlleDreiGezeigt().then(() => setAlle3SchonGezeigt(true))
+      : erledigtCount === 4 && !alle4SchonGezeigt
+        ? () => setWisentKuerAlleVierGezeigt().then(() => setAlle4SchonGezeigt(true))
         : undefined
   );
   const zeigeUntertitel = useUntertitelAktiv();
@@ -167,8 +184,9 @@ export default function WisentKuerHub() {
             <SchattenSprungIcon size={56} />
           </BadgeRahmen>
         </Pressable>
-        {/* Vierte Karte, siehe Fortschritt-Typkommentar oben: eigenständig, ohne die
-            "eine/zwei/drei von drei"-Sprechzeilen-Zählung zu berühren. */}
+        {/* Vierte Karte, seit 2026-09-17 vollständig in die "eine/zwei/drei/alle vier von
+            vier"-Sprechzeilen-Zählung oben integriert (siehe Fortschritt-Typkommentar/
+            erledigtCount). */}
         <Pressable
           style={styles.karte}
           onPress={() => navigation.navigate("WisentEndspielKuer")}
@@ -182,8 +200,8 @@ export default function WisentKuerHub() {
 
       {/* "Jederzeit verfügbar" (Konzept Abschnitt 4) — eigenständiger, immer sichtbarer und
           antippbarer Weg zum Wisent-Kampf, unabhängig vom Kür-Fortschritt. Bewusst optisch
-          abgesetzt (Terrakotta statt Gold) von den drei Kür-Karten oben, damit "hier geht's
-          weiter" nicht mit einer vierten Kür verwechselt wird. */}
+          abgesetzt (Terrakotta statt Gold) von den vier Kür-Karten oben, damit "hier geht's
+          weiter" nicht mit einer weiteren Kür verwechselt wird. */}
       <Pressable style={styles.weiterZumWisent} onPress={() => navigation.navigate("WisentKampf")} accessibilityLabel="Weiter zum Wisent">
         <BadgeRahmen size={104} akzent="#C9855F">
           <KoenigMasterDunkelIcon size={68} />

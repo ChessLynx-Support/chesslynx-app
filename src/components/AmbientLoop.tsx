@@ -1,6 +1,13 @@
 // Paket 11 (2026-09-12) — dezente Umgebungsanimation auf Basis von `lottie-react-native`
-// (Apache-2.0, siehe NOTICE.md). Gedacht für die vier handgebauten Bodymovin-Schleifen in
-// `assets/lottie/`: Baumwiegen, Glühwürmchen, Wasserglanz, Vogelauffliegen.
+// (Apache-2.0, siehe NOTICE.md). Ursprünglich gedacht für vier handgebaute Bodymovin-
+// Schleifen in `assets/lottie/`: Baumwiegen, Glühwürmchen, Wasserglanz, Vogelauffliegen.
+// Seither ein generischer Wrapper für deutlich mehr benannte Schleifen (siehe AMBIENT_*-
+// Listen in components/LuchsRevierKarte.tsx: Rauch, Blasen, Glitzern, Fischringe, …).
+//
+// 2026-09-17/18 — "Baumwiegen" und "Wasserglanz" sind inzwischen aus dem Code entfernt
+// (grüne Standbild-Flecken statt Bewegung, siehe LuchsRevierKarte.tsx, Kommentare bei
+// AMBIENT_SCHLEIFEN/AMBIENT_OBERLAND) — die zugehörigen JSON-Dateien liegen deshalb ohne
+// Verweis im Bundle, siehe verify/test-asset-bundle.cjs.
 //
 // GRUNDGEDANKE: Diese Schleifen sind Hintergrundleben, keine Information. Ein Kind, das die
 // Karte anschaut, soll den Wald atmen sehen — es soll aber nie den Eindruck bekommen, dass
@@ -29,7 +36,7 @@ import { AccessibilityInfo, StyleSheet, View, type StyleProp, type ViewStyle } f
 import LottieView from "lottie-react-native";
 
 type Props = {
-  /** Die Bodymovin-JSON, z. B. require("../../assets/lottie/chesslynx-tree-sway.json"). */
+  /** Die Bodymovin-JSON, z. B. require("../../assets/lottie/chesslynx-bird-flyaway.json"). */
   quelle: any;
   /** Kantenlänge in Punkten. Die vier Schleifen sind quadratisch angelegt. */
   groesse: number;

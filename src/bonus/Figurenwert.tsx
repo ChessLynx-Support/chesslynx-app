@@ -27,7 +27,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { View, Text, Pressable, StyleSheet, SafeAreaView } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import { FIGURENWERT_POSITIONS, createPosition, tryMove, type BoardSquare } from "../lib/chessEngine";
 import { Board } from "../quest1/Board";
 import { saveBonusFortschrittLocal } from "../lib/storage";
@@ -135,6 +135,14 @@ const UEBUNGS_PAARE = [
 
 export default function Figurenwert() {
   const navigation = useNavigation<any>();
+  // Nachtrag 2026-09-17 (Bonuskapitel→Gefährtensaga-Neuordnung, siehe claude/
+  // schlossvorplatz_ruhmeshalle_kritik_2026-09-16.md): dieses Kapitel läuft jetzt als
+  // "Erstlehre" im Eichhörnchen-Revier (screens/Revier.tsx, lib/revierErstlehre.ts) statt
+  // in einer festen Schlossvorplatz-Kette — `rueckkehrZiel`/`rueckkehrParams` funktionieren
+  // exakt wie das bereits bestehende Muster in bonus/MattIn3.tsx.
+  const route = useRoute<any>();
+  const rueckkehrZiel: string = route.params?.rueckkehrZiel ?? "KidHome";
+  const rueckkehrParams = route.params?.rueckkehrParams;
   const [screen, setScreen] = useState<ScreenId>(0);
   const [lineIndex, setLineIndex] = useState(0);
   const [uebungIndex, setUebungIndex] = useState(0);
@@ -377,10 +385,11 @@ export default function Figurenwert() {
       )}
 
       {screen === 5 && (
-        // Führt weiter zum nächsten Bonuskapitel (Matt in 2) — siehe Fesselung.tsx-Kommentar
-        // zur ununterbrochenen Bonuskapitel-Kette. (Ersetzt die vorherige Übergangslösung zu
-        // KidHome, jetzt, da Matt in 2 existiert.)
-        <Pressable style={styles.tapArea} onPress={() => navigation.navigate("MattIn2")}>
+        // Nachtrag 2026-09-17: führt jetzt zurück zum `rueckkehrZiel` (Standard: das
+        // Eichhörnchen-Revier, aus dem diese Erstlehre gestartet wurde) statt fest zum
+        // nächsten Bonuskapitel — siehe Fesselung.tsx-Kommentar, warum die frühere
+        // ununterbrochene Kette entfallen ist.
+        <Pressable style={styles.tapArea} onPress={() => navigation.navigate(rueckkehrZiel, rueckkehrParams)}>
           <QuestGeschafft>
             <SternenleiterIcon size={92} />
           </QuestGeschafft>

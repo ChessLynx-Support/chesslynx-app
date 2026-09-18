@@ -11,7 +11,7 @@
 //
 // Bewusste Auslassungen in diesem ersten Schritt (siehe claude/update1_vorzug_plan_2026-09-15.md):
 //   - Kulisse: `WaldHintergrund` ohne `variante` (dieselbe Platzhalter-Kulisse wie Bonuskapitel/
-//     Schlossvorplatz) statt der eigentlichen Revier-Illustration (Asset E1) — die ist noch
+//     Ruhmeshalle) statt der eigentlichen Revier-Illustration (Asset E1) — die ist noch
 //     nicht beauftragt.
 //   - Keine gesprochene Begrüßung: Die App ist bewusst textfrei UND stimmenfrei nur mit
 //     geprüften, freigegebenen Sprechzeilen (siehe decisions.md, "Konjunktiv vermeiden" etc.) —
@@ -64,7 +64,13 @@ import {
   istRevierAbgeschlossen,
   type EndlosmodusFortschritt,
 } from "../lib/endlosmodusFortschritt";
-import { markiereRevierBesucht } from "../lib/storage";
+import { markiereRevierBesucht, loadBonusFortschrittLocal } from "../lib/storage";
+// Nachtrag 2026-09-17 (Bonuskapitel→Gefährtensaga-Neuordnung, siehe claude/
+// schlossvorplatz_ruhmeshalle_kritik_2026-09-16.md): welches der vier bestehenden
+// Bonuskapitel-Screens (falls überhaupt eins) hier als "Erstlehre" zusätzlich zu den
+// normalen Endlosmodus-Übungsspalten oben angeboten wird — komplett unabhängig
+// voneinander, keine Spalte wird dadurch gesperrt oder freigeschaltet.
+import { erstlehreFuerRevier } from "../lib/revierErstlehre";
 
 /** Name je Revier — dieselben Namen wie in LuchsRevierKarte.tsx (GEFAEHRTEN_ROH), nur hier für
  *  den Screen selbst gebraucht (z. B. `accessibilityLabel`, kein sichtbarer Text). */
@@ -88,8 +94,12 @@ export default function Revier() {
   const route = useRoute<any>();
   const gefaehrteId: GefaehrteId = route.params?.gefaehrteId ?? "eichhoernchen";
   const spielbareSpalten = spaltenFuerGefaehrte(gefaehrteId).filter((s) => s.status === "bereit");
+  const erstlehre = erstlehreFuerRevier(gefaehrteId);
 
   const [fortschritt, setFortschritt] = useState<EndlosmodusFortschritt>({});
+  // null = noch nicht geladen (Kachel bleibt in diesem kurzen Moment unsichtbar, statt
+  // einmal kurz aufzublitzen und direkt wieder zu verschwinden, siehe useFocusEffect unten).
+  const [erstlehreOffen, setErstlehreOffen] = useState<boolean | null>(null);
 
   // Zwinkern-Auslöser (siehe Datei-Kommentar oben): `vorherigeSterneRef` hält den zuletzt
   // gesehenen Sternestand dieses Reviers über mehrere Fokus-Wechsel hinweg (Kind spielt eine
@@ -116,9 +126,15 @@ export default function Revier() {
         }
         vorherigeSterneRef.current = summe;
       });
-      // spielbareSpalten bewusst nicht in den Deps: Sie hängt nur von `gefaehrteId` ab (fest
-      // pro Bildschirm-Instanz, siehe Datei-Kommentar oben) und wäre bei jedem Rendern eine
-      // neue Array-Referenz.
+      // Erstlehre-Kachel (siehe Datei-Kopfimport): nur laden, wenn dieses Revier überhaupt
+      // eine Erstlehre hat — Rabenfels/Wisent bleiben bei `erstlehreOffen === null`, zeigen
+      // also nie eine Kachel (siehe Render-Stelle unten).
+      if (erstlehre) {
+        loadBonusFortschrittLocal(erstlehre.kapitelId).then((erledigt) => setErstlehreOffen(!erledigt));
+      }
+      // spielbareSpalten/erstlehre bewusst nicht in den Deps: beide hängen nur von `gefaehrteId`
+      // ab (fest pro Bildschirm-Instanz, siehe Datei-Kommentar oben); `spielbareSpalten` wäre
+      // bei jedem Rendern zudem eine neue Array-Referenz.
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [gefaehrteId])
   );
@@ -145,6 +161,20 @@ export default function Revier() {
               freudeAktiv={istRevierAbgeschlossen(gefaehrteId, fortschritt)}
             />
           </View>
+          {erstlehre && erstlehreOffen && (
+            <Pressable
+              onPress={() =>
+                navigation.navigate(erstlehre.route, {
+                  rueckkehrZiel: "Revier",
+                  rueckkehrParams: { gefaehrteId },
+                })
+              }
+              accessibilityLabel={`Erstlehre: ${erstlehre.titel}`}
+              style={styles.erstlehreKachel}
+            >
+              <Text style={styles.erstlehreTitel}>{erstlehre.titel}</Text>
+            </Pressable>
+          )}
           {spielbareSpalten.length > 0 && (
             <View style={styles.spaltenReihe}>
               {spielbareSpalten.map((spalte) => (
@@ -182,7 +212,19 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   mitte: { flex: 1, alignItems: "center", justifyContent: "center" },
-  spaltenReihe: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: 10, marginTop: 20, maxWidth: 320 },
+  // Erstlehre-Kachel (siehe Datei-Kopfimport): bewusst optisch abgehoben von den
+  // Endlosmodus-Kacheln (Marken-Gold statt des neutralen Creme-Tons, dieselbe Farbe wie
+  // z. B. Funkeln.tsx/EndspielBrett.tsx-Sockel) — signalisiert "hier gibt es etwas Neues
+  // zu entdecken", nicht nur eine weitere Übungsspalte.
+  erstlehreKachel: {
+    marginTop: 20,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 16,
+    backgroundColor: "#D7A52D",
+  },
+  erstlehreTitel: { fontSize: 15, fontWeight: "700", color: "#FFFFFF", textAlign: "center" },
+  spaltenReihe: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: 10, marginTop: 12, maxWidth: 320 },
   spaltenKachel: {
     minWidth: 96,
     paddingVertical: 10,

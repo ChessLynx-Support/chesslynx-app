@@ -92,7 +92,7 @@ const untenStandard = require("../../assets/hintergrund/waldkulisse_unten.webp")
 // LuchsRevierKarte.tsx), die Wegmarke bei ca. 55 % der Höhe (Quest 1/2 am unteren Kartenrand
 // entsprechend tiefer). Kein Verlauf, keine Überblendung. Die alten Band-Dateien
 // `waldkulisse_oben/unten_q1–q6.webp` bleiben unbenutzt im Repo; ohne `variante` (Onboarding,
-// Schlossvorplatz, Bonuskapitel …) bleibt die bisherige Standardkulisse unverändert.
+// Ruhmeshalle, Bonuskapitel …) bleibt die bisherige Standardkulisse unverändert.
 const KULISSE_JE_QUEST: Record<number, ReturnType<typeof require>> = {
   1: require("../../assets/hintergrund/questkulisse_q1.webp"),
   2: require("../../assets/hintergrund/questkulisse_q2.webp"),
@@ -108,10 +108,10 @@ const KULISSE_JE_QUEST: Record<number, ReturnType<typeof require>> = {
 // dieselbe Vollflächen-Kulisse wie Quest 1 (Begründung ausführlich dort, im JSX-Kommentar
 // über `<WaldHintergrund variante={1} />`). Damit gibt es nur noch zwei Fälle:
 //   - mit `variante`: die hochkant erzeugte Quest-Kulisse aus KULISSE_JE_QUEST (neuer Master)
-//   - ohne `variante`: die beiden Standard-Bänder unten (Bonuskapitel, Schlossvorplatz)
+//   - ohne `variante`: die beiden Standard-Bänder unten (Bonuskapitel, Ruhmeshalle, Revier.tsx)
 // OFFENER PUNKT: `waldkulisse_oben/unten.webp` (der Fall ohne `variante`) stammen weiterhin
 // aus dem alten, helleren Karten-Master — dieselbe Stilabweichung, die in Szene 0 aufgefallen
-// ist, wartet also noch in den sechs Bonuskapiteln und auf dem Schlossvorplatz. Sobald dafür
+// ist, wartet also noch in den sechs Bonuskapiteln und in der Ruhmeshalle. Sobald dafür
 // eine hochkante Kulisse aus `luchsrevier_wisentfeste.webp` erzeugt ist, kann auch dieser
 // Zweig auf ein einzelnes Vollflächenbild umgestellt und der Band-Code ganz entfallen.
 

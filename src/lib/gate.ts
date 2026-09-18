@@ -1,77 +1,43 @@
-// Schlosstor-Gate-Auswertung — siehe Claude-Projekt "ChessLynx", projektwissen.md,
-// Abschnitt "Schlosstor-Gate erweitert (2026-09-08)": "Neue, verbindliche Gate-Bedingung:
-// alle Basisquests + Fesselung + Rochade + Figurenwert + Matt in 2. Nur Matt in 3 bleibt
-// echt optional/nicht gate-pflichtig." Das Datenmodell dafür (bonusFortschritt,
-// questFortschritt) existierte laut priorisierter_umsetzungsplan.md bereits — "die
-// eigentliche Gate-Auswertungslogik selbst (der Übergang Schlossvorplatz → Schlosstor) ist
-// noch nicht gebaut". Diese Datei schließt genau diese Lücke.
+// Bergtor-Gate-Auswertung — siehe Claude-Projekt "ChessLynx", projektwissen.md.
 //
-// Bewusste Scope-Grenze dieses Umsetzungsschritts: nur die GATE-PRÜFUNG selbst (boolescher
-// Zustand + "was fehlt noch") wird hier gebaut. Der eigentliche Inhalt HINTER dem geöffneten
-// Schlosstor (Schlosshof, Wiederholungspuzzles, Begegnung mit der Prinzessin, Thronsaal —
-// siehe projektwissen.md, Abschnitt "Ablauf") ist ein eigener, umfangreicher
-// Illustrations-/Content-Produktionsschritt, der über den chess-logischen Umfang dieser
-// Implementierungsrunde (Task #112, Bonuskapitel + Gate-Logik) hinausgeht und hier bewusst
-// NICHT mitgebaut wird — siehe Schlossvorplatz.tsx-Kommentar für den entsprechenden,
-// klar markierten Platzhalter.
+// Nachtrag 2026-09-17 (Bonuskapitel→Gefährtensaga-Neuordnung, siehe claude/
+// schlossvorplatz_ruhmeshalle_kritik_2026-09-16.md und claude/erobern_screen_reviere_
+// ruhmeshalle_befund_2026-09-17.md): Diese Datei hieß vorher "Schlosstor-Gate-Auswertung"
+// und verlangte zusätzlich zu den sechs Basisquests noch alle vier gate-pflichtigen
+// Bonuskapitel (Fesselung, Rochade, Figurenwert, Matt in 2), bevor sich das "Schlosstor"
+// (Übergang zur Burg/Wisentfeste) öffnete. Die vier Bonuskapitel sind jetzt als
+// "Erstlehre" in die jeweiligen Gefährten-Reviere gewandert (siehe lib/revierErstlehre.ts,
+// screens/Revier.tsx) — sie sind dort weiterhin exakt dieselben, bereits verifizierten
+// Screens, nur nicht mehr Vorbedingung für den Bergtor-Übergang. Das frühere
+// "Schlossvorplatz.tsx" (der Bonuskapitel-Navigations-Hub) ist ersatzlos entfallen; der
+// bisher dorthin führende Burgtor-Ring auf der Karte (LuchsRevierKarte.tsx) führt jetzt
+// zur Ruhmeshalle (mit eigenem, von diesem Gate unabhängigem Freischalt-Kriterium: ab
+// Eichhörnchen mit 1 Stern, siehe dort).
+//
+// "Gefährten erreicht" (vormals "Schlosstor offen") bedeutet ab jetzt schlicht: alle
+// sechs Basisquests abgeschlossen. Das ist zugleich die Bedingung für die Steinbrücken-
+// Wegmarke (Die-ganze-Partie-Zugang, siehe LuchsRevierKarte.tsx) — deren Freischaltung
+// war bisher an dieselbe, jetzt vereinfachte Bedingung gekoppelt und bleibt es.
 
-import { loadQuestFortschrittLocal, loadBonusFortschrittLocal } from "./storage";
+import { loadQuestFortschrittLocal } from "./storage";
 
 // Reihenfolge der sechs Basisquests, wie in RootNavigator.tsx/KidHome verdrahtet.
 const BASISQUEST_IDS = ["quest1", "quest2", "quest3", "quest4", "quest5", "quest6"] as const;
 
-// Reihenfolge der vier GATE-PFLICHTIGEN Bonuskapitel — exakt die in
-// bonuskapitel_screen_skripte.md festgelegte Kette (Fesselung → Rochade → Figurenwert →
-// Matt in 2). Matt in 3 ist bewusst NICHT Teil dieser Liste (siehe Datei-Kopfkommentar).
-const GATE_PFLICHTIGE_BONUSKAPITEL = ["fesselung", "rochade", "figurenwert", "mattIn2"] as const;
-
-// Bildschirm-Routennamen (RootNavigator.tsx) je Bonuskapitel-Id, in derselben Reihenfolge —
-// wird von Schlossvorplatz.tsx genutzt, um zum jeweils nächsten unvollständigen Kapitel zu
-// navigieren.
-export const BONUSKAPITEL_ROUTEN: Record<(typeof GATE_PFLICHTIGE_BONUSKAPITEL)[number], string> = {
-  fesselung: "Fesselung",
-  rochade: "Rochade",
-  figurenwert: "Figurenwert",
-  mattIn2: "MattIn2",
-};
-
-export type SchlosstorStatus = {
-  // true, sobald ALLE sechs Basisquests UND alle vier gate-pflichtigen Bonuskapitel
-  // abgeschlossen sind.
+export type GefaehrtenErreichtStatus = {
+  // true, sobald ALLE sechs Basisquests abgeschlossen sind — vormals zusätzlich an vier
+  // Bonuskapitel gekoppelt (siehe Datei-Kopfkommentar), das ist seit 2026-09-17 entfallen.
   offen: boolean;
-  // Alle sechs Basisquests abgeschlossen? (Unabhängiger Teilzustand, für eine genauere
-  // Rückmeldung an das Kind bzw. später das Eltern-Dashboard.)
-  basisquestsVollstaendig: boolean;
-  // Die Bonuskapitel-Id des NÄCHSTEN noch unvollständigen gate-pflichtigen Kapitels, in der
-  // festen Kettenreihenfolge — null, wenn bereits alle vier fertig sind.
-  naechstesBonuskapitel: (typeof GATE_PFLICHTIGE_BONUSKAPITEL)[number] | null;
-  // Vollständiger Erfüllungsstatus je gate-pflichtigem Bonuskapitel, für eine detaillierte
-  // Anzeige (z. B. im Eltern-Dashboard, siehe ParentDashboard.tsx).
-  bonuskapitelStatus: Record<(typeof GATE_PFLICHTIGE_BONUSKAPITEL)[number], boolean>;
 };
 
 /**
- * Prüft den aktuellen Schlosstor-Gate-Zustand anhand der lokal gespeicherten Fortschritts-
- * daten (siehe storage.ts). Rein lesend, keine Seiteneffekte — kann beliebig oft aufgerufen
- * werden (z. B. bei jedem Betreten von Schlossvorplatz.tsx).
+ * Prüft den aktuellen "Gefährten erreicht"-Zustand (vormals "Schlosstor") anhand der
+ * lokal gespeicherten Basisquest-Fortschritte (siehe storage.ts). Rein lesend, keine
+ * Seiteneffekte — kann beliebig oft aufgerufen werden (z. B. bei jedem Betreten von
+ * LuchsRevierKarte.tsx).
  */
-export async function pruefeSchlosstorStatus(): Promise<SchlosstorStatus> {
+export async function pruefeGefaehrtenErreichtStatus(): Promise<GefaehrtenErreichtStatus> {
   const questErgebnisse = await Promise.all(BASISQUEST_IDS.map((id) => loadQuestFortschrittLocal(id)));
-  const basisquestsVollstaendig = questErgebnisse.every((q) => q?.abgeschlossen === true);
-
-  const bonusErgebnisse = await Promise.all(
-    GATE_PFLICHTIGE_BONUSKAPITEL.map((id) => loadBonusFortschrittLocal(id))
-  );
-  const bonuskapitelStatus = Object.fromEntries(
-    GATE_PFLICHTIGE_BONUSKAPITEL.map((id, i) => [id, bonusErgebnisse[i]])
-  ) as Record<(typeof GATE_PFLICHTIGE_BONUSKAPITEL)[number], boolean>;
-
-  const naechstesBonuskapitel = GATE_PFLICHTIGE_BONUSKAPITEL.find((id) => !bonuskapitelStatus[id]) ?? null;
-
-  return {
-    offen: basisquestsVollstaendig && naechstesBonuskapitel === null,
-    basisquestsVollstaendig,
-    naechstesBonuskapitel,
-    bonuskapitelStatus,
-  };
+  const offen = questErgebnisse.every((q) => q?.abgeschlossen === true);
+  return { offen };
 }

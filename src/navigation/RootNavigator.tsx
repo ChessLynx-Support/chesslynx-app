@@ -39,7 +39,7 @@ import { ActivityIndicator, View, StyleSheet, Platform, ScrollView, BackHandler,
 // im Baum ist Voraussetzung dafür, dass `useSafeAreaInsets()` in BrandWatermark.tsx
 // funktioniert — reine Ergänzung, ändert am Verhalten des bisherigen
 // "react-native"-SafeAreaView in allen anderen Screens nichts.
-import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ParentGate } from "../screens/ParentGate";
 import { Credits } from "../screens/Credits";
 import { ElternLogin } from "../screens/ElternLogin";
@@ -72,31 +72,22 @@ import Quest3 from "../quest3/Quest3";
 import Quest4 from "../quest4/Quest4";
 import Quest5 from "../quest5/Quest5";
 import Quest6 from "../quest6/Quest6";
-// Erstes Bonuskapitel (siehe Claude-Projekt "ChessLynx", bonuskapitel_screen_skripte.md,
-// Abschnitt "Fesselung") — provisorischer Einstiegspunkt als 7. KidHome-Button, analog zum
-// bereits etablierten Muster "neues Feature zunächst als eigene Route + Button, bevor die
-// echte Schlossvorplatz-Navigation (spätere Phase) steht", siehe FreispielScreen-Kommentar
-// oben.
+// Erstes von vier Bonuskapiteln (siehe Claude-Projekt "ChessLynx",
+// bonuskapitel_screen_skripte.md, Abschnitt "Fesselung"). Nachtrag 2026-09-17
+// (Bonuskapitel→Gefährtensaga-Neuordnung, siehe claude/schlossvorplatz_ruhmeshalle_kritik_
+// 2026-09-16.md): läuft jetzt als "Erstlehre" im Adlerhorst-Revier (screens/Revier.tsx,
+// lib/revierErstlehre.ts) statt in einer festen Schlossvorplatz-Kette — die vormalige
+// Ketten-Navigation (Fesselung→Rochade→Figurenwert→MattIn2→Schlossvorplatz) ist entfallen,
+// jedes Kapitel ist jetzt über einen `rueckkehrZiel`-Param (siehe dortiger Kommentar in den
+// jeweiligen Dateien, Vorbild bonus/MattIn3.tsx) für sich stehend erreichbar.
 import Fesselung from "../bonus/Fesselung";
-// Zweites Bonuskapitel (siehe Claude-Projekt "ChessLynx", bonuskapitel_screen_skripte.md,
-// Abschnitt "Rochade") — KEIN eigener KidHome-Button: erreichbar über den Abschluss-Screen
-// von Fesselung.tsx, genau die "der Weg zur Wisentfeste-Burg ist eine ununterbrochene Kette"-
-// Vorgabe aus dem Tiefen-Review (siehe dortiger Kommentar in Fesselung.tsx zur Navigation).
 import Rochade from "../bonus/Rochade";
-// Drittes Bonuskapitel (siehe Claude-Projekt "ChessLynx", bonuskapitel_screen_skripte.md,
-// Abschnitt "Figurenwert") — erreichbar über den Abschluss-Screen von Rochade.tsx.
 import Figurenwert from "../bonus/Figurenwert";
-// Viertes Bonuskapitel (siehe Claude-Projekt "ChessLynx", bonuskapitel_screen_skripte.md,
-// Abschnitt "Matt in 2") — erreichbar über den Abschluss-Screen von Figurenwert.tsx.
 import MattIn2 from "../bonus/MattIn2";
 // Fünftes, optionales Bonuskapitel (siehe Claude-Projekt "ChessLynx",
-// bonuskapitel_screen_skripte.md, Abschnitt "Matt in 3") — kein Gate-Blocker, erreichbar über
-// die Extra-Karte am Ende von Matt in 2 UND dauerhaft über Schlossvorplatz.tsx.
+// bonuskapitel_screen_skripte.md, Abschnitt "Matt in 3") — weiterhin kein Gate-Blocker,
+// erreichbar über die Extra-Karte am Ende von Matt in 2 (siehe dortiger Kommentar).
 import MattIn3 from "../bonus/MattIn3";
-// Echter Navigations-Knotenpunkt für die Bonuskapitel-Kette (siehe lib/gate.ts und
-// screens/Schlossvorplatz.tsx für den vollen Kommentar) — ersetzt den bisherigen
-// provisorischen 7. KidHome-Button, der direkt zu Fesselung führte.
-import Schlossvorplatz from "../screens/Schlossvorplatz";
 import FreispielScreen from "../screens/FreispielScreen";
 import FreispielPartie from "../screens/FreispielPartie";
 // Isolierter Rig-Renderer-Vorversuch, Schritt 2 der Grundgerüst-Integrationsplan-Liste
@@ -163,7 +154,13 @@ import WisentEndspielKuer from "../bonus/WisentEndspielKuer";
 // claude/update1_vorzug_plan_2026-09-15.md Abschnitt 4, Punkt 9). Gemeinsame Galerie aller
 // fünf Gefährten + Wisent-Sonderplatz, siehe screens/Ruhmeshalle.tsx für den vollen Umfang
 // und die bewussten Auslassungen dieses ersten Schritts (keine Assets, keine Sprechzeile).
-import Ruhmeshalle, { RuhmeshalleIcon } from "../screens/Ruhmeshalle";
+import Ruhmeshalle from "../screens/Ruhmeshalle";
+// Motto-Moment-Grundverdrahtung (2026-09-18, siehe claude/motto_moment_freischaltung_
+// entscheidung_2026-09-17.md): siebter Kartenpunkt, analog zum Burgtor-Ring, gesperrt bis
+// `bonusFortschritt.wisentKampf === true`. Reiner Navigationsziel-Stub — der eigentliche
+// Inhalt ist bewusst noch nicht gescopt, siehe screens/MottoMoment.tsx für die volle
+// Begründung.
+import MottoMoment from "../screens/MottoMoment";
 // Ladebildschirm/Intro (Nutzerwunsch, siehe claude/lux_begruessungsvideo_freistellung_
 // konzept.md, Abschnitt "Ladebildschirm") — läuft jetzt VOR der Willkommens-Sequenz, siehe
 // screens/LadeBildschirm.tsx für die volle Begründung (Video 1 unverändert, Überblendung
@@ -177,7 +174,9 @@ import { LadeBildschirm } from "../screens/LadeBildschirm";
 // echte, interaktive Luchs-Revier-Kartenkomponente ersetzt — siehe components/LuchsRevierKarte.tsx
 // für den vollen Hintergrund (Bildausschnitt-Herkunft, Design-Canvas-Abstimmung mit dem Nutzer,
 // Zustands-/Textfrei-Prinzipien). Der bisherige 7. Button ("Zum Schlossvorplatz", KetteIcon) ist
-// dort jetzt das Burgtor der Wisentfeste geworden.
+// dort das Burgtor der Wisentfeste geworden — seit der Bonuskapitel→Gefährtensaga-Neuordnung
+// (2026-09-17) führt dieser Ring zur Ruhmeshalle statt zum (entfallenen) Schlossvorplatz.tsx,
+// siehe `onSelectRuhmeshalle`-Kommentar weiter unten.
 import { LuchsRevierKarte, type QuestId } from "../components/LuchsRevierKarte";
 // Sprach-Harmonie-Review (2026-09-09, siehe KidHome-Kommentar unten): KidHome bekommt
 // jetzt eine eigene, kurze, wechselnde Begrüßung.
@@ -200,29 +199,26 @@ export type RootStackParamList = {
   Quest4: undefined;
   Quest5: undefined;
   Quest6: undefined;
-  // Neu (Fesselung-Bonuskapitel, siehe Import-Kommentar oben).
-  Fesselung: undefined;
-  // Neu (Rochade-Bonuskapitel, siehe Import-Kommentar oben) — kein eigener KidHome-Zugang,
-  // wird von Fesselung.tsx aus erreicht.
-  Rochade: undefined;
-  // Neu (Figurenwert-Bonuskapitel, siehe Import-Kommentar oben).
-  Figurenwert: undefined;
-  // Neu (Matt-in-2-Bonuskapitel, siehe Import-Kommentar oben).
-  MattIn2: undefined;
-  // Neu (Matt-in-3-Bonuskapitel, optional, siehe Import-Kommentar oben). Wisent-Kür-Runde
-  // (2026-09-15): optionaler `rueckkehrZiel`-Param, siehe bonus/MattIn3.tsx-Kommentar —
-  // ohne Angabe unverändert Schlossvorplatz.
-  MattIn3: { rueckkehrZiel?: keyof RootStackParamList } | undefined;
+  // Nachtrag 2026-09-17 (siehe Import-Kommentar oben): alle vier Bonuskapitel bekommen
+  // jetzt denselben optionalen `rueckkehrZiel`/`rueckkehrParams`-Parametersatz wie
+  // MattIn3 seit der Wisent-Kür-Runde (2026-09-15) — Standard-Rücksprung ohne Params ist
+  // "KidHome" (siehe jeweiliger Datei-Kommentar in bonus/*.tsx).
+  Fesselung: { rueckkehrZiel?: keyof RootStackParamList; rueckkehrParams?: any } | undefined;
+  Rochade: { rueckkehrZiel?: keyof RootStackParamList; rueckkehrParams?: any } | undefined;
+  Figurenwert: { rueckkehrZiel?: keyof RootStackParamList; rueckkehrParams?: any } | undefined;
+  MattIn2: { rueckkehrZiel?: keyof RootStackParamList; rueckkehrParams?: any } | undefined;
+  // Fünftes, optionales Bonuskapitel (siehe Import-Kommentar oben). Ohne Angabe seit
+  // 2026-09-17 Rücksprung zu "KidHome" (siehe bonus/MattIn3.tsx-Kommentar) — vorher
+  // Schlossvorplatz, das mit der Bonuskapitel→Gefährtensaga-Neuordnung entfallen ist.
+  MattIn3: { rueckkehrZiel?: keyof RootStackParamList; rueckkehrParams?: any } | undefined;
   // Wisent-Kür-Runde (2026-09-15, siehe Import-Kommentar oben): keine Parameter, feste
-  // Einzel-Screens genau wie WisentKampf/Schlossvorplatz.
+  // Einzel-Screens genau wie WisentKampf.
   Umwandlung: undefined;
   EnPassant: undefined;
   WisentKuerHub: undefined;
   // Neu (Wisent-Endspiel-Kür, siehe Import-Kommentar oben): keine Parameter, feste
   // Einzel-Screens genau wie Umwandlung/EnPassant.
   WisentEndspielKuer: undefined;
-  // Neu (echter Bonuskapitel-Navigations-Knotenpunkt, siehe Import-Kommentar oben).
-  Schlossvorplatz: undefined;
   ParentGate: undefined;
   // Zwischenstopp nach dem Eltern-Gate: entscheidet anhand des Anmeldestatus, ob es
   // zu ElternLogin oder direkt zu ParentDashboard weitergeht (siehe
@@ -257,11 +253,18 @@ export type RootStackParamList = {
   // Endlosmodus-Fokus-Spalte innerhalb eines Reviers.
   EndlosmodusSpalte: EndlosmodusSpalteParams;
   // Update-1-Vorzug, Fortsetzung (2026-09-15, siehe Import-Kommentar oben): keine Parameter,
-  // genau wie Schlossvorplatz/Steinbruecke — ein fester Einzel-Screen.
+  // genau wie Steinbruecke — ein fester Einzel-Screen.
   WisentKampf: undefined;
   // Ruhmeshalle-Grundgerüst (2026-09-15, siehe Import-Kommentar oben): keine Parameter, genau
-  // wie WisentKampf/Schlossvorplatz — ein fester Einzel-Screen.
+  // wie WisentKampf — ein fester Einzel-Screen. Erreichbar über den Burgtor-Ring an der
+  // Wisentfeste (siehe components/LuchsRevierKarte.tsx, `onSelectRuhmeshalle`), gesperrt bis
+  // Eichhörnchen ≥ 1 Stern (Nachtrag 2026-09-17).
   Ruhmeshalle: undefined;
+  // Motto-Moment-Grundverdrahtung (2026-09-18, siehe Import-Kommentar oben): keine Parameter,
+  // genau wie Ruhmeshalle — ein fester Einzel-Screen. Erreichbar über den siebten Kartenpunkt
+  // an der Wisentfeste (siehe components/LuchsRevierKarte.tsx, `onSelectMottoMoment`),
+  // gesperrt bis `bonusFortschritt.wisentKampf === true`.
+  MottoMoment: undefined;
   // Nur für Schritt 2 (siehe Import-Kommentar oben) — wieder entfernen, sobald der
   // Vorversuch geprüft und abgeschlossen ist.
   RigProbe: undefined;
@@ -305,16 +308,13 @@ function KidHome({ navigation, route }: any) {
   // aber als eigener, in sich abgeschlossener Folgeschritt zurückgestellt.
   useZeitlimitWaechter(() => navigation.replace("ZeitlimitSperre"));
 
-  // Ruhmeshalle-Grundgerüst (2026-09-15): eigener, dezenter Zugangsknopf oben rechts, analog
-  // zu BrandWatermark.tsx (`useSafeAreaInsets()`, `position: "absolute"`), aber bewusst NICHT
-  // als neue Wegmarke auf der Karte selbst — deren Koordinaten sind pixelgenau gegen die
-  // tatsächliche Kartenillustration eingemessen (siehe claude/status_technik_code.md,
-  // "Wegmarken der sechs Quests"), und die Ruhmeshalle hat auf der Karte laut
-  // `produktionsplan_saga_karte_18_ansichten.md` (18 Ansichten) noch gar keinen eigenen Platz
-  // zugewiesen bekommen — das ist eine noch offene Produktionsentscheidung, keine, die sich
-  // hier ohne visuelle Prüfung am echten Bild treffen lässt. Ein bildschirmfixierter Knopf
-  // (wie der Zurück-Knopf in Revier.tsx) ist deshalb der risikoärmere erste Schritt.
-  const insets = useSafeAreaInsets();
+  // Nachtrag 2026-09-17 (Bonuskapitel→Gefährtensaga-Neuordnung, siehe claude/
+  // schlossvorplatz_ruhmeshalle_kritik_2026-09-16.md): der bisher hier stehende, bewusst
+  // provisorische bildschirmfixierte Ruhmeshalle-Zugangsknopf ("Ruhmeshalle-Grundgerüst",
+  // 2026-09-15) ist entfallen — die Ruhmeshalle hat jetzt einen echten Kartenzugang über
+  // den bereits pixelgenau eingemessenen Burgtor-Ring an der Wisentfeste (Segment 10/11,
+  // siehe components/LuchsRevierKarte.tsx, `onSelectRuhmeshalle`), gesperrt bis Eichhörnchen
+  // ≥ 1 Stern. Kein zweiter, redundanter Zugang mehr nötig.
 
   // Sprach-Harmonie-Review (2026-09-09, Nutzerauftrag "Die Sprachführung soll die Kinder
   // wirklich an die Hand nehmen, aber zugleich nicht störend wirken"): bestätigter
@@ -407,26 +407,21 @@ function KidHome({ navigation, route }: any) {
       >
         <LuchsRevierKarte
           onSelectQuest={(quest) => navigation.navigate(QUEST_ROUTEN[quest])}
-          onSelectSchlossvorplatz={() => navigation.navigate("Schlossvorplatz")}
+          onSelectRuhmeshalle={() => navigation.navigate("Ruhmeshalle")}
           onSelectSteinbruecke={() => navigation.navigate("Steinbruecke")}
           onSelectGefaehrte={(gefaehrteId) => navigation.navigate("Revier", { gefaehrteId })}
           // Wisent-Kür-Runde (2026-09-15): führt jetzt zum Kür-Auswahl-Hub statt direkt zum
           // Boss-Puzzle (siehe screens/WisentKuerHub.tsx) — "weiter zum Wisent" bleibt von
           // dort aus ein eigener, jederzeit verfügbarer Tipp.
           onSelectWisent={() => navigation.navigate("WisentKuerHub")}
+          // Motto-Moment-Grundverdrahtung (2026-09-18, siehe Import-Kommentar oben): führt zum
+          // noch leeren Platzhalter-Screen, siehe screens/MottoMoment.tsx.
+          onSelectMottoMoment={() => navigation.navigate("MottoMoment")}
           onHoehen={setKartenHoehen}
           onSteinbrueckeWartet={zeigeSteinbruecke}
           breiteVorgabe={sichtBreite}
         />
       </ScrollView>
-      <Pressable
-        onPress={() => navigation.navigate("Ruhmeshalle")}
-        accessibilityLabel="Ruhmeshalle"
-        hitSlop={{ top: 12, left: 12, right: 12, bottom: 12 }}
-        style={[styles.ruhmeshalleKnopf, { top: insets.top + 12 }]}
-      >
-        <RuhmeshalleIcon size={22} />
-      </Pressable>
     </View>
   );
 }
@@ -537,8 +532,8 @@ const HANDY_MAX_BREITE = 430;
 const navigationRef = createNavigationContainerRef<RootStackParamList>();
 
 // Gerätetest 2026-09-11 (Nutzerwunsch "Maus zurück geht zurück zur Saga-Karte … oder
-// Zurück-Button am Handy"): aus allen Kinder-Screens (Quests, Bonuskapitel, Schlossvorplatz,
-// Steinbrücke, Kapitel „Die ganze Partie", Übungslichtung) führt „Zurück" direkt zur Karte —
+// Zurück-Button am Handy"): aus allen Kinder-Screens (Quests, Bonuskapitel, Steinbrücke,
+// Kapitel „Die ganze Partie", Übungslichtung) führt „Zurück" direkt zur Karte —
 // auch wenn der Screen aus dem Eltern-Testmodus geöffnet wurde. Android: Hardware-Zurück.
 // Web-Vorschau: Browser-/Maus-Zurück (über einen eigenen Verlaufseintrag, damit die Seite
 // dabei nicht verlassen wird). Überall sonst (Eltern-Bereich, Freispiel-Partie → Liste)
@@ -555,7 +550,6 @@ const ZURUECK_ZUR_KARTE = new Set<string>([
   "Figurenwert",
   "MattIn2",
   "MattIn3",
-  "Schlossvorplatz",
   "Steinbruecke",
   "GanzePartie",
   "FreispielScreen",
@@ -567,6 +561,7 @@ const ZURUECK_ZUR_KARTE = new Set<string>([
   "EnPassant",
   "WisentEndspielKuer",
   "Ruhmeshalle",
+  "MottoMoment",
 ]);
 
 function zurueckZurKarte(): boolean {
@@ -691,7 +686,6 @@ export function RootNavigator() {
             <Stack.Screen name="Figurenwert" component={Figurenwert} />
             <Stack.Screen name="MattIn2" component={MattIn2} />
             <Stack.Screen name="MattIn3" component={MattIn3} />
-            <Stack.Screen name="Schlossvorplatz" component={Schlossvorplatz} />
             <Stack.Screen name="ParentGate" component={ParentGateScreen} />
             <Stack.Screen name="ElternBereich" component={ElternBereichRouter} />
             <Stack.Screen name="ElternLogin" component={ElternLogin} />
@@ -711,6 +705,7 @@ export function RootNavigator() {
             <Stack.Screen name="EnPassant" component={EnPassant} />
             <Stack.Screen name="WisentEndspielKuer" component={WisentEndspielKuer} />
             <Stack.Screen name="Ruhmeshalle" component={Ruhmeshalle} />
+            <Stack.Screen name="MottoMoment" component={MottoMoment} />
             </Stack.Navigator>
           </NavigationContainer>
           <BrandWatermark
@@ -750,21 +745,6 @@ const styles = StyleSheet.create({
   // Paket 3: volle Breite, damit LuchsRevierKarte (misst per onLayout) wie bisher die ganze
   // Bildschirmbreite bekommt.
   kidHomeScroll: { flex: 1, width: "100%" },
-  // Ruhmeshalle-Grundgerüst (2026-09-15): dezenter, bildschirmfixierter Zugangsknopf oben
-  // rechts (siehe Kommentar an der KidHome-Aufrufstelle oben) — bewusst dieselbe kreisrunde
-  // Optik wie der Zurück-Knopf in Revier.tsx, nur oben RECHTS statt oben links, damit er sich
-  // nicht mit einem eventuell später ergänzten Zurück-Knopf auf KidHome selbst überschneidet.
-  ruhmeshalleKnopf: {
-    position: "absolute",
-    right: 16,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "rgba(247,241,228,0.9)",
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 10,
-  },
   // Update (2026-09-09): der frühere `parentLink`/`parentLinkText`-Stil (der einzelne "·"
   // auf KidHome) ist ersatzlos entfallen — siehe Kommentar bei KidHome oben und bei
   // BrandWatermark unten. Der eigentliche Kinder-Schutz kommt ohnehin weiterhin vom

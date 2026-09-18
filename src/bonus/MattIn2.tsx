@@ -38,7 +38,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { View, Text, Pressable, StyleSheet, SafeAreaView } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import { MATT_IN_2_POSITIONEN, createPosition, tryMove, type BoardSquare } from "../lib/chessEngine";
 import { Board } from "../quest1/Board";
 import { saveBonusFortschrittLocal } from "../lib/storage";
@@ -148,6 +148,16 @@ const UEBUNGS_RUNDEN: { art: UebungsArt; fen: string }[] = [
 
 export default function MattIn2() {
   const navigation = useNavigation<any>();
+  // Nachtrag 2026-09-17 (Bonuskapitel→Gefährtensaga-Neuordnung, siehe claude/
+  // schlossvorplatz_ruhmeshalle_kritik_2026-09-16.md): dieses Kapitel läuft jetzt als
+  // "Erstlehre" im Wolfsfeste-Revier (screens/Revier.tsx, lib/revierErstlehre.ts) statt in
+  // einer festen Schlossvorplatz-Kette — `rueckkehrZiel`/`rueckkehrParams` funktionieren
+  // exakt wie das bereits bestehende Muster in bonus/MattIn3.tsx. Dieselben Params werden
+  // unten auch an die optionale Matt-in-3-Extrakarte weitergereicht, damit ein "Ja, zeig
+  // mir das auch noch" ebenfalls zurück ins Wolfsfeste-Revier führt statt zu KidHome.
+  const route = useRoute<any>();
+  const rueckkehrZiel: string = route.params?.rueckkehrZiel ?? "KidHome";
+  const rueckkehrParams = route.params?.rueckkehrParams;
   const [screen, setScreen] = useState<ScreenId>(0);
   const [lineIndex, setLineIndex] = useState(0);
   const [teilzug, setTeilzug] = useState<Teilzug>(0);
@@ -493,16 +503,19 @@ export default function MattIn2() {
       )}
 
       {screen === 5 && (
-        // Matt in 2 ist das letzte GATE-PFLICHTIGE Bonuskapitel (siehe lib/gate.ts) — der
-        // Hauptweg führt deshalb jetzt zu Schlossvorplatz.tsx (dem echten Navigations-
-        // Knotenpunkt), nicht mehr zu KidHome. Zusätzlich erscheint hier — wie in
+        // Nachtrag 2026-09-17 (Bonuskapitel→Gefährtensaga-Neuordnung): der Hauptweg führt
+        // jetzt über `rueckkehrZiel`/`rueckkehrParams` zurück zum Aufrufer (i. d. R. zurück ins
+        // Wolfsfeste-Revier, siehe screens/Revier.tsx) statt fest zu Schlossvorplatz.tsx (dem
+        // inzwischen entfernten Navigations-Knotenpunkt) — Matt in 2 ist seither auch kein
+        // gate-pflichtiges Kapitel mehr (siehe lib/gate.ts). Zusätzlich erscheint hier — wie in
         // bonuskapitel_screen_skripte.md, Abschnitt "Matt in 3" gefordert ("Erscheint am Ende
         // von Matt in 2 als zusätzliche, freiwillig antippbare Karte") — ein separater,
-        // erkennbar optionaler Zugang zum Extra-Kapitel Matt in 3 (kein Fortschritts-Blocker).
+        // erkennbar optionaler Zugang zum Extra-Kapitel Matt in 3 (kein Fortschritts-Blocker),
+        // der `rueckkehrZiel`/`rueckkehrParams` an MattIn3.tsx durchreicht (siehe dort).
         // Zeigt beide Icons: das neue MattIn2-Kapitel-Abzeichen UND das unveränderte
         // Matt-Puzzle-Ziel-Icon (KroneSternIcon), siehe Datei-Kopfkommentar.
         <View style={styles.tapArea}>
-          <Pressable onPress={() => navigation.navigate("Schlossvorplatz")}>
+          <Pressable onPress={() => navigation.navigate(rueckkehrZiel, rueckkehrParams)}>
             <QuestGeschafft>
               <View style={styles.abschlussIcons}>
                 <MattIn2Icon size={92} />
@@ -510,7 +523,10 @@ export default function MattIn2() {
               </View>
             </QuestGeschafft>
           </Pressable>
-          <Pressable style={styles.extraKarte} onPress={() => navigation.navigate("MattIn3")}>
+          <Pressable
+            style={styles.extraKarte}
+            onPress={() => navigation.navigate("MattIn3", { rueckkehrZiel, rueckkehrParams })}
+          >
             <Text style={styles.extraKarteText}>★ Für mutige Entdecker: eine Extra-Aufgabe</Text>
           </Pressable>
         </View>
