@@ -320,14 +320,21 @@ const AMBIENT_SCHLEIFEN = [
     deckkraft: 0.65,
   },
   {
-    // Über dem Schornstein des Häuschens rechts (das größte/nächste der vier Häuser). Der
-    // Ausschnitt ist bewusst hoch gesetzt (fy 0.500 statt der gemessenen Spitze 0.538):
-    // Rauch steigt, das Motiv braucht den Platz nach oben, nicht mittig um den Schornstein
-    // herum.
+    // Über dem Schornstein des Häuschens rechts (das größte/nächste der vier Häuser).
+    //
+    // 2026-09-18-Korrektur (Christian am echten Gerät: "Rauch ... bei 2 Häusern nicht über
+    // dem Schornstein"): Der ursprüngliche Wert (fy 0.500 statt der gemessenen Spitze 0.538,
+    // "Rauch steigt, braucht Platz nach oben") saß 100px oberhalb der Schornsteinspitze —
+    // das ist, gemessen am echten Kartenbild (`assets/hintergrund/
+    // luchsrevier_saga_gesamt.webp`, 1658×3795), MITTEN in der Baumkrone dahinter, nicht
+    // mehr sichtbar mit dem Schornstein verbunden (der Ankerpunkt ist die MITTE der
+    // Lottie-Box, nicht ihr unterer Rand). Jetzt nur noch 20px über der gemessenen Spitze
+    // (fy 0.531 statt 0.538) — am echten Bild geprüft, sitzt jetzt sichtbar über der Öffnung
+    // statt im Baum.
     name: "rauch",
     quelle: require("../../assets/lottie/chesslynx-chimney-smoke.json"),
     fx: 0.9215,
-    fy: 0.5,
+    fy: 0.531,
     groesseFrac: 0.2,
     verzoegerungMs: 700,
     tempo: 0.7,
@@ -336,12 +343,16 @@ const AMBIENT_SCHLEIFEN = [
   {
     // 2026-09-17, Christian-Wunsch ("auf alle 4 Häuser, unterschiedliche Intensität"):
     // zweites Haus, oberhalb/links der Steinbrücke. Schornsteinspitze am echten Bild
-    // abgemessen (real 1476/1993 von 1658×3795), fy wie beim ersten Rauch leicht über die
-    // Spitze hinaus nach oben gesetzt.
+    // abgemessen (real 1476/1993 von 1658×3795).
+    //
+    // 2026-09-18-Korrektur (siehe Kommentar bei "rauch" oben, derselbe Fehler mit demselben
+    // 100px-Versatz): fy jetzt 20px statt 100px über der gemessenen Spitze (0.309 statt
+    // 0.278) — am echten Bild geprüft, sitzt jetzt sichtbar über dem Schornstein statt in
+    // der Baumkrone.
     name: "rauch2",
     quelle: require("../../assets/lottie/chesslynx-chimney-smoke.json"),
     fx: 0.8905,
-    fy: 0.278,
+    fy: 0.309,
     groesseFrac: 0.18,
     verzoegerungMs: 1100,
     tempo: 0.7,
@@ -351,10 +362,14 @@ const AMBIENT_SCHLEIFEN = [
     // 2026-09-17, Christian-Wunsch: drittes Haus, links am Wegrand (Doppel-Schornstein,
     // rechter/deutlicherer Schornstein vermessen: real 226/2184). Kleinere Deckkraft — am
     // weitesten von den anderen drei Häusern entfernt, soll zurückhaltender wirken.
+    //
+    // 2026-09-18-Korrektur (siehe Kommentar bei "rauch" oben, derselbe Fehler): fy jetzt
+    // 20px statt 100px über der gemessenen Spitze (0.381 statt 0.351) — am echten Bild
+    // geprüft, sitzt jetzt sichtbar über dem rechten Schornstein statt in der Baumkrone.
     name: "rauch3",
     quelle: require("../../assets/lottie/chesslynx-chimney-smoke.json"),
     fx: 0.1363,
-    fy: 0.351,
+    fy: 0.381,
     groesseFrac: 0.18,
     verzoegerungMs: 2200,
     tempo: 0.7,
