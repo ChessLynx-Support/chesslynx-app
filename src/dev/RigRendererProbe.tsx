@@ -26,11 +26,26 @@
 // Verwandlung.tsx (styles.wrap/glow dort), um zu sehen, wie die neue Illustration sich
 // in diesem bestehenden, fix bemaßten Container schlägt.
 
+// NACHTRAG 2026-09-19 — die PNG-Hälfte dieses Vergleichs musste raus, und zwar dringend:
+//
+// Android leitet aus jedem gebündelten Asset einen Ressourcennamen ab, indem es den Pfad
+// abflacht UND DIE ENDUNG WEGLÄSST. `chesslynx_hedgehog_pawn_light_export.png` und
+// `...light_export.webp` ergeben damit beide `assets_figuren_chesslynx_hedgehog_pawn_light_
+// export` — und `:app:packageReleaseResources` bricht mit "Duplicate resources" ab. Der
+// EAS-Build vom 19.09. ist genau daran gescheitert.
+//
+// Im Entwicklungsmodus fällt das nie auf; es trifft ausschließlich den echten Build. Die
+// Frage, für die dieser Vergleich gebaut wurde, ist seit dem 07.09. beantwortet (WebP, siehe
+// Kopfkommentar von lib/pieceMasters.tsx) — die WebP-Hälfte bleibt hier als Größenprobe
+// stehen, die PNG-Hälfte ist ersatzlos entfallen.
+//
+// Diese Datei ist ohnehin an keiner Stelle mehr eingebunden (die frühere Route "RigProbe"
+// gibt es in RootNavigator.tsx nicht mehr) und kann folgenlos gelöscht werden; die beiden
+// PNG-Dateien unter assets/figuren/ dann gleich mit, das sind 243 KB.
+
 import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
 
-const hedgehogLightPng = require("../../assets/figuren/chesslynx_hedgehog_pawn_light_export.png");
 const hedgehogLightWebp = require("../../assets/figuren/chesslynx_hedgehog_pawn_light_export.webp");
-const hedgehogDarkPng = require("../../assets/figuren/chesslynx_hedgehog_pawn_dark_export.png");
 const hedgehogDarkWebp = require("../../assets/figuren/chesslynx_hedgehog_pawn_dark_export.webp");
 
 const SIZES = [28, 34, 92, 110] as const;
@@ -57,9 +72,7 @@ function SizeRow({ size, background }: { size: number; background: string }) {
     <View style={[styles.row, { backgroundColor: background }]}>
       <Text style={styles.rowTitle}>{size}px</Text>
       <View style={styles.rowSwatches}>
-        <Swatch label="hell · PNG" source={hedgehogLightPng} size={size} />
         <Swatch label="hell · WebP" source={hedgehogLightWebp} size={size} />
-        <Swatch label="dunkel · PNG" source={hedgehogDarkPng} size={size} />
         <Swatch label="dunkel · WebP" source={hedgehogDarkWebp} size={size} />
       </View>
     </View>
@@ -71,7 +84,7 @@ export default function RigRendererProbe() {
     <ScrollView contentContainerStyle={styles.scroll}>
       <Text style={styles.heading}>Rig-Renderer-Vorversuch — Schritt 2</Text>
       <Text style={styles.subheading}>
-        Nur Igel/Bauer (Quest 1), core `Image`-Komponente, PNG vs. WebP, bei allen
+        Nur Igel/Bauer (Quest 1), core `Image`-Komponente, WebP, bei allen
         tatsächlich im Spiel vorkommenden Größen. Nichts hier ist an echten Produktionscode
         angeschlossen.
       </Text>
@@ -96,7 +109,7 @@ export default function RigRendererProbe() {
       <View style={styles.verwandlungMock}>
         <View style={styles.verwandlungGlow} />
         <Image
-          source={hedgehogLightPng}
+          source={hedgehogLightWebp}
           style={{ width: 110, height: 110 }}
           resizeMode="contain"
         />
@@ -157,7 +170,7 @@ const styles = StyleSheet.create({
 // Prop-Namensunterschied, der hier relevant ist):
 //
 //   import { Image as ExpoImage } from "expo-image";
-//   <ExpoImage source={hedgehogLightPng} style={{ width: size, height: size }} contentFit="contain" />
+//   <ExpoImage source={hedgehogLightWebp} style={{ width: size, height: size }} contentFit="contain" />
 //
 // So lässt sich Schritt 2 nachträglich um einen direkten Vergleich Core-Image vs.
 // expo-image erweitern, ohne dass diese Datei bis dahin den Build blockiert.
