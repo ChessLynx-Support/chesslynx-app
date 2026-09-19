@@ -71,6 +71,16 @@
 // Revier-Kulisse bleibt die generische `WaldHintergrund`-Platzhalterkulisse ohne `variante`
 // — E1 (die fünf echten Revier-Illustrationen) ist laut `checkliste_produktionsphasen.md`
 // weiterhin nicht beauftragt, dafür fehlt schlicht das Bildmaterial, keine Code-Frage.
+//
+// Nachtrag 2026-09-18 (überholt den Absatz direkt oben): E1a ist geliefert und freigegeben
+// (Christian: "Lassen, freigeben und einbinden.", nach Abgleich des mitgelieferten
+// Häuschens gegen den Kartenstil — siehe claude/auftragsliste_produktionen_2026-09-18.md,
+// Abschnitt 1). `WaldHintergrund` bekommt unten die neue `revier`-Prop. Nachtrag,
+// Fortsetzung: E1b (Rabenfels), E1c (Dachshöhle) und E1e (Wolfsfeste) kamen ohne
+// Beanstandung durch die Prüfung (Abschnitt 1b desselben Dokuments) und sind ebenfalls
+// eingebunden. Nur Adlerhorst (E1d) zeigt weiterhin die Platzhalterkulisse — dort weicht
+// der Rendering-Stil der Adlerin vom Cartoon-Look ab, Christians Entscheidung steht noch
+// aus (siehe WaldHintergrund.tsx, KULISSE_JE_REVIER).
 
 import { useCallback, useRef, useState } from "react";
 import { Pressable, SafeAreaView, StyleSheet, Text, View } from "react-native";
@@ -99,7 +109,15 @@ import { LuxSprechblase } from "../components/LuxSprechblase";
 // Bonuskapitel-Screens (falls überhaupt eins) hier als "Erstlehre" zusätzlich zu den
 // normalen Endlosmodus-Übungsspalten oben angeboten wird — komplett unabhängig
 // voneinander, keine Spalte wird dadurch gesperrt oder freigeschaltet.
-import { erstlehreFuerRevier } from "../lib/revierErstlehre";
+// Nachtrag 2026-09-19: aus "genau ein Kapitel je Revier" ist eine KETTE mehrerer Kapitel
+// geworden (siehe revierErstlehre.ts). Angezeigt wird trotzdem immer nur eine Kachel — das
+// jeweils erste noch offene Kapitel der Kette.
+import {
+  erstlehreFuerRevier,
+  naechsteOffeneErstlehre,
+  type RevierErstlehre,
+  type RevierErstlehreKapitelId,
+} from "../lib/revierErstlehre";
 
 /** Name je Revier — dieselben Namen wie in LuchsRevierKarte.tsx (GEFAEHRTEN_ROH), nur hier für
  *  den Screen selbst gebraucht (z. B. `accessibilityLabel`, kein sichtbarer Text). */
@@ -189,12 +207,13 @@ export default function Revier() {
   const route = useRoute<any>();
   const gefaehrteId: GefaehrteId = route.params?.gefaehrteId ?? "eichhoernchen";
   const spielbareSpalten = spaltenFuerGefaehrte(gefaehrteId).filter((s) => s.status === "bereit");
-  const erstlehre = erstlehreFuerRevier(gefaehrteId);
+  const erstlehreKette = erstlehreFuerRevier(gefaehrteId);
 
   const [fortschritt, setFortschritt] = useState<EndlosmodusFortschritt>({});
-  // null = noch nicht geladen (Kachel bleibt in diesem kurzen Moment unsichtbar, statt
+  // undefined = noch nicht geladen (Kachel bleibt in diesem kurzen Moment unsichtbar, statt
   // einmal kurz aufzublitzen und direkt wieder zu verschwinden, siehe useFocusEffect unten).
-  const [erstlehreOffen, setErstlehreOffen] = useState<boolean | null>(null);
+  // null = geladen, aber nichts mehr offen (Kette komplett durch oder Revier ohne Erstlehre).
+  const [offeneErstlehre, setOffeneErstlehre] = useState<RevierErstlehre | null | undefined>(undefined);
 
   // Zwinkern-Auslöser (siehe Datei-Kommentar oben): `vorherigeSterneRef` hält den zuletzt
   // gesehenen Sternestand dieses Reviers über mehrere Fokus-Wechsel hinweg (Kind spielt eine
@@ -236,13 +255,24 @@ export default function Revier() {
         }
         vorherigeSterneRef.current = summe;
       });
-      // Erstlehre-Kachel (siehe Datei-Kopfimport): nur laden, wenn dieses Revier überhaupt
-      // eine Erstlehre hat — Rabenfels/Wisent bleiben bei `erstlehreOffen === null`, zeigen
-      // also nie eine Kachel (siehe Render-Stelle unten).
-      if (erstlehre) {
-        loadBonusFortschrittLocal(erstlehre.kapitelId).then((erledigt) => setErstlehreOffen(!erledigt));
+      // Erstlehre-Kachel (siehe Datei-Kopfimport): Für JEDES Kapitel der Kette den Fortschritt
+      // laden und daraus das erste noch offene bestimmen. Reviere ohne Erstlehre (Adlerhorst,
+      // Wisent) haben eine leere Kette — dann gar kein Laden, `offeneErstlehre` bleibt
+      // `undefined` und es erscheint nie eine Kachel (siehe Render-Stelle unten).
+      if (erstlehreKette.length > 0) {
+        Promise.all(
+          erstlehreKette.map((k) =>
+            loadBonusFortschrittLocal(k.kapitelId).then(
+              (fertig) => [k.kapitelId, fertig] as [RevierErstlehreKapitelId, boolean]
+            )
+          )
+        ).then((paare) => {
+          const erledigt: Partial<Record<RevierErstlehreKapitelId, boolean>> = {};
+          for (const [id, fertig] of paare) erledigt[id] = fertig;
+          setOffeneErstlehre(naechsteOffeneErstlehre(gefaehrteId, erledigt));
+        });
       }
-      // spielbareSpalten/erstlehre bewusst nicht in den Deps: beide hängen nur von `gefaehrteId`
+      // spielbareSpalten/erstlehreKette bewusst nicht in den Deps: beide hängen nur von `gefaehrteId`
       // ab (fest pro Bildschirm-Instanz, siehe Datei-Kommentar oben); `spielbareSpalten` wäre
       // bei jedem Rendern zudem eine neue Array-Referenz.
       // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -251,7 +281,7 @@ export default function Revier() {
 
   return (
     <View style={styles.wurzel}>
-      <WaldHintergrund />
+      <WaldHintergrund revier={gefaehrteId} />
       <SafeAreaView style={styles.safe} pointerEvents="box-none">
         <Pressable
           onPress={() => navigation.navigate("KidHome")}
@@ -284,10 +314,10 @@ export default function Revier() {
               freudeAktiv={istRevierAbgeschlossen(gefaehrteId, fortschritt)}
             />
           </View>
-          {erstlehre && erstlehreOffen && (
+          {offeneErstlehre && (
             <Pressable
               onPress={() =>
-                navigation.navigate(erstlehre.route, {
+                navigation.navigate(offeneErstlehre.route, {
                   rueckkehrZiel: "Revier",
                   rueckkehrParams: { gefaehrteId },
                 })
@@ -297,14 +327,14 @@ export default function Revier() {
               // ausgeblendet, damit das Kind sieht, dass hier etwas wartet, es nur noch
               // nicht antippen kann (siehe sprachausgabe_nichtueberspringbarkeit_audit_2026-09-18.md).
               disabled={!fertigGesprochen}
-              accessibilityLabel={`Erstlehre: ${erstlehre.titel}`}
+              accessibilityLabel={`Erstlehre: ${offeneErstlehre.titel}`}
               style={({ pressed }) => [
                 styles.erstlehreKachel,
                 !fertigGesprochen && styles.kachelGesperrt,
                 pressed && fertigGesprochen && styles.kachelGedrueckt,
               ]}
             >
-              <Text style={styles.erstlehreTitel}>{erstlehre.titel}</Text>
+              <Text style={styles.erstlehreTitel}>{offeneErstlehre.titel}</Text>
             </Pressable>
           )}
           {spielbareSpalten.length > 0 && (

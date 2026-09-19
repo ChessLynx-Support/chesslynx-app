@@ -1,0 +1,38 @@
+{
+ "klein": [
+  {
+   "id": "T_SPIESS",
+   "fen": "q7/8/8/k7/8/8/7K/7R w - - 1 2",
+   "kindFarbe": "w",
+   "gespiegelt": false,
+   "loesung": "h1a1",
+   "figuren": 4,
+   "kindzuegeGesamt": 1,
+   "rating": 700,
+   "popularity": 95,
+   "nbPlays": 5000,
+   "gibtSchach": true,
+   "istMatt": false,
+   "lichessTags": [
+    "fork",
+    "hangingPiece",
+    "oneMove",
+    "pin",
+    "skewer"
+   ],
+   "motive": {
+    "spiess": {
+     "koenig": "a5",
+     "dahinter": "qa8",
+     "wert": 9,
+     "loesungen": 1,
+     "eindeutig": true,
+     "zugweite": 7,
+     "zielweite": 7
+    }
+   },
+   "mehrereMotive": false,
+   "quelle": "https://lichess.org/test"
+  }
+ ]
+}

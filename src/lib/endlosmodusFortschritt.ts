@@ -34,6 +34,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { spaltenFuerGefaehrte, type EndlosmodusSpalteId } from "./endlosmodusSpalten";
 import type { GefaehrteId } from "./gefaehrtenZustaende";
+import { rundeAbschliessen } from "./lobAuswahl";
 import {
   gesamtAnzahlAufgaben,
   naechsteOffeneAufgabe,
@@ -42,6 +43,12 @@ import {
 } from "./endlosmodusStufen";
 
 const LOKALER_SCHLUESSEL = "chesslynx:endlosmodusFortschritt:v2";
+// Nachtrag 2026-09-19: eigener Schlüssel für die Verschenkt-Zählung (siehe unten). Bewusst
+// NICHT in denselben Datensatz gelegt: Die Sterne sind der Fortschritt des Kindes und werden
+// später nach Firestore synchronisiert (siehe TODO am Dateiende), die Verschenkt-Zahlen sind
+// dagegen reine Gerätestatistik für die Lobzeile. Ein eigener Schlüssel hält den Sync-Datensatz
+// klein und verhindert, dass ein Fehler hier den echten Fortschritt beschädigt.
+const VERSCHENKT_SCHLUESSEL = "chesslynx:endlosmodusVerschenkt:v1";
 const SYNC_AUSSTEHEND_SCHLUESSEL = "chesslynx:endlosmodusFortschritt:syncAusstehend";
 
 /** Ein Wahrheitswert PRO AUFGABE der Spalte, Index 0 = erste Aufgabe (siehe Reihenfolge in
@@ -74,6 +81,90 @@ export async function meldeAufgabeGeloest(
   await AsyncStorage.setItem(LOKALER_SCHLUESSEL, JSON.stringify(neu));
   await AsyncStorage.setItem(SYNC_AUSSTEHEND_SCHLUESSEL, "1");
   return neu;
+}
+
+// ─────────────────────────────────────────── Verschenkte Figuren (für die Lobzeile)
+//
+// Hintergrund (Christian, 2026-09-19): Am Ende einer Stufe soll Lux nicht die Trefferquote
+// loben, sondern dass NICHTS VERSCHENKT wurde — und, wo es geht, den Fortschritt belegen
+// statt behaupten ("Beim letzten Mal ist dir noch eine Figur weggekommen. Diesmal keine
+// einzige!"). Dafür braucht es genau zwei Zahlen je Spalte und Stufe: die laufende Runde und
+// die vorherige.
+//
+// Warum je Spalte UND Stufe, obwohl "eine Zahl je Spalte" besprochen war: Die Lobzeile fällt
+// am Ende einer STUFE. Mit nur einem Wert je Spalte gäbe es beim Abschluss von Stufe 1 noch
+// gar keinen Vergleichswert, und Stufe 2 würde gegen Stufe 1 verglichen — also gegen etwas
+// Leichteres. Der Mehraufwand ist ein Dreier-Tupel statt einer Zahl.
+//
+// Die Auswertung selbst (welche Lobzeile) liegt in lobAuswahl.ts — reines Modul, testbar.
+
+/** Zählung je Stufe (Index 0 = Stufe 1). `vorrunde[i] === null` heißt: noch keine
+ *  abgeschlossene Vorrunde, also kein Vergleich möglich. */
+export type VerschenktStand = {
+  laufend: [number, number, number];
+  vorrunde: [number | null, number | null, number | null];
+};
+export type VerschenktFortschritt = Partial<Record<EndlosmodusSpalteId, VerschenktStand>>;
+
+const LEERER_STAND: VerschenktStand = { laufend: [0, 0, 0], vorrunde: [null, null, null] };
+
+export async function ladeVerschenktFortschritt(): Promise<VerschenktFortschritt> {
+  const roh = await AsyncStorage.getItem(VERSCHENKT_SCHLUESSEL);
+  return roh ? (JSON.parse(roh) as VerschenktFortschritt) : {};
+}
+
+function standFuer(alles: VerschenktFortschritt, spalteId: EndlosmodusSpalteId): VerschenktStand {
+  const vorhanden = alles[spalteId];
+  return vorhanden
+    ? { laufend: [...vorhanden.laufend] as [number, number, number], vorrunde: [...vorhanden.vorrunde] as [number | null, number | null, number | null] }
+    : { laufend: [...LEERER_STAND.laufend] as [number, number, number], vorrunde: [...LEERER_STAND.vorrunde] as [number | null, number | null, number | null] };
+}
+
+/**
+ * Meldet, dass das Kind in dieser Aufgabe eine Figur verschenkt hat — also einen Zug gespielt
+ * hat, nach dem eine eigene Figur angegriffen und ungedeckt dasteht (siehe die dreiteilige
+ * Rückmeldung in EndlosmodusPuzzle.tsx).
+ *
+ * Bewusst KEIN Fehlerzähler im alten Sinn: Er wird dem Kind nie angezeigt und hat keine
+ * Konsequenz für den Fortschritt. Er dient allein dazu, am Stufenende etwas Wahres sagen zu
+ * können. Der Design-Grundsatz "kein Fehlerzähler, keine Bestrafung" bleibt damit gewahrt.
+ */
+export async function meldeFigurVerschenkt(
+  spalteId: EndlosmodusSpalteId,
+  stufe: 1 | 2 | 3
+): Promise<VerschenktFortschritt> {
+  const alles = await ladeVerschenktFortschritt();
+  const stand = standFuer(alles, spalteId);
+  stand.laufend[stufe - 1] += 1;
+  const neu: VerschenktFortschritt = { ...alles, [spalteId]: stand };
+  await AsyncStorage.setItem(VERSCHENKT_SCHLUESSEL, JSON.stringify(neu));
+  return neu;
+}
+
+/**
+ * Schließt eine Stufe ab: Der laufende Zähler wird zum Vergleichswert der nächsten Runde und
+ * beginnt wieder bei null (siehe rundeAbschliessen in lobAuswahl.ts — dort steht auch,
+ * warum nur ABGESCHLOSSENE Runden zum Vergleichswert werden dürfen).
+ *
+ * Gibt die Lage zurück, aus der lobAuswahl.waehleLob die Zeile bestimmt — der Aufrufer muss
+ * die Zahlen also nicht selbst zusammensuchen.
+ */
+export async function meldeStufeAbgeschlossen(
+  spalteId: EndlosmodusSpalteId,
+  stufe: 1 | 2 | 3
+): Promise<{ verschenktJetzt: number; verschenktVorher: number | null }> {
+  const alles = await ladeVerschenktFortschritt();
+  const stand = standFuer(alles, spalteId);
+  const i = stufe - 1;
+  const jetzt = stand.laufend[i];
+  const vorher = stand.vorrunde[i];
+
+  const { vorrunde, laufend } = rundeAbschliessen(jetzt);
+  stand.vorrunde[i] = vorrunde;
+  stand.laufend[i] = laufend;
+
+  await AsyncStorage.setItem(VERSCHENKT_SCHLUESSEL, JSON.stringify({ ...alles, [spalteId]: stand }));
+  return { verschenktJetzt: jetzt, verschenktVorher: vorher };
 }
 
 export function sterneInSpalte(fortschritt: EndlosmodusFortschritt, spalteId: EndlosmodusSpalteId): 0 | 1 | 2 | 3 {

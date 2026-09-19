@@ -22,3 +22,8 @@ GoogleService-Info.plist
 
 # Stimm-Hörproben zum einmaligen Anhören (werden lokal von scripts/tts_voranhoeren.py erzeugt)
 scripts/voranhoeren/
+
+# Erzeugte Lichess-Kandidaten (2026-09-19): ~32 MB JSON, Zwischenergebnis von
+# scripts/lichess_endlosmodus.cjs und jederzeit daraus neu erzeugbar. Was am Ende ins Repo
+# gehört, ist die von Hand kuratierte Auswahl je Spalte — nicht der Rohertrag des Filters.
+lichess_kandidaten/

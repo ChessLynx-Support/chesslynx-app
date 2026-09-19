@@ -59,6 +59,16 @@ import type { BoardSquare } from "../lib/chessEngine";
 // unabhängig von der Sprachqualität der TTS-Anbindung (siehe luxStimme.ts).
 import { haptikZug, haptikStopp } from "../lib/luxHaptik";
 import { spieleZugKlang, spieleStoppKlang } from "../lib/luxKlang";
+// Reine Vorführ-Logik ausgelagert, damit sie in verify/test-board-demo-logic.cjs testbar ist
+// (siehe dortigen Kopfkommentar — eine RN-Komponente lässt sich nicht laden, ein reines
+// TS-Modul schon).
+import {
+  blickfangSchluessel,
+  demoIconQuelle,
+  demoSchrittSchluessel,
+  demoUrsprungFuer,
+  istDemoQuelleFeld,
+} from "./boardDemo";
 
 const feldHell = require("../../assets/brett/tile_hell.webp");
 const feldDunkel = require("../../assets/brett/tile_dunkel.webp");
@@ -189,6 +199,52 @@ function StoppMarker({ size }: { size: number }) {
   );
 }
 
+// Neu (2026-09-19, animierte Motiv-Einführungen, siehe claude/ChessLynx_Motiv_Einfuehrungen_
+// 2026-09-19.docx, Teil 2): ruhiger Marken-Gold-Ring als BLICKFANG — "schau dir mal diese
+// Figur an", während Lux sie benennt. Bewusst klar unterschieden von den beiden bereits
+// vorhandenen Markern: ZielfeldMarker (grün) heißt "hier darfst du hin", BedrohungsPuls
+// (orange) heißt "hier ist Gefahr" — dieser hier heißt nur "schau hierhin" und fordert
+// nichts. Deshalb Gold (dieselbe Marken-Farbe wie die Erstlehre-Kacheln in Revier.tsx) und
+// ein deutlich langsamerer Puls als bei der Bedrohung.
+//
+// Im Gegensatz zu den übrigen Markern (siehe Sheet-6-Kommentare) noch im Code gezeichnet
+// statt als produziertes Bild-Asset: Ein einfarbiger Ring braucht keine Illustration. Falls
+// die Marker-Familie später vereinheitlicht wird, ist das hier der Kandidat zum Austausch.
+function BlickfangRing({ size }: { size: number }) {
+  const puls = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const schleife = Animated.loop(
+      Animated.sequence([
+        Animated.timing(puls, { toValue: 1, duration: 900, useNativeDriver: true }),
+        Animated.timing(puls, { toValue: 0, duration: 900, useNativeDriver: true }),
+      ])
+    );
+    schleife.start();
+    return () => schleife.stop();
+  }, [puls]);
+
+  const opacity = puls.interpolate({ inputRange: [0, 1], outputRange: [0.55, 1] });
+  const scale = puls.interpolate({ inputRange: [0, 1], outputRange: [0.86, 1.0] });
+  const ringGroesse = size * 0.9;
+
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={{
+        position: "absolute",
+        width: ringGroesse,
+        height: ringGroesse,
+        borderRadius: 999,
+        borderWidth: Math.max(2, size * 0.055),
+        borderColor: "#E8B44A",
+        opacity,
+        transform: [{ scale }],
+      }}
+    />
+  );
+}
+
 // Bugfix (Opus-Review, 2026-09-07, Befund 2.6, siehe claude/review_logik_grafik_
 // audiofuehrung.md): warmes, endloses Pulsieren auf dem bedrohten Feld — ersetzt das
 // geschriebene "Schach!"-Badge in Quest6.tsx (Verstoß gegen "Fachbegriffe werden
@@ -298,6 +354,11 @@ export type BoardConfig = {
   // identisch mit `pieceAt` (der eigene König steht im Schach); als eigenes Feld gehalten,
   // falls künftig auch andere bedrohte Figuren markiert werden sollen. Beide Felder nur
   // gesetzt, wenn tatsächlich eine Bedrohung angezeigt werden soll.
+  // Neu (2026-09-19, animierte Motiv-Einführungen): ein oder mehrere Felder, auf denen
+  // gerade der Blickfang-Ring liegen soll (siehe BlickfangRing oben). Wandert im Verlauf
+  // einer Einführung von Figur zu Figur, während Lux sie der Reihe nach benennt. Rein
+  // optisch — ändert weder Zugrecht noch Legalzüge.
+  blickfangAt?: BoardSquare | BoardSquare[];
   bedrohtAt?: BoardSquare;
   angreiferAt?: BoardSquare;
   // Neu (2026-09-08, Übungsphase, siehe SammelMarker oben): vorgeschlagenes nächstes Zielfeld
@@ -354,6 +415,21 @@ export function Board({
   // demoTarget je nach Phase, Board.tsx selbst kennt weder "Phasen" noch Sprechzeilen.
   demoTarget,
   onDemoDone,
+  // Neu (2026-09-19, animierte Motiv-Einführungen): Bisher glitt die Vorführfigur zum
+  // Zielfeld UND WIEDER ZURÜCK — die Stellung blieb unverändert. Für eine erzählte Zugfolge
+  // ("er bedroht beide, der König muss weg, und jetzt ist die Dame weg") muss jeder Schritt
+  // aber stehen bleiben. `demoBleibt` lässt die Rückgleit-Stufe weg.
+  //
+  // VERTRAG: Wer `demoBleibt` setzt, MUSS in `onDemoDone` die neue Stellung setzen (pieceAt/
+  // opponentAt/zusatzfiguren entsprechend dem ausgeführten Zug). Board.tsx führt den Zug
+  // NICHT selbst aus — es besitzt bewusst keinen eigenen Stellungszustand. Bleibt die
+  // Stellung unverändert, springt die Figur im nächsten Rendern auf ihr Ausgangsfeld zurück.
+  demoBleibt,
+  // Welche Figur vorgeführt wird. Standard ist `pieceAt` (die eigene Figur) — für die
+  // Gegnerantwort einer Einführung ("der König muss weg") wird hier das Feld der
+  // GEGNERISCHEN Figur übergeben. Das bewegliche Overlay nimmt dann automatisch deren Icon
+  // (siehe demoIcon unten).
+  demoVon,
   // Neu (2026-09-11, Paket 2 / Quest-6-Erweiterung): wird bei jedem Tipp auf ein Feld
   // aufgerufen, das weder ein legales Zielfeld noch das Stopp!-Feld ist — zusätzlich zum
   // bisherigen sanften Puls. Gebraucht, damit eine aufrufende Komponente mit MEHREREN
@@ -368,6 +444,8 @@ export function Board({
   disabled?: boolean;
   demoTarget?: BoardSquare;
   onDemoDone?: () => void;
+  demoBleibt?: boolean;
+  demoVon?: BoardSquare;
   onFeldTap?: (feld: BoardSquare) => void;
 }) {
   const {
@@ -382,6 +460,7 @@ export function Board({
     opponentIcon,
     blockerAt,
     blockerIcon,
+    blickfangAt,
     bedrohtAt,
     angreiferAt,
     sammelAt,
@@ -426,6 +505,39 @@ export function Board({
   const effektivAngreiferAt = zeigeTrapBedrohung ? trapAngreiferAt : angreiferAt;
   const bedrohtKey = effektivBedrohtAt ? key(effektivBedrohtAt) : null;
   const zusatzfigurenKeys = new Map((zusatzfiguren ?? []).map((z) => [key(z.at), z.icon]));
+
+  // Neu (2026-09-19, animierte Motiv-Einführungen): Welche Figur wird gerade vorgeführt?
+  // Standard ist die eigene (`pieceAt`) — genau wie bisher, alle bestehenden Aufrufstellen
+  // verhalten sich dadurch unverändert.
+  const demoUrsprung = demoUrsprungFuer(demoVon, pieceAt);
+  const demoUrsprungKey = key(demoUrsprung);
+
+  // Das Icon der vorgeführten Figur. Bisher zeichnete das bewegliche Overlay immer
+  // `pieceIcon`, weil sich immer nur die eigene Figur bewegte. Sobald auch die Gegnerantwort
+  // animiert wird, muss es das Icon der Figur sein, die tatsächlich auf dem Ausgangsfeld
+  // steht — sonst gleitet plötzlich die eigene Figur dorthin, wo der gegnerische König
+  // hinziehen sollte.
+  const demoIcon = (() => {
+    switch (demoIconQuelle(demoUrsprung, pieceAt, opponentAt, (zusatzfiguren ?? []).map((z) => z.at))) {
+      case "eigen":
+        return pieceIcon;
+      case "gegner":
+        return opponentIcon;
+      case "zusatz":
+        return zusatzfigurenKeys.get(demoUrsprungKey);
+      default:
+        return undefined;
+    }
+  })();
+
+  // Während der Vorführung wird die Figur auf dem Ausgangsfeld ausgeblendet (sie wird ja als
+  // frei bewegliches Overlay gezeichnet). Bisher galt das nur für `pieceAt`; jetzt für
+  // dasjenige Feld, von dem aus animiert wird — bei Standardwerten identisch zu vorher.
+  const istDemoQuelle = (k: string) => istDemoQuelleFeld(k, demoUrsprung, animatingTo !== null);
+
+  // Felder mit Blickfang-Ring (siehe BlickfangRing oben). Wie bei blockerAt sind Einzelwert
+  // und Array zugelassen.
+  const blickfangKeys = blickfangSchluessel(blickfangAt);
 
   // `demoTargetKeyRef` verhindert ein erneutes Auslösen der Vorführ-Animation (siehe unten,
   // NACH der cellSize-Berechnung platziert, da sie cellSize für die Zug-Distanz braucht) bei
@@ -513,24 +625,39 @@ export function Board({
   // demoTargetKeyRef-Kommentar oben), da die Zug-Distanz in Pixeln daraus berechnet wird.
   useEffect(() => {
     if (!demoTarget) return;
-    const zielKey = key(demoTarget);
+    // Der Schlüssel enthält jetzt auch das Ausgangsfeld: In einer Zugfolge kann dasselbe
+    // Zielfeld zweimal hintereinander vorkommen (etwa wenn der König erst weicht und die
+    // eigene Figur danach genau dorthin schlägt). Ohne das Ausgangsfeld im Schlüssel würde
+    // der zweite Schritt als "schon gelaufen" gelten und stillschweigend ausfallen.
+    const zielKey = demoSchrittSchluessel(demoUrsprung, demoTarget);
     if (demoTargetKeyRef.current === zielKey) return;
     demoTargetKeyRef.current = zielKey;
 
-    const dx = (demoTarget.col - pieceAt.col) * cellSize;
-    const dy = (demoTarget.row - pieceAt.row) * cellSize;
+    const dx = (demoTarget.col - demoUrsprung.col) * cellSize;
+    const dy = (demoTarget.row - demoUrsprung.row) * cellSize;
     setAnimatingTo({ row: demoTarget.row, col: demoTarget.col });
-    Animated.sequence([
+
+    const stufen: Animated.CompositeAnimation[] = [
       Animated.timing(pieceAnim, { toValue: { x: dx, y: dy }, duration: 480, useNativeDriver: true }),
       Animated.delay(320),
-      Animated.timing(pieceAnim, { toValue: { x: 0, y: 0 }, duration: 380, useNativeDriver: true }),
-    ]).start(() => {
+    ];
+    // Nur ohne `demoBleibt` gleitet die Figur zurück (siehe Prop-Kommentar oben).
+    if (!demoBleibt) {
+      stufen.push(
+        Animated.timing(pieceAnim, { toValue: { x: 0, y: 0 }, duration: 380, useNativeDriver: true })
+      );
+    }
+
+    Animated.sequence(stufen).start(() => {
+      // In beiden Fällen zurücksetzen: Das Overlay wird gleich ohnehin ausgeblendet
+      // (animatingTo = null), und der nächste Schritt der Folge braucht einen sauberen
+      // Nullpunkt. Bei `demoBleibt` übernimmt die neue Stellung des Aufrufers die Darstellung.
       pieceAnim.setValue({ x: 0, y: 0 });
       setAnimatingTo(null);
       onDemoDone?.();
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [demoTarget, cellSize]);
+  }, [demoTarget, demoVon, demoBleibt, cellSize]);
 
   return (
     <View
@@ -605,6 +732,14 @@ export function Board({
                   <BedrohungsPuls size={cellSize} />
                 </View>
               )}
+              {/* Neu (2026-09-19): Blickfang-Ring auf derselben Ebene wie der Bedrohungspuls,
+                  also unter Figuren und Zielfeldmarkern — er soll die Figur einrahmen, nicht
+                  verdecken. */}
+              {blickfangKeys.has(k) && (
+                <View pointerEvents="none" style={styles.markerWrap}>
+                  <BlickfangRing size={cellSize} />
+                </View>
+              )}
               {isLegal && zeigeZielringe && !(hasOpponent || hasBlocker) && <ZielfeldMarker size={cellSize} />}
               {/* Neu (2026-09-08, Übungsphase): Sammel-Eichel NACH dem ZielfeldMarker
                   gerendert, damit sie über dem grünen Punkt sichtbar bleibt — rein kosmetisch,
@@ -621,7 +756,7 @@ export function Board({
                   ist absolut positioniert. opponentIcon/blockerIcon jetzt ebenfalls über
                   styles.markerWrap absolut + zentriert gerendert, exakt wie die bereits
                   funktionierenden Marker. */}
-              {hasOpponent && (
+              {hasOpponent && !istDemoQuelle(k) && (
                 <View pointerEvents="none" collapsable={false} style={[styles.markerWrap, { zIndex: 2 }]}>
                   {opponentIcon ?? <View style={styles.opponentDot} />}
                 </View>
@@ -635,7 +770,7 @@ export function Board({
                   gegnerische Turm), siehe BoardConfig.zusatzfiguren-Kommentar oben. Dieselbe
                   absolute Positionierung/zIndex wie opponentIcon/blockerIcon (Android-
                   Rendering-Regel, siehe Datei-Kommentar). */}
-              {zusatzfigurIcon && (
+              {zusatzfigurIcon && !istDemoQuelle(k) && (
                 <View pointerEvents="none" collapsable={false} style={[styles.markerWrap, { zIndex: 2 }]}>
                   {zusatzfigurIcon}
                 </View>
@@ -651,7 +786,7 @@ export function Board({
                   hinter der eigenen Figur, damit sie auf einen Blick von einer optisch
                   identischen Blocker-Figur (z. B. Quest 5: zwei gleiche Damen) unterscheidbar
                   ist — ohne die Master-Illustrationen selbst anzufassen. */}
-              {hasPiece && !animatingTo && (
+              {hasPiece && !istDemoQuelle(k) && (
                 <View pointerEvents="none" style={styles.markerWrap}>
                   <View
                     style={[
@@ -672,7 +807,7 @@ export function Board({
                   positioniert. Fix: dieselbe styles.markerWrap-Positionierung (absolut,
                   zentriert) wie bei den bereits funktionierenden Markern verwenden, statt
                   einer im Fluss stehenden Animated.View ohne eigene Größe. */}
-              {hasPiece && !animatingTo && (
+              {hasPiece && !istDemoQuelle(k) && (
                 <Animated.View
                   pointerEvents="none"
                   collapsable={false}
@@ -800,8 +935,8 @@ export function Board({
           pointerEvents="none"
           style={{
             position: "absolute",
-            left: pieceAt.col * cellSize,
-            top: pieceAt.row * cellSize,
+            left: demoUrsprung.col * cellSize,
+            top: demoUrsprung.row * cellSize,
             width: cellSize,
             height: cellSize,
             alignItems: "center",
@@ -809,7 +944,7 @@ export function Board({
             transform: pieceAnim.getTranslateTransform(),
           }}
         >
-          {pieceIcon ?? <View style={styles.pieceDot} />}
+          {demoIcon ?? <View style={styles.pieceDot} />}
         </Animated.View>
       )}
     </View>

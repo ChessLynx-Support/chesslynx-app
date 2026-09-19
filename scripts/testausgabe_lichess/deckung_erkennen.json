@@ -1,0 +1,75 @@
+{
+ "klein": [
+  {
+   "id": "T_NEIN_TAUSCH",
+   "fen": "k7/3r4/8/3n4/8/3R4/8/7K w - - 1 2",
+   "kindFarbe": "w",
+   "gespiegelt": false,
+   "loesung": "d3d5",
+   "figuren": 5,
+   "kindzuegeGesamt": 1,
+   "rating": 700,
+   "popularity": 95,
+   "nbPlays": 5000,
+   "gibtSchach": false,
+   "istMatt": false,
+   "lichessTags": [
+    "fork",
+    "hangingPiece",
+    "oneMove",
+    "pin",
+    "skewer"
+   ],
+   "motive": {
+    "deckung_erkennen": {
+     "gesucht": "rd7",
+     "gedeckte": [
+      "nd5"
+     ],
+     "auswahl": 2,
+     "zugweite": 2,
+     "zielweite": 2
+    }
+   },
+   "mehrereMotive": false,
+   "quelle": "https://lichess.org/test"
+  }
+ ],
+ "mittel": [
+  {
+   "id": "T_ERKENNEN",
+   "fen": "7k/8/4p2p/3n2b1/r7/8/8/6RK w - - 1 2",
+   "kindFarbe": "w",
+   "gespiegelt": false,
+   "loesung": "g1g2",
+   "figuren": 8,
+   "kindzuegeGesamt": 1,
+   "rating": 700,
+   "popularity": 95,
+   "nbPlays": 5000,
+   "gibtSchach": false,
+   "istMatt": false,
+   "lichessTags": [
+    "fork",
+    "hangingPiece",
+    "oneMove",
+    "pin",
+    "skewer"
+   ],
+   "motive": {
+    "deckung_erkennen": {
+     "gesucht": "ra4",
+     "gedeckte": [
+      "nd5",
+      "bg5"
+     ],
+     "auswahl": 3,
+     "zugweite": 1,
+     "zielweite": 6
+    }
+   },
+   "mehrereMotive": false,
+   "quelle": "https://lichess.org/test"
+  }
+ ]
+}

@@ -1,0 +1,78 @@
+{
+ "klein": [
+  {
+   "id": "T_GABEL",
+   "fen": "k3r3/8/8/1N6/8/8/8/7K w - - 1 2",
+   "kindFarbe": "w",
+   "gespiegelt": false,
+   "loesung": "b5c7",
+   "figuren": 4,
+   "kindzuegeGesamt": 1,
+   "rating": 700,
+   "popularity": 95,
+   "nbPlays": 5000,
+   "gibtSchach": true,
+   "istMatt": false,
+   "lichessTags": [
+    "fork",
+    "hangingPiece",
+    "oneMove",
+    "pin",
+    "skewer"
+   ],
+   "motive": {
+    "gabel": {
+     "gabler": "n",
+     "ziele": [
+      "ka8",
+      "re8"
+     ],
+     "mitSchach": true,
+     "loesungen": 1,
+     "eindeutig": true,
+     "zugweite": 2,
+     "zielweite": 2
+    }
+   },
+   "mehrereMotive": false,
+   "quelle": "https://lichess.org/test"
+  },
+  {
+   "id": "T_GABEL_MIT_FORTSETZUNG",
+   "fen": "k3r3/8/8/1N6/8/8/8/7K w - - 1 2",
+   "kindFarbe": "w",
+   "gespiegelt": false,
+   "loesung": "b5c7",
+   "figuren": 4,
+   "kindzuegeGesamt": 2,
+   "rating": 1400,
+   "popularity": 95,
+   "nbPlays": 5000,
+   "gibtSchach": true,
+   "istMatt": false,
+   "lichessTags": [
+    "fork",
+    "hangingPiece",
+    "oneMove",
+    "pin",
+    "skewer"
+   ],
+   "motive": {
+    "gabel": {
+     "gabler": "n",
+     "ziele": [
+      "ka8",
+      "re8"
+     ],
+     "mitSchach": true,
+     "loesungen": 1,
+     "eindeutig": true,
+     "zugweite": 2,
+     "zielweite": 2
+    }
+   },
+   "mehrereMotive": false,
+   "quelle": "https://lichess.org/test"
+  }
+ ]
+}

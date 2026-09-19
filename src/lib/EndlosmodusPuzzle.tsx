@@ -45,9 +45,36 @@
 // (Christians eigener Einwand): ein wirklich ausgeführter falscher Zug könnte z. B. den
 // eigenen König verschieben und die Taktik kaputt machen, obwohl die feste Zielfeld-Prüfung
 // den späteren richtigen Zug trotzdem als gelöst werten würde. Jeder abgewiesene Fehlversuch
-// schaltet automatisch die nächste Hinweisstufe frei (`stufe3HinweisStufe` unten): 1 = welche
-// Figur, 2 = grober Bereich, 3 = volle Empfehlung (Figur automatisch ausgewählt + Zielfeld als
-// Sammel-Marker + `aufgabe.stufe3Erklaerung`).
+// schaltet automatisch die nächste Hinweisstufe frei. ÜBERHOLT seit dem 2026-09-19: Die
+// Stufenlogik liegt jetzt in lib/hinweisLeiter.ts und ist vierstufig; der Fehlversuchszähler
+// bleibt als zusätzlicher Auslöser erhalten (stufeAusFehlversuchen), die höhere von
+// angeforderter und erarbeiteter Stufe gewinnt.
+//
+// Ebenfalls geändert: Der Hinweisknopf erscheint jetzt überall dort, wo die Leiter etwas zu
+// sagen hat — also auch in den fünf klassischen Drei-Aufgaben-Spalten, die bisher gar keinen
+// hatten (der Knopf hing an `aufgabe.stufe !== undefined`). Der Eltern-Schalter "Hinweise von
+// Lux" (useHinweiseAktiv) bleibt die übergeordnete Bedingung wie überall sonst.
+
+// Nachtrag (2026-09-19, Christian: "nicht immer der beste Zug ist entscheidend, sondern es ist
+// wichtiger wenig ungenaue/schlechte Züge zu spielen — um nicht zu viel Druck aufzubauen"):
+//
+// 1. DREITEILIGE RÜCKMELDUNG statt zweiteiliger. Bisher galt: gelöst oder Schweigen. Wer einen
+//    völlig vernünftigen, aber nicht vorgesehenen Zug spielte, bekam dieselbe Nicht-Antwort wie
+//    jemand, der eine Figur verschenkt hat — und genau dieses Schweigen erzeugt den Druck, immer
+//    sofort das Maximum finden zu müssen. Jetzt: stark / in Ordnung / verschenkt, berechnet in
+//    lib/zugBewertung.ts (reines Modul, testbar).
+//
+// 2. VIERSTUFIGE HINWEISLEITER statt der bisherigen drei Stufen, erzeugt statt gepflegt (siehe
+//    lib/hinweisLeiter.ts). Neu ist vor allem Stufe 0 — "wo soll ich überhaupt hinschauen": eine
+//    Frage, die sich bei drei bis sieben Figuren nie stellte, bei den Lichess-Stellungen mit acht
+//    bis zwanzig aber sofort.
+//
+// 3. ZWEI FEHLER IM BISHERIGEN HINWEISTEXT MIT BEHOBEN. `hinweisTextFuerStufe3` sagte
+//    `Ziehe den/die/das ${figurName} nach ${toAlgebraic(ziel)}` — also wörtlich "den/die/das"
+//    als nie ersetzter Platzhalter, und dazu eine Feldkoordinate ("f6"), die ein fünfjähriges
+//    Kind nicht lesen kann. Solange der Text nur angezeigt wurde, fiel es nicht auf; seit dem
+//    18.09. wird er VORGELESEN. Beides fällt mit der neuen Leiter weg: richtige Artikel, und das
+//    Zielfeld leuchtet, statt benannt zu werden.
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
@@ -61,6 +88,15 @@ import { t } from "./sprache";
 import { useHinweiseAktiv } from "./luxHinweis";
 import { useLuxSprechzeile } from "./useLuxSprechzeile";
 import type { EndlosmodusAufgabe } from "./endlosmodusAufgaben";
+import type { MotivId } from "./motivEinfuehrungen";
+import {
+  hinweisText as hinweisZeile,
+  naechsteStufeMitText,
+  stufeAusFehlversuchen,
+  type FigurTyp as HinweisFigurTyp,
+  type Hinweisstufe,
+} from "./hinweisLeiter";
+import { bewerteZug, zeileAusPool, IN_ORDNUNG_ZEILEN, VERSCHENKT_ZEILEN } from "./zugBewertung";
 
 /** Dauer der Erfolgs-Überlagerung, bevor onSolved() feuert — kurz genug, um nicht zu
  *  bremsen, lang genug, damit Funkeln/Wippen (siehe QuestGeschafft) tatsächlich gesehen
@@ -70,99 +106,37 @@ const ERFOLG_ANZEIGE_MS = 900;
 
 const gleich = (a?: BoardSquare, b?: BoardSquare) => Boolean(a && b && a.row === b.row && a.col === b.col);
 
-/** Generischer, stufenabhängiger Hinweistext für die Erobern-Eskalationsaufgaben (siehe
- *  Datei-Kopfkommentar) — Stufe 1 hat keinen Köder, Stufe 2 schon. NUR für Stufe 1/2 (siehe
- *  hinweisTextFuerStufe3 unten für Stufe 3, komplett anderes Interaktionsmodell). */
-function hinweisTextFuerStufe(stufe: 1 | 2): string {
-  if (stufe === 1) {
-    return t(
-      "Eine gegnerische Figur steht ungedeckt da. Finde sie und schlage sie mit deiner Figur!",
-      "One of the opponent's pieces is undefended. Find it and capture it with your piece!"
-    );
-  }
-  return t(
-    "Vorsicht: eine Figur sieht verlockend aus, ist aber verteidigt. Welche ANDERE Figur kannst du OHNE eigenen Verlust schlagen?",
-    "Careful: one piece looks tempting but is defended. Which OTHER piece can you capture WITHOUT losing anything yourself?"
-  );
-}
+// Die drei früheren Hinweistext-Funktionen (hinweisTextFuerStufe, stufe3HinweisStufe,
+// hinweisTextFuerStufe3) samt FIGUR_NAME_DE/EN und grobesBrettfeld sind am 2026-09-19 nach
+// lib/hinweisLeiter.ts gewandert — als erzeugte vierstufige Leiter statt dreier von Hand
+// gepflegter Texte (siehe Datei-Kopfkommentar Punkt 2 und 3). Dort sind sie testbar; hier waren
+// sie es nicht, und genau deshalb stand dort zwei Tage lang "den/die/das" im gesprochenen Text.
 
-// Schwellenwerte fuer die drei Hinweisstufen (siehe Datei-Kopfkommentar) — Vorschlag, kein
-// feststehender Wert, ggf. nach echtem Gerätetest nachjustieren (siehe claude/
-// stufe3_interaktionsmodell_konzept_2026-09-17.md).
-function stufe3HinweisStufe(fehlversuche: number): 1 | 2 | 3 {
-  if (fehlversuche >= 6) return 3;
-  if (fehlversuche >= 3) return 2;
-  return 1;
-}
-
-type FigurTyp = "p" | "n" | "b" | "r" | "q" | "k";
-const FIGUR_NAME_DE: Record<FigurTyp, string> = {
-  p: "Bauer",
-  n: "Springer",
-  b: "Läufer",
-  r: "Turm",
-  q: "Dame",
-  k: "König",
-};
-const FIGUR_NAME_EN: Record<FigurTyp, string> = {
-  p: "pawn",
-  n: "knight",
-  b: "bishop",
-  r: "rook",
-  q: "queen",
-  k: "king",
-};
-
-/** Grober Brett-Viertel als Text — bewusst UNGENAU (Hinweisstufe 2 soll einen Bereich
- *  andeuten, nicht das Feld verraten, siehe Datei-Kopfkommentar). */
-function grobesBrettfeld(feld: BoardSquare): string {
-  const oben = feld.row < 4;
-  const links = feld.col < 4;
-  if (oben && links) return t("oben links auf dem Brett", "the upper left of the board");
-  if (oben && !links) return t("oben rechts auf dem Brett", "the upper right of the board");
-  if (!oben && links) return t("unten links auf dem Brett", "the lower left of the board");
-  return t("unten rechts auf dem Brett", "the lower right of the board");
-}
-
-/** Dreistufiger Hinweistext für Stufe 3 (siehe Datei-Kopfkommentar). `figurName` ist bereits
- *  die passende Sprachvariante (siehe FIGUR_NAME_DE/EN), `ziel` das eine korrekte Zielfeld. */
-function hinweisTextFuerStufe3(
-  tier: 1 | 2 | 3,
-  aufgabe: EndlosmodusAufgabe,
-  figurName: string,
-  ziel?: BoardSquare
-): string {
-  if (tier === 1) {
-    return t(
-      `Finde die richtige Figur: den/die/das ${figurName}. Tippe sie an, dann siehst du, wohin sie ziehen darf.`,
-      `Find the right piece: the ${figurName}. Tap it to see where it can go.`
-    );
-  }
-  if (tier === 2) {
-    return t(
-      `Die richtige Figur zieht ${ziel ? grobesBrettfeld(ziel) : "irgendwohin"}.`,
-      `The right piece moves to ${ziel ? grobesBrettfeld(ziel) : "somewhere on the board"}.`
-    );
-  }
-  const zielName = ziel ? toAlgebraic(ziel) : "?";
-  if (aufgabe.stufe3Erklaerung) {
-    return t(
-      `Ziehe den/die/das ${figurName} nach ${zielName}: ${aufgabe.stufe3Erklaerung} Versuch's jetzt selbst!`,
-      `Move the ${figurName} to ${zielName}: ${aufgabe.stufe3Erklaerung} Now try it yourself!`
-    );
-  }
-  return t(
-    `Ziehe den/die/das ${figurName} nach ${zielName}. Versuch's jetzt selbst!`,
-    `Move the ${figurName} to ${zielName}. Now try it yourself!`
-  );
+/** Figurenart auf einem Feld, aus der FEN gelesen — für Stufe 2/3 der Hinweisleiter. */
+function figurTypAuf(fen: string, feld: BoardSquare): HinweisFigurTyp | null {
+  const stein = new Chess(fen).get(toAlgebraic(feld));
+  return stein ? (stein.type as HinweisFigurTyp) : null;
 }
 
 export function EndlosmodusPuzzle({
   aufgabe,
   onSolved,
+  motivId = null,
+  onVerschenkt,
 }: {
   aufgabe: EndlosmodusAufgabe;
   onSolved: () => void;
+  /** Motiv der Spalte — speist Stufe 1 der Hinweisleiter. null = Spalte ohne Motiv. */
+  motivId?: MotivId | null;
+  /**
+   * Meldet, dass das Kind in dieser Aufgabe Material eingestellt hat. Bewusst nur ein Signal
+   * nach oben, kein Schreibzugriff von hier: Der Zähler hängt an Spalte und Stufe, und die
+   * kennt nur der aufrufende Screen (siehe meldeFigurVerschenkt in endlosmodusFortschritt.ts).
+   *
+   * KEIN Fehlerzähler im alten Sinn — er wird dem Kind nie gezeigt und hat keine Folge für den
+   * Fortschritt. Er dient allein dazu, am Stufenende etwas Wahres sagen zu können.
+   */
+  onVerschenkt?: () => void;
 }) {
   const hinweiseAktiv = useHinweiseAktiv();
   const istStufe3 = aufgabe.stufe === 3;
@@ -183,6 +157,14 @@ export function EndlosmodusPuzzle({
   const [ausgewaehlt, setAusgewaehlt] = useState<BoardSquare>(aufgabe.pieceAt);
   const [fehlversuche, setFehlversuche] = useState(0);
   const [geloest, setGeloest] = useState(false);
+  // Wie oft das Kind den Hinweisknopf gedrückt hat. Zusammen mit den Fehlversuchen ergibt das
+  // die wirksame Stufe (die höhere von beiden gewinnt, siehe unten) — wer oft danebentippt,
+  // bekommt mehr Hilfe auch ohne zu fragen, wer fragt, bekommt sie sofort.
+  const [hinweisAbrufe, setHinweisAbrufe] = useState(0);
+  // Die dreiteilige Rückmeldung auf einen nicht lösenden Zug (siehe Datei-Kopfkommentar).
+  const [rueckmeldung, setRueckmeldung] = useState<{ art: "inOrdnung" | "verschenkt"; nummer: number } | null>(null);
+  // Zählt jede gegebene Rückmeldung, damit die Pools rotieren statt sich zu wiederholen.
+  const rueckmeldungsZaehler = useRef(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Nur für Stufe 3 gebraucht (siehe Datei-Kopfkommentar) — für Stufe 1/2 bleibt dies ein
@@ -196,6 +178,8 @@ export function EndlosmodusPuzzle({
     setFehlversuche(0);
     setGeloest(false);
     setHinweisSichtbar(false);
+    setHinweisAbrufe(0);
+    setRueckmeldung(null);
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
@@ -204,11 +188,32 @@ export function EndlosmodusPuzzle({
 
   const ausgewaehlteFigur = figuren.find((f) => gleich(f.at, ausgewaehlt));
   const zielFeld = aufgabe.zielTargets?.[0];
-  const aktuelleHinweisstufe = stufe3HinweisStufe(fehlversuche);
+
+  // ── Hinweisleiter (siehe lib/hinweisLeiter.ts) ───────────────────────────────────────────
+  const hinweisLage = useMemo(
+    () => ({
+      motivId,
+      figurTyp: figurTypAuf(aufgabe.fen, aufgabe.pieceAt),
+      zielFelder: (aufgabe.zielTargets ?? []).map(toAlgebraic) as string[],
+    }),
+    [aufgabe.fen, aufgabe.pieceAt, aufgabe.zielTargets, motivId]
+  );
+  // Die höhere von beiden gewinnt: angeforderte Stufe und die aus Fehlversuchen abgeleitete.
+  const gewuenschteStufe = Math.max(hinweisAbrufe, stufeAusFehlversuchen(fehlversuche)) as Hinweisstufe;
+  // Einzelne Stufen entfallen je nach Lage (Stufe 0 bei mehreren richtigen Zielfeldern, Stufe 1
+  // ohne Motiv) — dann die nächste, zu der es etwas zu sagen gibt. Sonst drückt das Kind einen
+  // Knopf, auf den nichts passiert, und drückt ihn kein zweites Mal.
+  const aktuelleHinweisstufe = naechsteStufeMitText(
+    Math.min(gewuenschteStufe, 3) as Hinweisstufe,
+    hinweisLage
+  );
   // Volle Empfehlung (Hinweisstufe 3): die Lösungsfigur ist automatisch ausgewählt (siehe
   // Hinweis-Knopf unten) und ihr korrektes Zielfeld trägt die goldene Sammel-Markierung
   // (dieselbe, die z. B. SchachAufgabe.tsx für `hinweisZug` nutzt).
-  const zeigeVolleEmpfehlung = istStufe3 && hinweisSichtbar && aktuelleHinweisstufe === 3;
+  // Auf Stufe 3 leuchtet das Zielfeld — "das leuchtende Feld" in der Sprechzeile ist damit
+  // wörtlich wahr, und es braucht keine Koordinate. Gilt jetzt für ALLE Stufen der Aufgabe,
+  // nicht mehr nur für Eskalationsstufe 3.
+  const zeigeVolleEmpfehlung = hinweisSichtbar && aktuelleHinweisstufe === 3;
 
   const config: BoardConfig = istStufe3
     ? {
@@ -237,7 +242,28 @@ export function EndlosmodusPuzzle({
         kettenlinie: aufgabe.kettenlinie,
         bedrohtAt: aufgabe.bedrohtAt,
         angreiferAt: aufgabe.angreiferAt,
+        sammelAt: zeigeVolleEmpfehlung ? zielFeld : undefined,
       };
+
+  /**
+   * Ordnet einen nicht lösenden Zug ein und merkt sich die passende Rückmeldung.
+   *
+   * Das ist die eigentliche Umsetzung von Christians Punkt: „Nicht immer den besten Zug finden
+   * müssen" ist kein Satz, den man sagt — es ist eine Rückmeldung, die man gibt.
+   */
+  function meldeZugZurueck(von: BoardSquare, nach: BoardSquare) {
+    const urteil = bewerteZug({
+      fen: game.fen(),
+      von: toAlgebraic(von),
+      nach: toAlgebraic(nach),
+      zielFelder: hinweisLage.zielFelder,
+      loesungsFigurFeld: toAlgebraic(aufgabe.pieceAt),
+    });
+    if (urteil === "stark") return;
+    rueckmeldungsZaehler.current += 1;
+    setRueckmeldung({ art: urteil, nummer: rueckmeldungsZaehler.current });
+    if (urteil === "verschenkt") onVerschenkt?.();
+  }
 
   function handleCorrectMove(target: BoardSquare) {
     if (geloest) return;
@@ -248,6 +274,11 @@ export function EndlosmodusPuzzle({
         // animiert die Figur kurz zum angetippten Feld, "snapt" sie danach aber automatisch
         // zurück, weil sich `pieceAt` (=ausgewaehlt) nicht ändert — am Brett/an game.fen()
         // ändert sich dadurch nichts, nur der Fehlversuchszähler steigt.
+        //
+        // Nachtrag 2026-09-19: Eingeordnet wird trotzdem. Der Zug wird zwar nicht ausgeführt,
+        // aber das Kind hat ihn gemeint — und die stumme Rücknahme ohne jedes Wort war genau
+        // die Nicht-Antwort, um die es hier geht.
+        meldeZugZurueck(ausgewaehlt, target);
         setFehlversuche((v) => v + 1);
         return;
       }
@@ -257,6 +288,8 @@ export function EndlosmodusPuzzle({
       timerRef.current = setTimeout(onSolved, ERFOLG_ANZEIGE_MS);
       return;
     }
+    // Vor tryMove(): bewerteZug() braucht die Stellung VOR dem Zug, und `game` ist mutierbar.
+    meldeZugZurueck(ort, target);
     const ergebnis = tryMove(game, ort, target);
     if (!ergebnis.ok) return; // sollte dank legalTargets nicht vorkommen, sicherheitshalber geprüft
     // Bugfix (Gerätetest 2026-09-16, siehe EndlosmodusAufgabe.zielTargets-Kommentar): ist ein
@@ -270,6 +303,7 @@ export function EndlosmodusPuzzle({
       setLegalTargets(legalTargetsFor(game, target));
       return;
     }
+    setRueckmeldung(null);
     setGeloest(true);
     timerRef.current = setTimeout(onSolved, ERFOLG_ANZEIGE_MS);
   }
@@ -287,31 +321,42 @@ export function EndlosmodusPuzzle({
     setResetSchluessel((k) => k + 1);
   }
 
-  const loesungsFigur = figuren.find((f) => gleich(f.at, aufgabe.pieceAt));
-  const figurName = loesungsFigur
-    ? t(FIGUR_NAME_DE[loesungsFigur.typ], FIGUR_NAME_EN[loesungsFigur.typ])
-    : t("Figur", "piece");
+  // Der Hinweistext kommt jetzt vollständig aus der erzeugten Leiter (siehe
+  // lib/hinweisLeiter.ts) — kein von Hand gepflegter Text je Spalte mehr, und damit auch kein
+  // generischer "Erobern"-Hinweis in Spalten, die gar kein Schlagen verlangen (Befund A.2 der
+  // Lückenanalyse).
+  const hinweisZweisprachig =
+    hinweisSichtbar && !geloest && aktuelleHinweisstufe !== null
+      ? hinweisZeile(aktuelleHinweisstufe, hinweisLage)
+      : null;
+  const hinweisText = hinweisZweisprachig ? t(hinweisZweisprachig.de, hinweisZweisprachig.en) : undefined;
 
-  // Einmal berechnet statt (wie bis 2026-09-18) inline im JSX dupliziert — dieselbe
-  // Berechnung speist jetzt sowohl die Anzeige (hinweisBlase unten) als auch die neue
-  // Sprachausgabe (siehe Datei-Kopfkommentar).
-  const hinweisText =
-    hinweisSichtbar && aufgabe.stufe !== undefined && !geloest
-      ? aufgabe.stufe === 3
-        ? hinweisTextFuerStufe3(aktuelleHinweisstufe, aufgabe, figurName, zielFeld)
-        : hinweisTextFuerStufe(aufgabe.stufe)
-      : undefined;
-  // Schlüssel wechselt zwischen "aus" und einem konkreten Hinweis-Schlüssel, sobald das Kind
-  // auf "💡 Hinweis" tippt/es wieder schließt — siehe useLuxSprechzeile.ts: ein Schlüssel-
-  // wechsel stoppt eine noch laufende Sprachausgabe sauber (z. B. beim vorzeitigen Schließen)
-  // und löst bei erneutem Öffnen zuverlässig eine neue Sprechausgabe aus, auch wenn sich der
-  // Hinweistext selbst nicht geändert hat.
-  const hinweisSchluessel = hinweisSichtbar && !geloest
-    ? `hinweis-${aufgabe.fen}-${resetSchluessel}-${aktuelleHinweisstufe}`
-    : "hinweis-aus";
-  // Bewusst kein onFertig (kein Weiterlauf zu irgendwas) und erinnerung:false (ein
-  // selbst angeforderter Hinweis soll sich nicht von selbst alle 8 Sekunden wiederholen).
-  useLuxSprechzeile(hinweisSchluessel, hinweisText, undefined, { erinnerung: false });
+  // Die Rückmeldung auf einen nicht lösenden Zug. Rotierende Pools nach dem Vorbild von
+  // HINWEIS_FEHLGRIFF_VARIANTEN in bonus/Figurenwert.tsx.
+  const rueckmeldungZweisprachig = rueckmeldung
+    ? zeileAusPool(
+        rueckmeldung.art === "verschenkt" ? VERSCHENKT_ZEILEN : IN_ORDNUNG_ZEILEN,
+        rueckmeldung.nummer
+      )
+    : null;
+  const rueckmeldungText = rueckmeldungZweisprachig
+    ? t(rueckmeldungZweisprachig.de, rueckmeldungZweisprachig.en)
+    : undefined;
+
+  // EINE Sprechzeile zur Zeit. Die Rückmeldung hat Vorrang vor dem Hinweis: Sie ist die
+  // Antwort auf etwas, das das Kind gerade getan hat, der Hinweis steht weiter da und kann
+  // erneut abgerufen werden. Sprächen beide, fielen sie einander ins Wort.
+  const gesprochen = rueckmeldungText ?? hinweisText;
+  // Schlüsselwechsel stoppt eine laufende Ausgabe sauber und löst bei erneutem Öffnen
+  // zuverlässig eine neue aus, auch wenn der Text derselbe ist (siehe useLuxSprechzeile.ts).
+  const sprechSchluessel = rueckmeldung
+    ? `rueckmeldung-${rueckmeldung.nummer}`
+    : hinweisText
+      ? `hinweis-${aufgabe.fen}-${resetSchluessel}-${aktuelleHinweisstufe}`
+      : "still";
+  // Bewusst kein onFertig (kein Weiterlauf zu irgendwas) und erinnerung:false — weder ein
+  // selbst angeforderter Hinweis noch eine Rückmeldung soll sich alle 8 Sekunden wiederholen.
+  useLuxSprechzeile(sprechSchluessel, gesprochen, undefined, { erinnerung: false });
 
   return (
     <View style={styles.wurzel}>
@@ -325,26 +370,39 @@ export function EndlosmodusPuzzle({
           >
             <Text style={styles.aktionsText}>{t("↺ Nochmal", "↺ Retry")}</Text>
           </Pressable>
-          {hinweiseAktiv && aufgabe.stufe !== undefined && (
+          {hinweiseAktiv && aktuelleHinweisstufe !== null && (
             <Pressable
               onPress={() => {
-                const naechsteSichtbarkeit = !hinweisSichtbar;
-                setHinweisSichtbar(naechsteSichtbarkeit);
-                // Hinweisstufe 3 (volle Empfehlung, siehe Datei-Kopfkommentar): die
-                // Lösungsfigur wird beim Öffnen automatisch ausgewählt, damit ihr Zielfeld
-                // als Sammel-Marker sichtbar wird.
-                if (naechsteSichtbarkeit && istStufe3 && stufe3HinweisStufe(fehlversuche) === 3) {
-                  setAusgewaehlt(aufgabe.pieceAt);
+                // Jeder Druck geht eine Stufe weiter (0 → 1 → 2 → 3), bis zur vollen
+                // Empfehlung. Erneutes Drücken auf der höchsten Stufe blendet den Hinweis aus,
+                // statt in einer Sackgasse zu enden.
+                if (!hinweisSichtbar) {
+                  setHinweisSichtbar(true);
+                  return;
                 }
+                if (aktuelleHinweisstufe >= 3) {
+                  setHinweisSichtbar(false);
+                  return;
+                }
+                setHinweisAbrufe((n) => Math.min(n + 1, 3));
               }}
               style={styles.aktionsKnopf}
               accessibilityLabel={t("Hinweis von Lux", "Hint from Lux")}
             >
               <Text style={styles.aktionsText}>
-                {hinweisSichtbar ? t("Hinweis verbergen", "Hide hint") : t("💡 Hinweis", "💡 Hint")}
+                {!hinweisSichtbar
+                  ? t("💡 Hinweis", "💡 Hint")
+                  : aktuelleHinweisstufe >= 3
+                    ? t("Hinweis verbergen", "Hide hint")
+                    : t("Mehr verraten", "Tell me more")}
               </Text>
             </Pressable>
           )}
+        </View>
+      )}
+      {rueckmeldungText && !geloest && (
+        <View style={[styles.hinweisBlase, rueckmeldung?.art === "verschenkt" && styles.rueckmeldungAchtung]}>
+          <Text style={styles.hinweisText}>{rueckmeldungText}</Text>
         </View>
       )}
       {hinweisText && (
@@ -387,4 +445,6 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.95)",
   },
   hinweisText: { fontSize: 14, color: "#4A4038", textAlign: "center" },
+  // Warmer Ton, kein Rot: Die Figur steht schlecht, das Kind hat nichts falsch gemacht.
+  rueckmeldungAchtung: { backgroundColor: "rgba(255,243,224,0.97)" },
 });

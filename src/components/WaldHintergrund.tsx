@@ -60,6 +60,7 @@
 // Stapeln automatisch darüber liegen.
 
 import { View, Image, StyleSheet } from "react-native";
+import type { GefaehrteId } from "../lib/gefaehrtenZustaende";
 
 const obenStandard = require("../../assets/hintergrund/waldkulisse_oben.webp");
 const untenStandard = require("../../assets/hintergrund/waldkulisse_unten.webp");
@@ -115,13 +116,44 @@ const KULISSE_JE_QUEST: Record<number, ReturnType<typeof require>> = {
 // eine hochkante Kulisse aus `luchsrevier_wisentfeste.webp` erzeugt ist, kann auch dieser
 // Zweig auf ein einzelnes Vollflächenbild umgestellt und der Band-Code ganz entfallen.
 
+// Nachtrag 2026-09-18 (E1a Eichhörnchen-Revierkulisse freigegeben, Christian: "Lassen,
+// freigeben und einbinden." — nach Prüfung des mitgelieferten Häuschens gegen den
+// Kartenstil, siehe claude/auftragsliste_produktionen_2026-09-18.md, Abschnitt 1):
+// erstes von fünf geplanten Revier-Hintergrundbildern (E1a–e). Analog zu
+// KULISSE_JE_QUEST oben, aber als `Partial` nur für die bereits gelieferten Gefährten
+// befüllt — Revier.tsx übergibt seine `gefaehrteId` als neue `revier`-Prop; für noch nicht
+// produzierte Gefährten bleibt `revierKulisse` unten `undefined`, der Screen fällt dann
+// unverändert auf die alte oben/unten-Band-Platzhalterkulisse zurück, bis auch deren
+// Bilder vorliegen.
+//
+// Nachtrag 2026-09-18, Fortsetzung (E1b/E1c/E1e freigegeben): Rabenfels, Dachshöhle und
+// Wolfsfeste kamen bei der Qualitätsprüfung ohne Beanstandung durch (siehe
+// claude/auftragsliste_produktionen_2026-09-18.md, Abschnitt 1b) — genau wie beim
+// Eichhörnchen ergänzt. E1d (Adlerhorst) fehlt hier bewusst: dort weicht der Rendering-Stil
+// der Adlerin vom übrigen Cartoon-Look ab, Christians Entscheidung dazu steht noch aus.
+const KULISSE_JE_REVIER: Partial<Record<GefaehrteId, ReturnType<typeof require>>> = {
+  eichhoernchen: require("../../assets/hintergrund/revierkulisse_eichhoernchen.webp"),
+  rabe: require("../../assets/hintergrund/revierkulisse_rabenfels.webp"),
+  dachs: require("../../assets/hintergrund/revierkulisse_dachshoehle.webp"),
+  wolf: require("../../assets/hintergrund/revierkulisse_wolfsfeste.webp"),
+};
+
 export function WaldHintergrund({
   variante,
-}: { variante?: 1 | 2 | 3 | 4 | 5 | 6 } = {}) {
+  revier,
+}: { variante?: 1 | 2 | 3 | 4 | 5 | 6; revier?: GefaehrteId } = {}) {
   if (variante) {
     return (
       <View style={styles.wrap} collapsable={false} pointerEvents="none">
         <Image source={KULISSE_JE_QUEST[variante]} style={styles.ganz} resizeMode="cover" />
+      </View>
+    );
+  }
+  const revierKulisse = revier ? KULISSE_JE_REVIER[revier] : undefined;
+  if (revierKulisse) {
+    return (
+      <View style={styles.wrap} collapsable={false} pointerEvents="none">
+        <Image source={revierKulisse} style={styles.ganz} resizeMode="cover" />
       </View>
     );
   }

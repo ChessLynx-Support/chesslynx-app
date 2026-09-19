@@ -1,0 +1,232 @@
+{
+ "klein": [
+  {
+   "id": "T_GEWINN",
+   "fen": "k7/8/8/3n4/8/3R4/8/7K w - - 1 2",
+   "kindFarbe": "w",
+   "gespiegelt": false,
+   "loesung": "d3d5",
+   "figuren": 4,
+   "kindzuegeGesamt": 1,
+   "rating": 700,
+   "popularity": 95,
+   "nbPlays": 5000,
+   "gibtSchach": false,
+   "istMatt": false,
+   "lichessTags": [
+    "fork",
+    "hangingPiece",
+    "oneMove",
+    "pin",
+    "skewer"
+   ],
+   "motive": {
+    "figur_gewinnen": {
+     "geschlagen": "n",
+     "wert": 3,
+     "zielFeld": "d5",
+     "loesungen": 1,
+     "eindeutig": true,
+     "zugweite": 2,
+     "zielweite": 0
+    }
+   },
+   "mehrereMotive": false,
+   "quelle": "https://lichess.org/test"
+  },
+  {
+   "id": "T_HOHES_RATING",
+   "fen": "k7/8/8/3n4/8/3R4/8/7K w - - 1 2",
+   "kindFarbe": "w",
+   "gespiegelt": false,
+   "loesung": "d3d5",
+   "figuren": 4,
+   "kindzuegeGesamt": 1,
+   "rating": 1850,
+   "popularity": 95,
+   "nbPlays": 5000,
+   "gibtSchach": false,
+   "istMatt": false,
+   "lichessTags": [
+    "fork",
+    "hangingPiece",
+    "oneMove",
+    "pin",
+    "skewer"
+   ],
+   "motive": {
+    "figur_gewinnen": {
+     "geschlagen": "n",
+     "wert": 3,
+     "zielFeld": "d5",
+     "loesungen": 1,
+     "eindeutig": true,
+     "zugweite": 2,
+     "zielweite": 0
+    }
+   },
+   "mehrereMotive": false,
+   "quelle": "https://lichess.org/test"
+  },
+  {
+   "id": "T_GESPIEGELT",
+   "fen": "k7/8/8/3n4/8/8/3R4/7K w - - 1 1",
+   "kindFarbe": "w",
+   "gespiegelt": true,
+   "loesung": "d2d5",
+   "figuren": 4,
+   "kindzuegeGesamt": 1,
+   "rating": 700,
+   "popularity": 95,
+   "nbPlays": 5000,
+   "gibtSchach": false,
+   "istMatt": false,
+   "lichessTags": [
+    "fork",
+    "hangingPiece",
+    "oneMove",
+    "pin",
+    "skewer"
+   ],
+   "motive": {
+    "figur_gewinnen": {
+     "geschlagen": "n",
+     "wert": 3,
+     "zielFeld": "d5",
+     "loesungen": 1,
+     "eindeutig": true,
+     "zugweite": 3,
+     "zielweite": 0
+    }
+   },
+   "mehrereMotive": false,
+   "quelle": "https://lichess.org/test"
+  },
+  {
+   "id": "T_VERT_SCHLAG",
+   "fen": "k7/8/1b6/8/3R4/8/8/1R5K w - - 1 2",
+   "kindFarbe": "w",
+   "gespiegelt": false,
+   "loesung": "b1b6",
+   "figuren": 5,
+   "kindzuegeGesamt": 1,
+   "rating": 700,
+   "popularity": 95,
+   "nbPlays": 5000,
+   "gibtSchach": false,
+   "istMatt": false,
+   "lichessTags": [
+    "fork",
+    "hangingPiece",
+    "oneMove",
+    "pin",
+    "skewer"
+   ],
+   "motive": {
+    "figur_gewinnen": {
+     "geschlagen": "b",
+     "wert": 3,
+     "zielFeld": "b6",
+     "loesungen": 1,
+     "eindeutig": true,
+     "zugweite": 5,
+     "zielweite": 0
+    },
+    "verteidigen": {
+     "gerettet": "rd4",
+     "wert": 5,
+     "weg": "angreifer_schlagen",
+     "besterWegHier": "angreifer_schlagen",
+     "begruendung": "nichts schlägt zurück",
+     "stimmtMitLoesung": true,
+     "loesungen": 16,
+     "eindeutig": false,
+     "zugweite": 5,
+     "zielweite": 2
+    }
+   },
+   "mehrereMotive": true,
+   "quelle": "https://lichess.org/test"
+  },
+  {
+   "id": "T_VERT_BESTER",
+   "fen": "k7/8/1b6/8/3R4/8/8/1R5K w - - 1 2",
+   "kindFarbe": "w",
+   "gespiegelt": false,
+   "loesung": "b1b6",
+   "figuren": 5,
+   "kindzuegeGesamt": 1,
+   "rating": 700,
+   "popularity": 95,
+   "nbPlays": 5000,
+   "gibtSchach": false,
+   "istMatt": false,
+   "lichessTags": [
+    "fork",
+    "hangingPiece",
+    "oneMove",
+    "pin",
+    "skewer"
+   ],
+   "motive": {
+    "figur_gewinnen": {
+     "geschlagen": "b",
+     "wert": 3,
+     "zielFeld": "b6",
+     "loesungen": 1,
+     "eindeutig": true,
+     "zugweite": 5,
+     "zielweite": 0
+    },
+    "verteidigen": {
+     "gerettet": "rd4",
+     "wert": 5,
+     "weg": "angreifer_schlagen",
+     "besterWegHier": "angreifer_schlagen",
+     "begruendung": "nichts schlägt zurück",
+     "stimmtMitLoesung": true,
+     "loesungen": 16,
+     "eindeutig": false,
+     "zugweite": 5,
+     "zielweite": 2
+    }
+   },
+   "mehrereMotive": true,
+   "quelle": "https://lichess.org/test"
+  },
+  {
+   "id": "T_MEHRDEUTIG",
+   "fen": "3n4/7k/8/8/b2R4/8/8/7K w - - 1 2",
+   "kindFarbe": "w",
+   "gespiegelt": false,
+   "loesung": "d4d8",
+   "figuren": 5,
+   "kindzuegeGesamt": 1,
+   "rating": 700,
+   "popularity": 95,
+   "nbPlays": 5000,
+   "gibtSchach": false,
+   "istMatt": false,
+   "lichessTags": [
+    "fork",
+    "hangingPiece",
+    "oneMove",
+    "pin",
+    "skewer"
+   ],
+   "motive": {
+    "figur_gewinnen": {
+     "geschlagen": "n",
+     "wert": 3,
+     "zielFeld": "d8",
+     "loesungen": 2,
+     "eindeutig": false,
+     "zugweite": 4,
+     "zielweite": 0
+    }
+   },
+   "mehrereMotive": false,
+   "quelle": "https://lichess.org/test"
+  }
+ ]
+}

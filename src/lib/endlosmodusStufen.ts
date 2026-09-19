@@ -31,13 +31,29 @@ export const STANDARD_STUFEN: StufenGroessen = [1, 1, 1];
  *  konkreten, python-chess-verifizierten Stellungen. */
 export const EROBERN_ESKALATIONS_STUFEN: StufenGroessen = [10, 8, 5];
 
-/** Welche Spalten die neue Eskalationsstruktur verwenden — aktuell nur die beiden
- *  "Figur gewinnen"-Spalten. Wird beim Übertragen des Rezepts auf die übrigen vier Motive
- *  (Fesselung lösen/setzen, Gabel, Spieß, siehe taktik_schwierigkeitseskalation_konzept_
- *  2026-09-16.md) hier erweitert. */
+/** Welche Spalten die neue Eskalationsstruktur verwenden.
+ *
+ *  Nachtrag 2026-09-19 (Bugfix, siehe claude/lueckenanalyse_deckung_lernkurve_2026-09-19.md,
+ *  Teil 4.5): Diese Liste enthielt nur die beiden "Figur gewinnen"-Spalten — der ursprüngliche
+ *  Kommentar sagte ausdrücklich, sie werde "beim Übertragen des Rezepts auf die übrigen vier
+ *  Motive hier erweitert", genau das ist beim Bau dieser Spalten aber unterblieben. Folge: Die
+ *  fünf unten neu ergänzten Spalten haben je 23 Aufgaben, bekamen aber STANDARD_STUFEN
+ *  ([1,1,1]) — die App zeigte deshalb bereits nach 3 von 23 gelösten Aufgaben drei Sterne und
+ *  danach widersprüchliche Fortschrittstexte ("Stufe 3 · Aufgabe 20 von 1").
+ *
+ *  Sind künftig weitere Spalten mit mehr als drei Aufgaben zu ergänzen, muss diese Liste
+ *  mitgepflegt werden: `EndlosmodusSpalte.tsx` entscheidet über `aufgaben.length > 3`, ob eine
+ *  Spalte die eskalierte UI bekommt, völlig unabhängig von dieser Menge hier — die beiden
+ *  Stellen können also erneut auseinanderlaufen, ohne dass der Typechecker das bemerkt. */
 const ESKALATIONS_SPALTEN: ReadonlySet<EndlosmodusSpalteId> = new Set([
   "eichhoernchen_figurGewinnen",
   "dachshoehle_figurGewinnen",
+  // Nachtrag 2026-09-19: die fünf fehlenden Spalten mit ebenfalls je 23 Aufgaben.
+  "adlerhorst_fesselung",
+  "wolfsfeste_fesselung",
+  "rabenfels_fesselungSetzen",
+  "eichhoernchen_gabel",
+  "adlerhorst_spiess",
 ]);
 
 export function stufenFuerSpalte(spalteId: EndlosmodusSpalteId): StufenGroessen {

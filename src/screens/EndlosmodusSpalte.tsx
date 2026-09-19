@@ -38,8 +38,25 @@
 // tatsächlichen Sprechende bedienbar (`fertigGesprochen`, siehe useLuxSprechzeile.ts/
 // Quest1.tsx-Kommentar zum identischen Muster) — "Zurück" bleibt dabei die einzige jederzeit
 // mögliche Eingabe.
+//
+// Nachtrag (2026-09-19, Christian: "Eine vollständige Animation, umfassend von Lux erklärt und
+// einleitend direkt auf das Wesentliche fokussiert"): Beim ERSTEN Betreten einer Spalte mit
+// einem taktischen Motiv läuft jetzt statt der einen gesprochenen Zeile die volle animierte
+// Einführung (components/MotivEinfuehrung.tsx) — eine echte Zugfolge, Schritt für Schritt
+// erklärt. Danach nur noch ein kurzer Erinnerungssatz; die volle Folge bleibt über das
+// Antippen von Lux INNERHALB der Einführung erreichbar.
+//
+// Drei Dinge, die dabei leicht schiefgehen und deshalb hier benannt sind:
+//   1. ZWEI STIMMEN. Solange die Einführung läuft (und solange noch geladen wird, ob sie
+//      überhaupt läuft), bekommt useLuxSprechzeile hier `undefined` als Zeile — sonst spräche
+//      dieser Screen seine Spaltenzeile gleichzeitig mit Lux in der Einführung.
+//   2. DIE PHASE STECKT IM SCHLÜSSEL. Ohne sie bliebe der Schlüssel beim Wechsel von
+//      "Einführung" auf "Spalte" derselbe, und der Erinnerungssatz würde nie gesprochen
+//      (useLuxSprechzeile spricht bei Schlüsselwechsel).
+//   3. FORTSCHRITT JE MOTIV, NICHT JE SPALTE (siehe motivEinfuehrungFortschritt.ts): dieselbe
+//      Fesselungs-Einführung deckt drei Spalten an drei Revieren ab.
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Pressable, SafeAreaView, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect, useNavigation, useRoute } from "@react-navigation/native";
 import { WaldHintergrund } from "../components/WaldHintergrund";
@@ -58,6 +75,17 @@ import {
   type EndlosmodusFortschritt,
 } from "../lib/endlosmodusFortschritt";
 import { useLuxSprechzeile } from "../lib/useLuxSprechzeile";
+import { MotivEinfuehrung } from "../components/MotivEinfuehrung";
+import { erinnerung as motivErinnerung, motivFuerSpalte } from "../lib/motivEinfuehrungen";
+import {
+  einfuehrungGesehen,
+  ladeMotivEinfuehrungen,
+  merkeEinfuehrungGesehen,
+} from "../lib/motivEinfuehrungFortschritt";
+import { KEIN_DRUCK_ANSAGE } from "../lib/zugBewertung";
+import { meldeFigurVerschenkt, meldeStufeAbgeschlossen } from "../lib/endlosmodusFortschritt";
+import { lobZeile } from "../lib/lobAuswahl";
+import { ENDLOSMODUS_SPALTEN } from "../lib/endlosmodusSpalten";
 import { useUntertitelAktiv } from "../lib/untertitelEinstellung";
 import { LuxEckIcon } from "../lib/luxAssets";
 import { LuxSprechblase } from "../components/LuxSprechblase";
@@ -123,6 +151,58 @@ function einfuehrungZeileFuerSpalte(id: EndlosmodusSpalteId): string {
   }
 }
 
+/**
+ * Was Lux beim Betreten sagt, NACHDEM die volle Einführung schon einmal lief.
+ *
+ * Für eine Spalte mit Motiv ist das der kurze Erinnerungssatz aus der Einführung selbst
+ * ("Such die Figur ohne Beschützer.") statt der längeren Begriffserklärung oben — die hat das
+ * Kind gerade als ganze Animation gesehen, sie ein zweites Mal vorgetragen zu bekommen wäre
+ * genau der Fehler, der im Gerätetest vom 19.09. am WisentKuerHub gemeldet wurde.
+ *
+ * Für die Spalten ohne Motiv (Schach lösen, Rochade — beides Regeln, die Quest 6 bzw. das
+ * Rochade-Kapitel ausführlich zeigen) bleibt alles wie bisher.
+ */
+/**
+ * Die einmalige Entwarnung vor der allerersten Taktik-Spalte.
+ *
+ * Christian, 2026-09-19: „um nicht zu viel Druck aufzubauen, beim Schachspiel stets die besten
+ * Züge direkt am Anfang finden zu müssen." Die dreiteilige Rückmeldung in EndlosmodusPuzzle.tsx
+ * setzt das im Verhalten um — diese vier Sätze sagen es zusätzlich einmal ausdrücklich, bevor
+ * das Kind die erste Übungsaufgabe überhaupt sieht.
+ *
+ * Bewusst an die erste Motiv-Einführung gehängt statt an eine eigene Stelle: Dort hört das Kind
+ * ohnehin gerade zu, und die Ansage braucht dadurch keinen eigenen Screen und keine eigene
+ * Fortschrittszählung.
+ */
+function entwarnungText(): string {
+  return KEIN_DRUCK_ANSAGE.map((z) => t(z.de, z.en)).join(" ");
+}
+
+function zeileBeimBetreten(id: EndlosmodusSpalteId): string {
+  const motivId = motivFuerSpalte(id);
+  if (!motivId) return einfuehrungZeileFuerSpalte(id);
+  const e = motivErinnerung(motivId);
+  return t(e.de, e.en);
+}
+
+/**
+ * Gibt es nach diesem Gefährten noch einen mit Übungsspalten?
+ *
+ * Entscheidet, ob Lux „Und beim nächsten Gefährten zeige ich dir einen neuen Trick." sagen darf
+ * — beim letzten wäre die Zeile schlicht nicht wahr.
+ *
+ * Abgeleitet aus der Reihenfolge in ENDLOSMODUS_SPALTEN statt aus einer eigenen Liste: Das IST
+ * die Abfolge der Übungsspalten, eine zweite daneben liefe unweigerlich auseinander. Der Wisent
+ * kommt dort nicht vor (er ist der Boss, keine Übungsspalte) — nach dem Wolf ist also Schluss,
+ * und das ist für diese Zeile auch die richtige Antwort.
+ */
+function hatNaechstenGefaehrten(gefaehrteId: string): boolean {
+  const reihenfolge: string[] = [];
+  for (const s of ENDLOSMODUS_SPALTEN) if (!reihenfolge.includes(s.gefaehrteId)) reihenfolge.push(s.gefaehrteId);
+  const platz = reihenfolge.indexOf(gefaehrteId);
+  return platz >= 0 && platz < reihenfolge.length - 1;
+}
+
 export default function EndlosmodusSpalte() {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
@@ -142,6 +222,11 @@ export default function EndlosmodusSpalte() {
   const [uebungsIndex, setUebungsIndex] = useState<number | null>(null);
   // Für die klassischen Drei-Aufgaben-Spalten weiterhin per Sterne-Kachel wählbar.
   const [aktiverStern, setAktiverStern] = useState<0 | 1 | 2 | null>(null);
+  // Die Lobzeile am Stufenende. `null` = gerade keine. Sie ist die einzige Stelle, an der der
+  // Verschenkt-Zähler je nach außen tritt — dem Kind wird er nie als Zahl gezeigt.
+  const [lob, setLob] = useState<string | null>(null);
+  // Rotiert den Können-Pool über die Sitzung hinweg.
+  const lobZaehler = useRef(0);
 
   const ladeFortschritt = useCallback(() => {
     ladeEndlosmodusFortschritt().then(setFortschritt);
@@ -157,10 +242,62 @@ export default function EndlosmodusSpalte() {
   // Begründung wie beim Verwandlungs-Screen in Quest1.tsx: eine einmalige Einführung soll sich
   // nicht alle 8 Sekunden wiederholen, sobald sie einmal fertig gesprochen ist). Vor Hooks-
   // Regeln bewusst noch VOR dem `if (!aufgaben) return null;` unten aufgerufen.
+  // Nachtrag 2026-09-19 (siehe Datei-Kopfkommentar): Läuft für diese Spalte noch die volle
+  // Motiv-Einführung? `null` heißt "wird gerade nachgesehen" — in diesem Moment darf noch
+  // NICHTS gesprochen werden, sonst beginnt die Spaltenzeile und die Einführung fällt ihr
+  // eine Sekunde später ins Wort.
+  const motivId = motivFuerSpalte(spalteId);
+  const [einfuehrungOffen, setEinfuehrungOffen] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let aktiv = true;
+    if (!motivId) {
+      setEinfuehrungOffen(false);
+      return;
+    }
+    einfuehrungGesehen(motivId).then((gesehen) => {
+      if (aktiv) setEinfuehrungOffen(!gesehen);
+    });
+    return () => {
+      aktiv = false;
+    };
+  }, [motivId]);
+
+  // Lief schon irgendeine Motiv-Einführung? Entscheidet, ob die Entwarnung noch fällig ist.
+  const [entwarnungFaellig, setEntwarnungFaellig] = useState<boolean | null>(null);
+  useEffect(() => {
+    let aktiv = true;
+    ladeMotivEinfuehrungen().then((stand) => {
+      if (aktiv) setEntwarnungFaellig(Object.keys(stand).length === 0);
+    });
+    return () => {
+      aktiv = false;
+    };
+  }, []);
+
+  const phase: "laden" | "entwarnung" | "einfuehrung" | "spalte" =
+    einfuehrungOffen === null || entwarnungFaellig === null
+      ? "laden"
+      : einfuehrungOffen && entwarnungFaellig
+        ? "entwarnung"
+        : einfuehrungOffen
+          ? "einfuehrung"
+          : "spalte";
+
+  // EIN Sprechzeilen-Hook für diesen Screen, drei mögliche Inhalte: nichts (während Ladephase
+  // und Einführung), die Begrüßung beim Betreten, oder die Lobzeile am Stufenende. Bewusst kein
+  // zweiter Hook daneben — zwei Hooks würden einander ins Wort fallen, und `useLuxSprechzeile`
+  // stoppt beim Schlüsselwechsel eine laufende Ausgabe sauber ab.
+  const sprechInhalt =
+    lob ?? (phase === "entwarnung" ? entwarnungText() : phase === "spalte" ? zeileBeimBetreten(spalteId) : null);
   const { wiederholen, aktuelleZeile, fertigGesprochen } = useLuxSprechzeile(
-    spalteId,
-    () => einfuehrungZeileFuerSpalte(spalteId),
-    undefined,
+    // Die Phase MUSS im Schlüssel stehen, siehe Datei-Kopfkommentar Punkt 2. Die Lobzeile
+    // bekommt einen eigenen Schlüssel, damit sie die Begrüßung wirklich ablöst.
+    lob ? `${spalteId}-lob-${lobZaehler.current}` : `${spalteId}-${phase}`,
+    sprechInhalt ? () => sprechInhalt : undefined,
+    // Nur die Entwarnung läuft von selbst weiter — danach beginnt sofort die Einführung.
+    // Alles andere wartet auf das Kind.
+    phase === "entwarnung" ? () => setEntwarnungFaellig(false) : undefined,
     { erinnerung: false }
   );
   const zeigeUntertitel = useUntertitelAktiv();
@@ -168,6 +305,64 @@ export default function EndlosmodusSpalte() {
   if (!aufgaben) {
     // Sollte nicht erreichbar sein (Revier.tsx verlinkt nur "bereit"-Spalten), Sicherheitsnetz.
     return null;
+  }
+
+  // Der Blick in den Speicher dauert einen Wimpernschlag. Solange bewusst nur der Hintergrund:
+  // Würde hier schon die Spalte mit ihren Kacheln stehen, sähe das Kind sie kurz aufblitzen und
+  // dann von der Einführung verdrängt werden.
+  if (phase === "laden") {
+    return (
+      <View style={styles.wurzel}>
+        <WaldHintergrund />
+      </View>
+    );
+  }
+
+  // Die Entwarnung: nur Lux und ihre Worte, kein Brett. Das Kind soll zuhören, nicht suchen.
+  // Nicht überspringbar wie alles andere auch — es gibt hier bewusst nichts Antippbares außer
+  // "Zurück".
+  if (phase === "entwarnung") {
+    return (
+      <View style={styles.wurzel}>
+        <WaldHintergrund />
+        <SafeAreaView style={styles.safe} pointerEvents="box-none">
+          <Pressable
+            onPress={() => navigation.goBack()}
+            accessibilityLabel={t("Zurück", "Back")}
+            hitSlop={{ top: 12, left: 12, right: 12, bottom: 12 }}
+            style={styles.zurueck}
+          >
+            <FarnZurueckIcon size={26} />
+          </Pressable>
+          <Pressable
+            style={styles.luxCorner}
+            onPress={wiederholen}
+            hitSlop={{ top: 12, left: 12, right: 12, bottom: 12 }}
+            accessibilityLabel={t("Lux, tippen zum Wiederholen", "Lux, tap to repeat")}
+          >
+            <LuxEckIcon size={44} />
+          </Pressable>
+          {zeigeUntertitel && (
+            <LuxSprechblase text={aktuelleZeile} zeilenSchluessel={`${spalteId}-entwarnung`} style={styles.sprechblase} />
+          )}
+        </SafeAreaView>
+      </View>
+    );
+  }
+
+  if (phase === "einfuehrung" && motivId) {
+    return (
+      <MotivEinfuehrung
+        motivId={motivId}
+        // Erst am ENDE gemerkt, nicht beim Start: Bricht das Kind mit "Zurück" ab, soll es die
+        // Erklärung beim nächsten Mal noch einmal ganz bekommen (siehe
+        // motivEinfuehrungFortschritt.ts).
+        onFertig={() => {
+          merkeEinfuehrungGesehen(motivId).finally(() => setEinfuehrungOffen(false));
+        }}
+        onAbbruch={() => navigation.goBack()}
+      />
+    );
   }
 
   const sterne = sterneInSpalte(fortschritt, spalteId);
@@ -181,6 +376,36 @@ export default function EndlosmodusSpalte() {
     const imUebungsModus = uebungsIndex !== null;
     const offenerIndex = imUebungsModus ? uebungsIndex! : naechsterIndex;
 
+    /**
+     * Prüft, ob mit dieser Aufgabe eine STUFE fertig wurde, und stellt die Lobzeile zusammen.
+     *
+     * Hier — und nur hier — wird der Verschenkt-Zähler ausgewertet. Er wird dem Kind nie als
+     * Zahl gezeigt und hat keine Folge für den Fortschritt; er dient allein dazu, etwas Wahres
+     * sagen zu können ("Beim letzten Mal ist dir noch eine Figur weggekommen. Diesmal keine
+     * einzige!"). Der Grundsatz "kein Fehlerzähler, keine Bestrafung" bleibt damit gewahrt.
+     */
+    async function pruefeStufenabschluss(index: number) {
+      const { stufe, positionInStufe, groesseStufe } = stufeUndPositionFuerIndex(index, stufen);
+      if (positionInStufe !== groesseStufe) return;
+
+      // meldeStufeAbgeschlossen liefert die beiden Zahlen SELBST zurück, und zwar die Stände von
+      // VOR dem Rundenwechsel. Das ist hier wesentlich: Der Abschluss überführt den laufenden
+      // Zähler in die Vorrunde und setzt ihn auf null (rundeAbschliessen in lobAuswahl.ts) —
+      // danach separat gelesen wäre "diesmal" immer null und das Lob eine Behauptung statt
+      // einer Feststellung.
+      const { verschenktJetzt, verschenktVorher } = await meldeStufeAbgeschlossen(spalteId, stufe);
+
+      const zeile = lobZeile(
+        {
+          verschenktJetzt,
+          verschenktVorher,
+          hatNaechstenGefaehrten: hatNaechstenGefaehrten(spalte.gefaehrteId),
+        },
+        lobZaehler.current++
+      );
+      setLob(t(zeile.de, zeile.en));
+    }
+
     async function handleEskaliertGeloest(index: number) {
       if (imUebungsModus) {
         // Bereits gelöste Aufgaben werden hier nur wiederholt (kein erneuter Speicher-
@@ -192,6 +417,7 @@ export default function EndlosmodusSpalte() {
       }
       const neu = await meldeAufgabeGeloest(spalteId, index);
       setFortschritt(neu);
+      await pruefeStufenabschluss(index);
     }
 
     return (
@@ -257,6 +483,15 @@ export default function EndlosmodusSpalte() {
                 <EndlosmodusPuzzle
                   key={offenerIndex}
                   aufgabe={aufgaben[offenerIndex]}
+                  motivId={motivId}
+                  // Zählt mit, ohne es dem Kind je zu zeigen: Am Stufenende soll Lux etwas
+                  // Wahres sagen können ("Beim letzten Mal ist dir noch eine Figur weggekommen.
+                  // Diesmal keine einzige!"). Der Grundsatz "kein Fehlerzähler, keine
+                  // Bestrafung" bleibt gewahrt — die Zahl hat keine Folge für den Fortschritt.
+                  onVerschenkt={() => {
+                    const { stufe } = stufeUndPositionFuerIndex(offenerIndex, stufen);
+                    meldeFigurVerschenkt(spalteId, stufe);
+                  }}
                   onSolved={() => handleEskaliertGeloest(offenerIndex)}
                 />
               </>
@@ -301,7 +536,14 @@ export default function EndlosmodusSpalte() {
 
         {aktiverStern !== null ? (
           <View style={styles.mitte}>
-            <EndlosmodusPuzzle aufgabe={aufgaben[aktiverStern]} onSolved={() => handleSolved(aktiverStern)} />
+            <EndlosmodusPuzzle
+              aufgabe={aufgaben[aktiverStern]}
+              motivId={motivId}
+              // Die klassischen Drei-Aufgaben-Spalten haben keine Stufen-Eskalation; die
+              // Verschenkt-Zählung hängt dort an Stufe 1.
+              onVerschenkt={() => meldeFigurVerschenkt(spalteId, 1)}
+              onSolved={() => handleSolved(aktiverStern)}
+            />
           </View>
         ) : (
           <View style={styles.mitte}>

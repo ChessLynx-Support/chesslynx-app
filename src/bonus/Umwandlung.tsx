@@ -104,8 +104,16 @@ function zeilenFuer(screen: ScreenId, teilzug: Teilzug, warSchonAbgeschlossen: b
       return teilzug === 0
         ? ["Jetzt bist du dran! Zieh deinen Bauern ganz nach vorne."]
         : [
+            // Nachtrag 2026-09-19 (Christian, Entscheidung aus der Lückenanalyse, siehe
+            // claude/lueckenanalyse_deckung_lernkurve_2026-09-19.md, Teil 4.6): Die frühere
+            // zweite Zeile "Später darfst du sogar aussuchen, was aus deinem Bauern wird."
+            // versprach dem Kind eine Figur-Auswahl-UI bei der Umwandlung, die es nicht gibt —
+            // `tryMove()` übergibt immer `promotion: "q"` (siehe Kopfkommentar dieser Datei
+            // sowie chessEngine.ts/UMWANDLUNGS_KUER_POSITION). Entschieden wurde, die Zeile zu
+            // streichen statt die UI zu bauen: Die inhaltliche Aussage trägt bereits Screen 0
+            // ("Meistens nimmt man die Dame – die stärkste von allen."), es geht also kein
+            // Lerninhalt verloren, und das falsche Versprechen verschwindet vor dem Launch.
             "Und schon ist er eine Dame! Und schau – gleich Matt. Der König darf raus aus seiner Ecke!",
-            "Später darfst du sogar aussuchen, was aus deinem Bauern wird.",
           ];
     case 2:
       return ["Du kennst jetzt die Umwandlung – die kann am Ende einer Partie alles entscheiden!"];

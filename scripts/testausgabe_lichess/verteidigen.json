@@ -1,0 +1,170 @@
+{
+ "klein": [
+  {
+   "id": "T_VERT_DECK",
+   "fen": "3r2k1/8/8/8/3B4/8/8/R6K w - - 1 2",
+   "kindFarbe": "w",
+   "gespiegelt": false,
+   "loesung": "a1d1",
+   "figuren": 5,
+   "kindzuegeGesamt": 1,
+   "rating": 700,
+   "popularity": 95,
+   "nbPlays": 5000,
+   "gibtSchach": false,
+   "istMatt": false,
+   "lichessTags": [
+    "fork",
+    "hangingPiece",
+    "oneMove",
+    "pin",
+    "skewer"
+   ],
+   "motive": {
+    "verteidigen": {
+     "gerettet": "bd4",
+     "wert": 3,
+     "weg": "decken",
+     "besterWegHier": "decken",
+     "begruendung": "Angreifer ist mindestens gleich viel wert",
+     "stimmtMitLoesung": true,
+     "loesungen": 12,
+     "eindeutig": false,
+     "zugweite": 3,
+     "zielweite": 3
+    }
+   },
+   "mehrereMotive": false,
+   "quelle": "https://lichess.org/test"
+  },
+  {
+   "id": "T_VERT_WEG",
+   "fen": "7k/8/8/2b5/8/8/5R2/7K w - - 1 2",
+   "kindFarbe": "w",
+   "gespiegelt": false,
+   "loesung": "f2a2",
+   "figuren": 4,
+   "kindzuegeGesamt": 1,
+   "rating": 700,
+   "popularity": 95,
+   "nbPlays": 5000,
+   "gibtSchach": false,
+   "istMatt": false,
+   "lichessTags": [
+    "fork",
+    "hangingPiece",
+    "oneMove",
+    "pin",
+    "skewer"
+   ],
+   "motive": {
+    "verteidigen": {
+     "gerettet": "rf2",
+     "wert": 5,
+     "weg": "wegziehen",
+     "besterWegHier": "wegziehen",
+     "begruendung": "Angreifer ist weniger wert — decken lohnt nicht",
+     "stimmtMitLoesung": true,
+     "loesungen": 15,
+     "eindeutig": false,
+     "zugweite": 5,
+     "zielweite": 5
+    }
+   },
+   "mehrereMotive": false,
+   "quelle": "https://lichess.org/test"
+  },
+  {
+   "id": "T_VERT_SCHLAG",
+   "fen": "k7/8/1b6/8/3R4/8/8/1R5K w - - 1 2",
+   "kindFarbe": "w",
+   "gespiegelt": false,
+   "loesung": "b1b6",
+   "figuren": 5,
+   "kindzuegeGesamt": 1,
+   "rating": 700,
+   "popularity": 95,
+   "nbPlays": 5000,
+   "gibtSchach": false,
+   "istMatt": false,
+   "lichessTags": [
+    "fork",
+    "hangingPiece",
+    "oneMove",
+    "pin",
+    "skewer"
+   ],
+   "motive": {
+    "figur_gewinnen": {
+     "geschlagen": "b",
+     "wert": 3,
+     "zielFeld": "b6",
+     "loesungen": 1,
+     "eindeutig": true,
+     "zugweite": 5,
+     "zielweite": 0
+    },
+    "verteidigen": {
+     "gerettet": "rd4",
+     "wert": 5,
+     "weg": "angreifer_schlagen",
+     "besterWegHier": "angreifer_schlagen",
+     "begruendung": "nichts schlägt zurück",
+     "stimmtMitLoesung": true,
+     "loesungen": 16,
+     "eindeutig": false,
+     "zugweite": 5,
+     "zielweite": 2
+    }
+   },
+   "mehrereMotive": true,
+   "quelle": "https://lichess.org/test"
+  },
+  {
+   "id": "T_VERT_BESTER",
+   "fen": "k7/8/1b6/8/3R4/8/8/1R5K w - - 1 2",
+   "kindFarbe": "w",
+   "gespiegelt": false,
+   "loesung": "b1b6",
+   "figuren": 5,
+   "kindzuegeGesamt": 1,
+   "rating": 700,
+   "popularity": 95,
+   "nbPlays": 5000,
+   "gibtSchach": false,
+   "istMatt": false,
+   "lichessTags": [
+    "fork",
+    "hangingPiece",
+    "oneMove",
+    "pin",
+    "skewer"
+   ],
+   "motive": {
+    "figur_gewinnen": {
+     "geschlagen": "b",
+     "wert": 3,
+     "zielFeld": "b6",
+     "loesungen": 1,
+     "eindeutig": true,
+     "zugweite": 5,
+     "zielweite": 0
+    },
+    "verteidigen": {
+     "gerettet": "rd4",
+     "wert": 5,
+     "weg": "angreifer_schlagen",
+     "besterWegHier": "angreifer_schlagen",
+     "begruendung": "nichts schlägt zurück",
+     "stimmtMitLoesung": true,
+     "loesungen": 16,
+     "eindeutig": false,
+     "zugweite": 5,
+     "zielweite": 2
+    }
+   },
+   "mehrereMotive": true,
+   "quelle": "https://lichess.org/test"
+  }
+ ]
+}
